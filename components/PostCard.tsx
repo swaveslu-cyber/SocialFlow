@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Post, PostStatus, UserRole } from '../types';
 import { 
@@ -45,6 +46,7 @@ const StatusBadge = ({ status }: { status: PostStatus }) => {
 export const PostCard: React.FC<PostCardProps> = ({ post, role, compact, onDelete, onStatusChange, onEdit }) => {
   const [activeTab, setActiveTab] = useState<'content' | 'comments' | 'history'>('content');
   const [newComment, setNewComment] = useState('');
+  const [showLightbox, setShowLightbox] = useState(false);
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,15 +74,28 @@ export const PostCard: React.FC<PostCardProps> = ({ post, role, compact, onDelet
         </div>
 
         {post.mediaUrl && (
-          <div className="aspect-video w-full bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden relative group shrink-0">
+          <div className="aspect-video w-full bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden relative group shrink-0 border border-gray-100 dark:border-gray-700">
             {post.mediaType === 'video' ? (
-                <video src={post.mediaUrl} controls className="w-full h-full object-cover" />
+                <video 
+                    src={post.mediaUrl} 
+                    controls 
+                    className="w-full h-full object-contain bg-black" 
+                    playsInline
+                    preload="metadata"
+                />
             ) : (
-                <img src={post.mediaUrl} alt="Visual" className="w-full h-full object-cover" />
+                <div 
+                    onClick={() => setShowLightbox(true)}
+                    className="w-full h-full cursor-zoom-in relative"
+                >
+                    <img src={post.mediaUrl} alt="Visual" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    </div>
+                </div>
             )}
             {post.mediaType === 'video' && (
-                <div className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full">
-                    <PlayCircle className="w-4 h-4" />
+                <div className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full pointer-events-none z-10">
+                    <Video className="w-3 h-3" />
                 </div>
             )}
           </div>
@@ -145,98 +160,124 @@ export const PostCard: React.FC<PostCardProps> = ({ post, role, compact, onDelet
   );
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col transition-all hover:shadow-md ${compact ? '' : 'h-full'}`}>
-      
-      {/* Header */}
-      <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-start bg-gray-50/50 dark:bg-gray-900/30">
-        <div className="space-y-1">
-           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-sm">
-             <Building2 className="w-3 h-3" />
-             {post.client}
-           </div>
-           <div className="flex items-center gap-2">
-            <PlatformIcon platform={post.platform} />
-            <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">{post.platform}</span>
-          </div>
+    <>
+        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col transition-all hover:shadow-md ${compact ? '' : 'h-full'}`}>
+        
+        {/* Header */}
+        <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-start bg-gray-50/50 dark:bg-gray-900/30">
+            <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-sm">
+                <Building2 className="w-3 h-3" />
+                {post.client}
+            </div>
+            <div className="flex items-center gap-2">
+                <PlatformIcon platform={post.platform} />
+                <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">{post.platform}</span>
+            </div>
+            </div>
+            <StatusBadge status={post.status} />
         </div>
-        <StatusBadge status={post.status} />
-      </div>
 
-      {/* Tabs (Only in expanded view) */}
-      {!compact && (
-        <div className="flex border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <button onClick={() => setActiveTab('content')} className={`flex-1 py-3 text-xs font-medium border-b-2 transition-colors ${activeTab === 'content' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>Preview</button>
-          <button onClick={() => setActiveTab('comments')} className={`flex-1 py-3 text-xs font-medium border-b-2 transition-colors flex items-center justify-center gap-1 ${activeTab === 'comments' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>
-             Comments <span className="bg-gray-100 dark:bg-gray-700 px-1.5 rounded-full text-[9px]">{post.comments.length}</span>
-          </button>
-          <button onClick={() => setActiveTab('history')} className={`flex-1 py-3 text-xs font-medium border-b-2 transition-colors flex items-center justify-center gap-1 ${activeTab === 'history' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>
-             History <span className="bg-gray-100 dark:bg-gray-700 px-1.5 rounded-full text-[9px]">{post.history.length}</span>
-          </button>
+        {/* Tabs (Only in expanded view) */}
+        {!compact && (
+            <div className="flex border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <button onClick={() => setActiveTab('content')} className={`flex-1 py-3 text-xs font-medium border-b-2 transition-colors ${activeTab === 'content' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>Preview</button>
+            <button onClick={() => setActiveTab('comments')} className={`flex-1 py-3 text-xs font-medium border-b-2 transition-colors flex items-center justify-center gap-1 ${activeTab === 'comments' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>
+                Comments <span className="bg-gray-100 dark:bg-gray-700 px-1.5 rounded-full text-[9px]">{post.comments.length}</span>
+            </button>
+            <button onClick={() => setActiveTab('history')} className={`flex-1 py-3 text-xs font-medium border-b-2 transition-colors flex items-center justify-center gap-1 ${activeTab === 'history' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>
+                History <span className="bg-gray-100 dark:bg-gray-700 px-1.5 rounded-full text-[9px]">{post.history.length}</span>
+            </button>
+            </div>
+        )}
+
+        {/* Main Body */}
+        <div className="p-4 flex-grow bg-white dark:bg-gray-800 min-h-[200px]">
+            {activeTab === 'content' ? renderContent() : (activeTab === 'comments' ? renderComments() : renderHistory())}
         </div>
-      )}
 
-      {/* Main Body */}
-      <div className="p-4 flex-grow bg-white dark:bg-gray-800 min-h-[200px]">
-         {activeTab === 'content' ? renderContent() : (activeTab === 'comments' ? renderComments() : renderHistory())}
-      </div>
-
-      {/* Actions Footer */}
-      {!compact && (
-        <div className="p-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-900/30 flex flex-col gap-3">
-          {/* Action Buttons */}
-          <div className="flex flex-wrap justify-between items-center gap-2">
-             
-             {/* Agency Workflow Controls */}
-             {role === 'agency' && (
-                <div className="flex gap-2 flex-wrap">
-                   {post.status === 'Draft' && (
-                      <button onClick={() => onStatusChange?.(post.id, 'In Review')} className="text-xs bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700 flex items-center gap-1 shadow-sm">
-                        Submit for Review <ArrowRight className="w-3 h-3"/>
-                      </button>
-                   )}
-                   {post.status === 'Approved' && (
-                      <button onClick={() => onStatusChange?.(post.id, 'Scheduled')} className="text-xs bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 flex items-center gap-1 shadow-sm">
-                         Mark Scheduled
-                      </button>
-                   )}
-                   {post.status === 'Scheduled' && (
-                      <button onClick={() => onStatusChange?.(post.id, 'Published')} className="text-xs bg-emerald-600 text-white px-3 py-2 rounded hover:bg-emerald-700 flex items-center gap-1 shadow-sm">
-                         Mark Published
-                      </button>
-                   )}
-                </div>
-             )}
-
-             {/* Client Workflow Controls */}
-             {role === 'client' && post.status === 'In Review' && (
-                <div className="flex gap-2 w-full sm:w-auto">
-                   <button onClick={() => onStatusChange?.(post.id, 'Approved')} className="flex-1 sm:flex-none text-xs bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 flex items-center justify-center gap-1 shadow-sm">
-                      <CheckCircle className="w-3 h-3"/> Approve
-                   </button>
-                   <button onClick={() => setActiveTab('comments')} className="flex-1 sm:flex-none text-xs bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800 px-3 py-2 rounded hover:bg-amber-200 dark:hover:bg-amber-900/60 flex items-center justify-center gap-1 shadow-sm">
-                      <MessageSquare className="w-3 h-3"/> Changes
-                   </button>
-                </div>
-             )}
-
-             <div className="flex gap-1 ml-auto">
-                <button onClick={copyToClipboard} title="Copy Content" className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
-                   <Copy className="w-4 h-4"/>
-                </button>
+        {/* Actions Footer */}
+        {!compact && (
+            <div className="p-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-900/30 flex flex-col gap-3">
+            {/* Action Buttons */}
+            <div className="flex flex-wrap justify-between items-center gap-2">
+                
+                {/* Agency Workflow Controls */}
                 {role === 'agency' && (
-                  <>
-                    <button onClick={() => onEdit?.(post)} title="Edit" className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded transition-colors">
-                      <Edit2 className="w-4 h-4"/>
-                    </button>
-                    <button onClick={() => onDelete?.(post.id)} title="Delete" className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors">
-                      <Trash2 className="w-4 h-4"/>
-                    </button>
-                  </>
+                    <div className="flex gap-2 flex-wrap">
+                    {post.status === 'Draft' && (
+                        <button onClick={() => onStatusChange?.(post.id, 'In Review')} className="text-xs bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700 flex items-center gap-1 shadow-sm">
+                            Submit for Review <ArrowRight className="w-3 h-3"/>
+                        </button>
+                    )}
+                    {post.status === 'Approved' && (
+                        <button onClick={() => onStatusChange?.(post.id, 'Scheduled')} className="text-xs bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 flex items-center gap-1 shadow-sm">
+                            Mark Scheduled
+                        </button>
+                    )}
+                    {post.status === 'Scheduled' && (
+                        <button onClick={() => onStatusChange?.(post.id, 'Published')} className="text-xs bg-emerald-600 text-white px-3 py-2 rounded hover:bg-emerald-700 flex items-center gap-1 shadow-sm">
+                            Mark Published
+                        </button>
+                    )}
+                    </div>
                 )}
-             </div>
-          </div>
+
+                {/* Client Workflow Controls */}
+                {role === 'client' && post.status === 'In Review' && (
+                    <div className="flex gap-2 w-full sm:w-auto">
+                    <button onClick={() => onStatusChange?.(post.id, 'Approved')} className="flex-1 sm:flex-none text-xs bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 flex items-center justify-center gap-1 shadow-sm">
+                        <CheckCircle className="w-3 h-3"/> Approve
+                    </button>
+                    <button onClick={() => setActiveTab('comments')} className="flex-1 sm:flex-none text-xs bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800 px-3 py-2 rounded hover:bg-amber-200 dark:hover:bg-amber-900/60 flex items-center justify-center gap-1 shadow-sm">
+                        <MessageSquare className="w-3 h-3"/> Changes
+                    </button>
+                    </div>
+                )}
+
+                <div className="flex gap-1 ml-auto">
+                    <button onClick={copyToClipboard} title="Copy Content" className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
+                    <Copy className="w-4 h-4"/>
+                    </button>
+                    {role === 'agency' && (
+                    <>
+                        <button onClick={() => onEdit?.(post)} title="Edit" className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded transition-colors">
+                        <Edit2 className="w-4 h-4"/>
+                        </button>
+                        <button onClick={() => onDelete?.(post.id)} title="Delete" className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors">
+                        <Trash2 className="w-4 h-4"/>
+                        </button>
+                    </>
+                    )}
+                </div>
+            </div>
+            </div>
+        )}
         </div>
-      )}
-    </div>
+
+        {/* Lightbox Modal */}
+        {showLightbox && (
+            <div 
+                className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setShowLightbox(false);
+                }}
+            >
+                <button 
+                    onClick={() => setShowLightbox(false)} 
+                    className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors"
+                >
+                    <XCircle className="w-8 h-8" />
+                </button>
+                <img 
+                    src={post.mediaUrl} 
+                    alt="Full View" 
+                    className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200"
+                    onClick={(e) => e.stopPropagation()} 
+                />
+            </div>
+        )}
+    </>
   );
 };
