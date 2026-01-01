@@ -17,6 +17,20 @@ export const db = {
          await supabase.from('app_config').insert({ key: 'agency_password', value: 'admin123' });
     }
 
+    // Check/Seed Agency Recovery Key if missing
+    const { data: rec } = await supabase.from('app_config').select('value').eq('key', 'agency_recovery_key').maybeSingle();
+    if (!rec) {
+         console.log("Seeding default agency recovery key");
+         await supabase.from('app_config').insert({ key: 'agency_recovery_key', value: 'recover-admin' });
+    }
+
+    // Check/Seed Agency Recovery Question if missing
+    const { data: q } = await supabase.from('app_config').select('value').eq('key', 'agency_recovery_question').maybeSingle();
+    if (!q) {
+         console.log("Seeding default recovery question");
+         await supabase.from('app_config').insert({ key: 'agency_recovery_question', value: 'What is the default recovery key?' });
+    }
+
     // Auto-seed if empty (Check if any clients exist)
     const { count, error } = await supabase.from('clients').select('*', { count: 'exact', head: true });
     
@@ -51,6 +65,36 @@ export const db = {
         .upsert({ key: 'agency_password', value: newPass });
       
       if (error) throw error;
+  },
+
+  // Get the security question to display to the user
+  getRecoveryQuestion: async (): Promise<string> => {
+      const { data } = await supabase
+        .from('app_config')
+        .select('value')
+        .eq('key', 'agency_recovery_question')
+        .single();
+      return data?.value || "Enter Recovery Key";
+  },
+
+  resetAgencyPassword: async (recoveryAnswer: string, newPass: string): Promise<boolean> => {
+      const { data } = await supabase
+        .from('app_config')
+        .select('value')
+        .eq('key', 'agency_recovery_key')
+        .single();
+      
+      if (!data || data.value !== recoveryAnswer) {
+          return false;
+      }
+
+      await db.updateAgencyPassword(newPass);
+      return true;
+  },
+
+  updateRecoverySettings: async (question: string, answer: string): Promise<void> => {
+      await supabase.from('app_config').upsert({ key: 'agency_recovery_question', value: question });
+      await supabase.from('app_config').upsert({ key: 'agency_recovery_key', value: answer });
   },
 
   verifyClientLogin: async (clientName: string, accessCode: string): Promise<boolean> => {

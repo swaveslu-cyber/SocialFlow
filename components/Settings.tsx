@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { Template, Snippet, Platform, PLATFORMS, ClientProfile } from '../types';
-import { Trash2, Plus, Save, X, Building2, FileText, Hash, KeyRound, Copy, ShieldCheck, ArrowLeft, Mail, Phone, Globe, Instagram, Linkedin, Twitter, Facebook, Video, Edit3, UserCircle, StickyNote, Download, Upload, Database, RefreshCw } from 'lucide-react';
+import { Trash2, Plus, Save, X, Building2, FileText, Hash, KeyRound, Copy, ShieldCheck, ArrowLeft, Mail, Phone, Globe, Instagram, Linkedin, Twitter, Facebook, Video, Edit3, UserCircle, StickyNote, Download, Upload, Database, RefreshCw, Lock, HelpCircle } from 'lucide-react';
 
 interface SettingsProps {
   clients: string[]; 
@@ -39,6 +39,16 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
 
   // Security State
   const [newAgencyPass, setNewAgencyPass] = useState('');
+  
+  const [newRecoveryQuestion, setNewRecoveryQuestion] = useState('');
+  const [newRecoveryAnswer, setNewRecoveryAnswer] = useState('');
+
+  // Load current question on mount
+  useEffect(() => {
+    if(activeTab === 'security') {
+        db.getRecoveryQuestion().then(setNewRecoveryQuestion);
+    }
+  }, [activeTab]);
 
   const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,6 +104,17 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       await db.updateAgencyPassword(newAgencyPass);
       setNewAgencyPass('');
       alert("Agency password updated successfully!");
+  }
+
+  const handleUpdateRecovery = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (newRecoveryQuestion.length < 5 || newRecoveryAnswer.length < 3) {
+          alert("Please provide a valid question and answer.");
+          return;
+      }
+      await db.updateRecoverySettings(newRecoveryQuestion, newRecoveryAnswer);
+      setNewRecoveryAnswer('');
+      alert("Recovery settings updated successfully! Please remember this answer.");
   }
 
   const handleClearData = async () => {
@@ -541,21 +562,51 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                     </div>
                 </div>
 
-                <form onSubmit={handleUpdatePassword} className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 bg-gray-50/30 dark:bg-gray-750 space-y-4">
-                    <h3 className="font-bold text-lg text-gray-800 dark:text-white">Update Agency Password</h3>
-                    <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
-                        <input 
-                            type="password"
-                            required
-                            minLength={4}
-                            value={newAgencyPass} 
-                            onChange={e => setNewAgencyPass(e.target.value)}
-                            className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                        />
-                    </div>
-                    <button type="submit" className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Update Password</button>
-                </form>
+                <div className="space-y-6">
+                    <form onSubmit={handleUpdatePassword} className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 bg-gray-50/30 dark:bg-gray-750 space-y-4">
+                        <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2"><Lock className="w-4 h-4" /> Update Agency Password</h3>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+                            <input 
+                                type="password"
+                                required
+                                minLength={4}
+                                value={newAgencyPass} 
+                                onChange={e => setNewAgencyPass(e.target.value)}
+                                className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                            />
+                        </div>
+                        <button type="submit" className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Update Password</button>
+                    </form>
+
+                    <form onSubmit={handleUpdateRecovery} className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 bg-gray-50/30 dark:bg-gray-750 space-y-4">
+                        <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2"><KeyRound className="w-4 h-4" /> Update Recovery Settings</h3>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Security Question</label>
+                            <input 
+                                type="text"
+                                required
+                                minLength={5}
+                                value={newRecoveryQuestion} 
+                                onChange={e => setNewRecoveryQuestion(e.target.value)}
+                                className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-2"
+                                placeholder="e.g. What is my pet's name?"
+                            />
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Security Answer (Recovery Key)</label>
+                            <input 
+                                type="password"
+                                required
+                                minLength={3}
+                                value={newRecoveryAnswer} 
+                                onChange={e => setNewRecoveryAnswer(e.target.value)}
+                                className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                placeholder="e.g. Fluffy"
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1">If you forget your password, you will be asked this question.</p>
+                        </div>
+                        <button type="submit" className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Update Recovery Settings</button>
+                    </form>
+                </div>
             </div>
         )}
       </div>

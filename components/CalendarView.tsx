@@ -41,7 +41,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ posts, onPostClick }
     const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
     const dayStr = day.toString().padStart(2, '0');
     const dateStr = `${currentDate.getFullYear()}-${month}-${dayStr}`;
-    return posts.filter(p => p.date === dateStr);
+    
+    return posts.filter(p => {
+        // Compare only the YYYY-MM-DD part, ignoring time if present
+        const postDate = p.date.split(' ')[0];
+        return postDate === dateStr;
+    });
   };
 
   const getStatusStyles = (status: string) => {

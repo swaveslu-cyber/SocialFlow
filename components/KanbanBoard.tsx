@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Post, PostStatus, STATUS_FLOW, UserRole } from '../types';
 import { PostCard } from './PostCard';
@@ -7,7 +8,7 @@ interface KanbanBoardProps {
   posts: Post[];
   role: UserRole;
   onPostClick: (post: Post) => void;
-  onStatusChange: (id: string, status: PostStatus) => void;
+  onStatusChange: (id: string, status: PostStatus, feedback?: string) => void;
   onDelete: (id: string) => void;
 }
 
@@ -25,12 +26,48 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ posts, role, onPostCli
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e: React.DragEvent, status: PostStatus) => {
+  const handleDrop = (e: React.DragEvent, targetStatus: PostStatus) => {
     e.preventDefault();
     const postId = e.dataTransfer.getData('postId');
-    if (postId) {
-      onStatusChange(postId, status);
+    if (!postId) return;
+
+    const post = posts.find(p => p.id === postId);
+    if (!post) {
+        setDraggedPostId(null);
+        return;
     }
+
+    // --- Client Workflow Restrictions ---
+    if (role === 'client') {
+        // 1. Prevent moving to Scheduled, Published or Draft
+        if (targetStatus === 'Scheduled' || targetStatus === 'Published') {
+            alert("Only your agency can schedule or publish posts.");
+            setDraggedPostId(null);
+            return;
+        }
+        if (targetStatus === 'Draft') {
+             alert("You cannot move posts back to Draft. Please request changes instead.");
+             setDraggedPostId(null);
+             return;
+        }
+
+        // 2. Enforce "No change to post = no change in status"
+        // If moving FROM Approved TO In Review (Rejection), require feedback
+        if (targetStatus === 'In Review' && post.status === 'Approved') {
+            const feedback = prompt("Please describe the changes needed to move this back to review:");
+            if (!feedback || feedback.trim() === "") {
+                // User cancelled or entered nothing - abort status change
+                setDraggedPostId(null);
+                return; 
+            }
+            // Proceed with status change AND feedback
+            onStatusChange(postId, targetStatus, feedback);
+            setDraggedPostId(null);
+            return;
+        }
+    }
+
+    onStatusChange(postId, targetStatus);
     setDraggedPostId(null);
   };
 
@@ -80,7 +117,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ posts, role, onPostCli
                     key={post.id}
                     draggable
                     onDragStart={(e) => handleDragStart(e, post.id)}
-                    className="cursor-move active:scale-[0.98] transition-transform touch-manipulation"
+                    className="cursor-pointer active:scale-[0.98] transition-transform touch-manipulation animate-slide-in relative group"
                     onClick={() => onPostClick(post)}
                  >
                     <div className="pointer-events-none">
@@ -88,6 +125,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ posts, role, onPostCli
                             post={post} 
                             role={role} 
                             compact 
+                            onStatusChange={onStatusChange} 
                         />
                     </div>
                  </div>
