@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Post } from '../types';
 import { ChevronLeft, ChevronRight, Instagram, Linkedin, Twitter, Facebook, Video } from 'lucide-react';
@@ -105,10 +106,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ posts, onPostClick }
                                             onPostClick(post);
                                             }}
                                             title={`${post.client} - ${post.platform}\n${post.caption}`}
-                                            className={`group flex items-center gap-1.5 p-1.5 rounded border text-[10px] leading-tight cursor-pointer transition-all hover:scale-[1.02] shadow-sm hover:shadow ${getStatusStyles(post.status)}`}
+                                            className={`group flex items-center gap-1.5 p-1.5 rounded border text-[10px] leading-tight cursor-pointer transition-shadow shadow-sm hover:shadow-md ${getStatusStyles(post.status)}`}
                                         >
                                             <PlatformIcon platform={post.platform} />
-                                            <div className="flex flex-col overflow-hidden">
+                                            <div className="flex flex-col overflow-hidden w-full">
                                                 <span className="font-bold truncate opacity-90">{post.client}</span>
                                                 <span className="truncate opacity-75 font-medium">{post.status}</span>
                                             </div>

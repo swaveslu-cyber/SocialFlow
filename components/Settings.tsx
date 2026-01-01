@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { db } from '../services/db';
 import { Template, Snippet, Platform, PLATFORMS, ClientProfile } from '../types';
-import { Trash2, Plus, Save, X, Building2, FileText, Hash, KeyRound, Copy, ShieldCheck, ArrowLeft, Mail, Phone, Globe, Instagram, Linkedin, Twitter, Facebook, Video, Edit3, UserCircle, StickyNote, Download, Upload } from 'lucide-react';
+import { Trash2, Plus, Save, X, Building2, FileText, Hash, KeyRound, Copy, ShieldCheck, ArrowLeft, Mail, Phone, Globe, Instagram, Linkedin, Twitter, Facebook, Video, Edit3, UserCircle, StickyNote, Download, Upload, Database, RefreshCw } from 'lucide-react';
 
 interface SettingsProps {
   clients: string[]; 
@@ -20,13 +20,8 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   const [editingClient, setEditingClient] = useState<ClientProfile | null>(null);
   const [originalClientName, setOriginalClientName] = useState('');
   
-  // Note: clients prop contains just names. To edit, we fetch full profiles when clicking edit, 
-  // or we could fetch all at once. For simplicity, we fetch all via db.getClients in parent, but here we might just have names.
-  // Actually, let's fetch profiles on mount or when needed.
-  // For this refactor, let's just use the prop data, but we need full profiles for the list.
-  // The parent passes just names, so we need to fetch full profiles here to show the list properly.
-  
   const [fullProfiles, setFullProfiles] = useState<ClientProfile[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   React.useEffect(() => {
       const loadProfiles = async () => {
@@ -100,6 +95,22 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       setNewAgencyPass('');
       alert("Agency password updated successfully!");
   }
+
+  const handleClearData = async () => {
+      if (confirm("WARNING: This will delete ALL posts, clients, and settings. This action cannot be undone. Are you sure?")) {
+          setIsProcessing(true);
+          try {
+              await db.clearDatabase();
+              onUpdate();
+              alert("All data cleared.");
+          } catch (e) {
+              console.error(e);
+              alert("Failed to clear data.");
+          } finally {
+              setIsProcessing(false);
+          }
+      }
+  };
 
   const copyToClipboard = (text: string) => {
       navigator.clipboard.writeText(text);
@@ -502,17 +513,30 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
             <div className="space-y-6 max-w-md">
                 <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 rounded-lg p-4 text-sm text-amber-800 dark:text-amber-200">
                     <p className="font-bold mb-1 flex items-center gap-2"><ShieldCheck className="w-4 h-4"/> Security & Data</p>
-                    Your data is now stored securely in the Cloud. The Export feature below creates a JSON snapshot of your database.
+                    Manage your data and security settings here.
                 </div>
 
+                {/* Data Section */}
                 <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 bg-gray-50/30 dark:bg-gray-750 space-y-4">
-                    <h3 className="font-bold text-lg text-gray-800 dark:text-white">Data Management</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2">
+                        <Database className="w-5 h-5 text-indigo-500"/> Data Management
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 gap-3">
                         <button 
                             onClick={handleExportData}
                             className="flex items-center justify-center gap-2 p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-200"
                         >
-                            <Download className="w-4 h-4" /> Export Data
+                            <Download className="w-4 h-4" /> Export Backup (JSON)
+                        </button>
+
+                        <button 
+                            onClick={handleClearData}
+                            disabled={isProcessing}
+                            className="flex items-center justify-center gap-2 p-3 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900/50 rounded-lg text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400 disabled:opacity-50"
+                        >
+                            {isProcessing ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Trash2 className="w-4 h-4" />}
+                            Clear All Data
                         </button>
                     </div>
                 </div>

@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { UserRole } from '../types';
 import { db } from '../services/db';
-import { Lock, Briefcase, Users, ChevronRight, KeyRound } from 'lucide-react';
+import { Lock, Briefcase, Users, ChevronRight, KeyRound, Loader2 } from 'lucide-react';
 
 interface LoginProps {
   clients: string[];
@@ -17,18 +18,31 @@ export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
   const [clientAccessCode, setClientAccessCode] = useState('');
   
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleAgencyLogin = (e: React.FormEvent) => {
+  const handleAgencyLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (db.verifyAgencyPassword(password)) {
-      onLogin('agency');
-    } else {
-      setError('Incorrect Password');
+    setError('');
+    setIsLoading(true);
+    
+    try {
+      const isValid = await db.verifyAgencyPassword(password);
+      if (isValid) {
+        onLogin('agency');
+      } else {
+        setError('Incorrect Password');
+      }
+    } catch (err) {
+      setError('Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleClientLogin = (e: React.FormEvent) => {
+  const handleClientLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    
     if (!selectedClient) {
         setError("Please select a valid client.");
         return;
@@ -38,10 +52,18 @@ export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
         return;
     }
 
-    if (db.verifyClientLogin(selectedClient, clientAccessCode)) {
-        onLogin('client', selectedClient);
-    } else {
-        setError("Invalid Access Code for this client.");
+    setIsLoading(true);
+    try {
+      const isValid = await db.verifyClientLogin(selectedClient, clientAccessCode);
+      if (isValid) {
+          onLogin('client', selectedClient);
+      } else {
+          setError("Invalid Access Code for this client.");
+      }
+    } catch (err) {
+      setError('Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -110,10 +132,10 @@ export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
 
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white py-3 rounded-lg font-semibold transition-colors"
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-70"
               >
-                Access Dashboard
-                <ChevronRight className="w-4 h-4" />
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : <>Access Dashboard <ChevronRight className="w-4 h-4" /></>}
               </button>
             </form>
           ) : (
@@ -159,11 +181,10 @@ export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
 
               <button
                 type="submit"
-                disabled={clients.length === 0}
+                disabled={clients.length === 0 || isLoading}
                 className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
               >
-                Enter Portal
-                <ChevronRight className="w-4 h-4" />
+                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : <>Enter Portal <ChevronRight className="w-4 h-4" /></>}
               </button>
             </form>
           )}

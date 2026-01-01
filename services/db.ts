@@ -9,15 +9,24 @@ export const db = {
   init: async (): Promise<void> => {
     // Supabase is initialized in supabaseClient.ts
     console.log("Supabase Service Initialized");
+
+    // Check/Seed Agency Password if missing
+    const { data: pwd } = await supabase.from('app_config').select('value').eq('key', 'agency_password').maybeSingle();
+    if (!pwd) {
+         console.log("Seeding default agency password");
+         await supabase.from('app_config').insert({ key: 'agency_password', value: 'admin123' });
+    }
+
+    // Auto-seed if empty (Check if any clients exist)
+    const { count, error } = await supabase.from('clients').select('*', { count: 'exact', head: true });
+    
+    if (!error && count === 0) {
+        console.log("Database empty, seeding initial test data...");
+        await db.seedDatabase();
+    }
   },
 
   checkConfig: (): boolean => {
-      // Basic check to see if the user has replaced the placeholders
-      // Access private URL property if possible or just rely on a known placeholder string check
-      // Since we can't easily access the consts from supabaseClient without exporting, we assume 
-      // if the query fails with specific errors it might be config.
-      // But we can check if the supabase client has a valid URL structure roughly.
-      // A better way is to attempt a simple query and check the error.
       return true;
   },
 
@@ -66,7 +75,7 @@ export const db = {
     const { data, error } = await supabase
         .from('posts')
         .select('*')
-        .order('"createdAt"', { ascending: false }); // Quoted to match case-sensitive column name
+        .order('"createdAt"', { ascending: false }); 
     
     if (error) {
         console.error("Error fetching posts:", JSON.stringify(error, null, 2));
@@ -78,7 +87,7 @@ export const db = {
   addPost: async (post: Omit<Post, 'id' | 'createdAt' | 'updatedAt' | 'comments' | 'history' | 'versions'>, author: string): Promise<Post> => {
     const newPost: Post = {
       ...post,
-      id: crypto.randomUUID(), // We can generate ID here or let DB do it, but here ensures we have it for UI immediately
+      id: crypto.randomUUID(), 
       comments: [],
       history: [{
         id: crypto.randomUUID(),
@@ -207,7 +216,7 @@ export const db = {
 
   addClient: async (name: string): Promise<void> => {
       // Check if exists
-      const { data } = await supabase.from('clients').select('id').eq('name', name).single();
+      const { data } = await supabase.from('clients').select('id').eq('name', name).maybeSingle();
       if (data) return; // Already exists
 
       const accessCode = Math.floor(1000 + Math.random() * 9000).toString();
@@ -226,7 +235,6 @@ export const db = {
             website: updatedProfile.website,
             notes: updatedProfile.notes,
             socialAccounts: updatedProfile.socialAccounts
-            // We usually don't update accessCode unless requested, but here we keep existing if not passed
         })
         .eq('name', originalName);
 
@@ -255,13 +263,12 @@ export const db = {
       return data as Template[];
   },
   saveTemplate: async (template: Template): Promise<void> => {
-      // Check if update or insert
-      const { data } = await supabase.from('templates').select('id').eq('id', template.id).single();
+      const { data } = await supabase.from('templates').select('id').eq('id', template.id).maybeSingle();
       
       if (data) {
           await supabase.from('templates').update(template).eq('id', template.id);
       } else {
-          await supabase.from('templates').insert({ ...template, id: crypto.randomUUID() });
+          await supabase.from('templates').insert({ ...template, id: template.id || crypto.randomUUID() });
       }
   },
   deleteTemplate: async (id: string): Promise<void> => {
@@ -275,12 +282,12 @@ export const db = {
       return data as Snippet[];
   },
   saveSnippet: async (snippet: Snippet): Promise<void> => {
-       const { data } = await supabase.from('snippets').select('id').eq('id', snippet.id).single();
+       const { data } = await supabase.from('snippets').select('id').eq('id', snippet.id).maybeSingle();
       
       if (data) {
           await supabase.from('snippets').update(snippet).eq('id', snippet.id);
       } else {
-          await supabase.from('snippets').insert({ ...snippet, id: crypto.randomUUID() });
+          await supabase.from('snippets').insert({ ...snippet, id: snippet.id || crypto.randomUUID() });
       }
   },
   deleteSnippet: async (id: string): Promise<void> => {
@@ -306,11 +313,72 @@ export const db = {
       return JSON.stringify(data, null, 2);
   },
 
-  // NOTE: Import is tricky with SQL because of ID conflicts. 
-  // For now, we will just support Export for backup. 
-  // Importing full JSON dump into SQL usually requires a more complex script.
   importDatabase: async (jsonString: string): Promise<boolean> => {
       console.warn("Import not fully supported in SQL mode via Client yet.");
       return false;
+  },
+
+  // --- TEST DATA MANAGEMENT ---
+  seedDatabase: async (): Promise<void> => {
+      const clientName = "TechStart Inc";
+      
+      // Check if client exists to avoid duplicates
+      const { data: existingClient } = await supabase.from('clients').select('id').eq('name', clientName).maybeSingle();
+      
+      if (!existingClient) {
+        await db.addClient(clientName);
+      }
+
+      // Add a demo template
+      await db.saveTemplate({
+          id: crypto.randomUUID(),
+          name: "Product Launch",
+          platform: "LinkedIn",
+          captionSkeleton: "We are thrilled to announce the launch of [Product]! 🚀\n\nIt has been a long journey, but we are finally here.\n\nCheck it out at: [Link]",
+          tags: ["#launch", "#startup", "#product"]
+      });
+
+      // Add some posts
+      // Post 1: Draft
+      await db.addPost({
+          client: clientName,
+          platform: "LinkedIn",
+          date: new Date().toISOString().split('T')[0],
+          caption: "Drafting some ideas for the new campaign... We need to focus on our core values.",
+          mediaUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&auto=format&fit=crop&q=60",
+          mediaType: "image",
+          status: "Draft"
+      }, "Agency");
+
+      // Post 2: In Review
+      await db.addPost({
+          client: clientName,
+          platform: "Instagram",
+          date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+          caption: "Our team hard at work! 💻✨ #officelife #behindthescenes",
+          mediaUrl: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=800&auto=format&fit=crop&q=60",
+          mediaType: "image",
+          status: "In Review"
+      }, "Agency");
+
+      // Post 3: Approved
+      await db.addPost({
+          client: clientName,
+          platform: "Twitter",
+          date: new Date(Date.now() + 172800000).toISOString().split('T')[0],
+          caption: "Big news coming soon. Stay tuned! 👀",
+          mediaUrl: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop&q=60",
+          mediaType: "image",
+          status: "Approved"
+      }, "Agency");
+  },
+
+  clearDatabase: async (): Promise<void> => {
+     // Delete all rows. Note: Supabase requires a filter (like .neq) to delete all rows to prevent accidental wipes
+     // We use a dummy UUID check that is effectively always true for valid UUIDs (or use a known impossible ID)
+     await supabase.from('posts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+     await supabase.from('clients').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+     await supabase.from('templates').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+     await supabase.from('snippets').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   }
 };
