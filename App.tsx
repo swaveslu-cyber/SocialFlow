@@ -11,7 +11,6 @@ import { Login } from './components/Login';
 import { Settings } from './components/Settings';
 import { LogOut, Plus, Search, Filter, Building2, Upload, Link, X, Image as ImageIcon, Loader2, LayoutGrid, Calendar as CalendarIcon, Video, Smile, Kanban, BarChart3, Copy, FileText, Download, Bell, MessageSquare, CheckCircle, AlertCircle, Settings as SettingsIcon, Save, Edit2, Moon, Sun, AlertTriangle } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
-import { supabase } from './services/supabaseClient';
 
 type NotificationType = {
     id: string;
@@ -34,7 +33,6 @@ export default function App() {
   
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
-  const [configError, setConfigError] = useState<boolean>(false);
 
   const [statusFilter, setStatusFilter] = useState<PostStatus | 'All'>('All');
   const [agencyClientFilter, setAgencyClientFilter] = useState<string>('All Clients');
@@ -69,15 +67,6 @@ export default function App() {
 
   // Initialization
   useEffect(() => {
-    // Check Config Validity
-    // A crude but effective check to see if the user is still using placeholders
-    // @ts-ignore
-    const supabaseUrl = supabase.supabaseUrl;
-    if (supabaseUrl.includes('your-project-url')) {
-        setConfigError(true);
-        return;
-    }
-
     const init = async () => {
         await db.init();
         await refreshData();
@@ -120,7 +109,6 @@ export default function App() {
     }
   };
 
-  // ... [Handlers omitted for brevity as they are unchanged]
   const handleLogin = (role: UserRole, clientName?: string) => {
     setUserRole(role);
     if (role === 'client' && clientName) {
@@ -363,27 +351,6 @@ export default function App() {
   };
 
   const analytics = getAnalytics();
-
-  if (configError) {
-      return (
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-              <div className="max-w-xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 text-center border border-red-100 dark:border-red-900">
-                  <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <AlertTriangle className="w-8 h-8" />
-                  </div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Setup Required</h1>
-                  <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                      You have switched to the Cloud-enabled version, but you haven't configured your <strong>Supabase</strong> and <strong>Firebase</strong> keys yet.
-                  </p>
-                  <div className="text-left bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg text-sm text-gray-700 dark:text-gray-200 space-y-2 mb-6 font-mono">
-                      <p>1. Open <strong>services/supabaseClient.ts</strong> and add your Supabase URL/Key.</p>
-                      <p>2. Open <strong>services/firebaseConfig.ts</strong> and add your Firebase Config.</p>
-                  </div>
-                  <p className="text-xs text-gray-400">After updating these files, refresh the page.</p>
-              </div>
-          </div>
-      )
-  }
 
   const AppContent = () => {
       if (!userRole) {
