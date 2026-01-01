@@ -63,7 +63,9 @@ export default function App() {
   useEffect(() => {
     const init = async () => {
       await db.init();
-      // Load initial data if needed, or wait for login
+      // FIX: Fetch clients immediately so they are available for the Login screen
+      const clientNames = await db.getClientNames();
+      setClients(clientNames);
       setLoading(false);
     };
     init();
@@ -139,6 +141,8 @@ export default function App() {
     setIsSettingsOpen(false);
     setShowNotifications(false);
     setShowDailyBriefing(false);
+    // Re-fetch clients to ensure list is up to date if logout happens after adding a client
+    db.getClientNames().then(setClients);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
