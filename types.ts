@@ -1,5 +1,5 @@
 
-export type PostStatus = 'Draft' | 'In Review' | 'Approved' | 'Scheduled' | 'Published';
+export type PostStatus = 'Draft' | 'In Review' | 'Approved' | 'Scheduled' | 'Published' | 'Trashed';
 
 export type Platform = 'Instagram' | 'LinkedIn' | 'Twitter' | 'Facebook' | 'TikTok';
 
@@ -11,6 +11,7 @@ export interface Comment {
   role: UserRole;
   text: string;
   timestamp: number;
+  isInternal?: boolean; // If true, only visible to Agency
 }
 
 export interface HistoryEntry {
@@ -22,7 +23,7 @@ export interface HistoryEntry {
 }
 
 export interface PostVersion {
-  id: string; // unique version id
+  id: string;
   timestamp: number;
   caption: string;
   mediaUrl: string;
@@ -33,6 +34,7 @@ export interface Post {
   id: string;
   client: string;
   platform: Platform;
+  campaign?: string; // Grouping posts together
   date: string;
   caption: string;
   mediaUrl: string;
@@ -59,10 +61,15 @@ export interface Snippet {
   content: string;
 }
 
+export interface Campaign {
+  id: string;
+  name: string;
+  client: string;
+}
+
 export interface ClientProfile {
   name: string;
-  accessCode: string; // Simple 4-6 digit pin
-  // CRM Fields
+  accessCode: string;
   email?: string;
   phone?: string;
   website?: string;
