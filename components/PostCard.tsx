@@ -265,7 +265,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, role, compact, onDelet
                 {role === 'client' && (
                     <div className="flex gap-2 w-full sm:w-auto">
                     {post.status === 'In Review' && (
-                        <button onClick={() => onStatusChange?.(post.id, 'Approved')} className="flex-1 sm:flex-none text-xs bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 flex items-center justify-center gap-1 shadow-sm">
+                        <button onClick={() => onStatusChange?.(post.id, 'Approved')} className="flex-1 sm:flex-none text-xs bg-green-600 text-white px-2.5 py-1.5 rounded hover:bg-green-700 flex items-center justify-center gap-1 shadow-sm">
                             <CheckCircle className="w-3 h-3"/> Approve
                         </button>
                     )}
@@ -274,7 +274,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, role, compact, onDelet
                     {(post.status === 'In Review' || post.status === 'Approved') && (
                          <button 
                             onClick={post.status === 'In Review' ? () => setActiveTab('comments') : handleClientRequestChanges} 
-                            className="flex-1 sm:flex-none text-xs bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800 px-3 py-2 rounded hover:bg-amber-200 dark:hover:bg-amber-900/60 flex items-center justify-center gap-1 shadow-sm"
+                            className="flex-1 sm:flex-none text-xs bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800 px-2.5 py-1.5 rounded hover:bg-amber-200 dark:hover:bg-amber-900/60 flex items-center justify-center gap-1 shadow-sm"
                         >
                             <MessageSquare className="w-3 h-3"/> Request Changes
                         </button>

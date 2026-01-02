@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   LayoutGrid, Calendar as CalendarIcon, List, Settings as SettingsIcon, 
   LogOut, Plus, Search, Filter, Bell, Menu, X, UploadCloud, 
-  Image as ImageIcon, Smile, Save, Loader2,
+  Image as ImageIcon, Smile, Save, Loader2, ArrowRight,
   Instagram, Linkedin, Twitter, Facebook, Video, Check
 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
@@ -20,6 +20,18 @@ import {
   Post, PostStatus, UserRole, Platform, MediaType, 
   Template, Snippet, PLATFORMS 
 } from './types';
+
+const SwaveLogo = ({ className = "w-full h-full" }: { className?: string }) => (
+  <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M75 35L55 23.45V31.15L68.3 38.85L45 52.3V44.6L25 56.15V67.7L45 79.25V71.55L31.7 63.85L55 50.4V58.1L75 46.55V35Z" fill="url(#swave-grad-app)" />
+    <defs>
+      <linearGradient id="swave-grad-app" x1="25" y1="23.45" x2="75" y2="79.25" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#8E3EBB" />
+        <stop offset="1" stopColor="#F27A21" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
 
 export default function App() {
   // Auth State
@@ -58,12 +70,12 @@ export default function App() {
   const [newPostMediaUrl, setNewPostMediaUrl] = useState('');
   const [newPostMediaType, setNewPostMediaType] = useState<MediaType>('image');
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Initialize
   useEffect(() => {
     const init = async () => {
       await db.init();
-      // FIX: Fetch clients immediately so they are available for the Login screen
       const clientNames = await db.getClientNames();
       setClients(clientNames);
       setLoading(false);
@@ -82,11 +94,11 @@ export default function App() {
   useEffect(() => {
     if (!loading && userRole === 'agency' && posts.length > 0) {
       const today = new Date().toDateString();
-      const lastBriefing = localStorage.getItem('socialflow_last_daily_briefing');
+      const lastBriefing = localStorage.getItem('swave_last_daily_briefing');
 
       if (lastBriefing !== today) {
         setShowDailyBriefing(true);
-        localStorage.setItem('socialflow_last_daily_briefing', today);
+        localStorage.setItem('swave_last_daily_briefing', today);
       }
     }
   }, [loading, userRole, posts]);
@@ -141,8 +153,8 @@ export default function App() {
     setIsSettingsOpen(false);
     setShowNotifications(false);
     setShowDailyBriefing(false);
-    // Re-fetch clients to ensure list is up to date if logout happens after adding a client
     db.getClientNames().then(setClients);
+    setSidebarOpen(false);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,8 +178,7 @@ export default function App() {
     }
   };
 
-  const handleSavePost = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSavePost = async (targetStatus: PostStatus) => {
     if (!newPostCaption || !newPostMediaUrl) {
       alert("Please provide caption and media.");
       return;
@@ -178,13 +189,13 @@ export default function App() {
         return;
     }
     
+    setIsSaving(true);
     const client = userRole === 'client' ? currentClient : newPostClient;
     const dateStr = newPostDate && newPostTime ? `${newPostDate} ${newPostTime}` : new Date().toISOString().split('T')[0];
     const author = userRole === 'agency' ? 'Agency' : currentClient;
 
     try {
       if (editingPostId) {
-        // Edit Mode: Update single post (restrict to first selected platform if array has items)
         await db.updatePost(editingPostId, {
           caption: newPostCaption,
           mediaUrl: newPostMediaUrl,
@@ -192,10 +203,9 @@ export default function App() {
           date: dateStr,
           platform: newPostPlatforms[0], 
           client: client,
-          status: userRole === 'client' ? 'In Review' : 'Draft' 
+          status: targetStatus
         }, author);
       } else {
-        // Create Mode: Batch create for all selected platforms
         const createPromises = newPostPlatforms.map(platform => 
              db.addPost({
                 client: client,
@@ -204,7 +214,7 @@ export default function App() {
                 caption: newPostCaption,
                 mediaUrl: newPostMediaUrl,
                 mediaType: newPostMediaType,
-                status: 'Draft',
+                status: targetStatus,
             }, author)
         );
         await Promise.all(createPromises);
@@ -215,6 +225,8 @@ export default function App() {
     } catch (error) {
       console.error(error);
       alert("Error saving post");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -252,14 +264,14 @@ export default function App() {
      setNewPostMediaUrl('');
      setNewPostDate(new Date().toISOString().split('T')[0]);
      setNewPostTime('12:00');
-     setNewPostPlatforms(['Instagram']); // Reset to default
+     setNewPostPlatforms(['Instagram']);
      setIsFormOpen(true);
   };
 
   const openEditPostForm = (post: Post) => {
     setEditingPostId(post.id);
     setNewPostClient(post.client);
-    setNewPostPlatforms([post.platform]); // Set single platform
+    setNewPostPlatforms([post.platform]);
     const [d, t] = post.date.includes(' ') ? post.date.split(' ') : [post.date, ''];
     setNewPostDate(d);
     setNewPostTime(t || '12:00');
@@ -277,7 +289,7 @@ export default function App() {
   const applyTemplate = (templateId: string) => {
       const tmpl = templates.find(t => t.id === templateId);
       if (tmpl) {
-          setNewPostPlatforms([tmpl.platform]); // Templates are usually platform specific
+          setNewPostPlatforms([tmpl.platform]);
           setNewPostCaption(tmpl.captionSkeleton + '\n\n' + tmpl.tags.join(' '));
       }
   };
@@ -288,10 +300,8 @@ export default function App() {
 
   const togglePlatform = (p: Platform) => {
       if (editingPostId) {
-          // In Edit mode, allow only one selection
           setNewPostPlatforms([p]);
       } else {
-          // In Create mode, allow multiple
           setNewPostPlatforms(prev => 
               prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]
           );
@@ -309,7 +319,6 @@ export default function App() {
       }
   };
 
-  // Filter Logic
   const filteredPosts = posts.filter(p => {
      const matchesSearch = p.caption.toLowerCase().includes(searchTerm.toLowerCase()) || p.client.toLowerCase().includes(searchTerm.toLowerCase());
      const matchesStatus = filterStatus === 'All' || p.status === filterStatus;
@@ -317,7 +326,6 @@ export default function App() {
      return matchesSearch && matchesStatus && matchesClient;
   });
 
-  // Notification Logic
   const notifications = useMemo(() => {
     if (!userRole) return [];
     const list: any[] = [];
@@ -372,7 +380,7 @@ export default function App() {
   }, [posts, userRole, currentClient]);
 
   if (loading) {
-      return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>;
+      return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-swave-orange" /></div>;
   }
 
   if (!userRole) {
@@ -396,24 +404,46 @@ export default function App() {
           <DailyBriefing posts={posts} onClose={() => setShowDailyBriefing(false)} />
         )}
 
+        {/* Sidebar Backdrop (Mobile) */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden transition-opacity animate-in fade-in"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
         {/* Sidebar */}
         <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             <div className="h-full flex flex-col">
                 <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">SocialFlow</h1>
+                    <div className="flex items-center gap-2">
+                        <div className="w-9 h-9 rounded-xl bg-white dark:bg-gray-700 flex items-center justify-center p-1.5 shadow-sm border border-gray-100 dark:border-gray-600">
+                            <SwaveLogo className="w-full h-full" />
+                        </div>
+                        <h1 className="text-xl font-bold bg-gradient-to-r from-swave-purple to-swave-orange bg-clip-text text-transparent">Swave Social</h1>
+                    </div>
                     <button onClick={() => setSidebarOpen(false)} className="md:hidden p-1 text-gray-500"><X className="w-5 h-5"/></button>
                 </div>
 
                 <div className="flex-grow p-4 space-y-2 overflow-y-auto">
                     <div className="mb-6">
                         <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Views</p>
-                        <button onClick={() => setViewMode('list')} className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${viewMode === 'list' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                        <button 
+                          onClick={() => { setViewMode('list'); setSidebarOpen(false); }} 
+                          className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${viewMode === 'list' ? 'bg-orange-50 text-swave-orange dark:bg-orange-900/20 dark:text-orange-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                        >
                             <List className="w-4 h-4" /> All Posts
                         </button>
-                        <button onClick={() => setViewMode('calendar')} className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${viewMode === 'calendar' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                        <button 
+                          onClick={() => { setViewMode('calendar'); setSidebarOpen(false); }} 
+                          className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${viewMode === 'calendar' ? 'bg-orange-50 text-swave-orange dark:bg-orange-900/20 dark:text-orange-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                        >
                             <CalendarIcon className="w-4 h-4" /> Calendar
                         </button>
-                        <button onClick={() => setViewMode('kanban')} className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${viewMode === 'kanban' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                        <button 
+                          onClick={() => { setViewMode('kanban'); setSidebarOpen(false); }} 
+                          className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${viewMode === 'kanban' ? 'bg-orange-50 text-swave-orange dark:bg-orange-900/20 dark:text-orange-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                        >
                             <LayoutGrid className="w-4 h-4" /> Board
                         </button>
                     </div>
@@ -421,7 +451,10 @@ export default function App() {
                     {userRole === 'agency' && (
                         <div>
                              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Admin</p>
-                             <button onClick={() => setIsSettingsOpen(true)} className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                             <button 
+                               onClick={() => { setIsSettingsOpen(true); setSidebarOpen(false); }} 
+                               className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                             >
                                 <SettingsIcon className="w-4 h-4" /> Settings
                             </button>
                         </div>
@@ -430,8 +463,8 @@ export default function App() {
 
                 <div className="p-4 border-t border-gray-100 dark:border-gray-700">
                     <div className="flex items-center gap-3 px-3 py-2 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-xs">
-                            {userRole === 'agency' ? 'AG' : currentClient.substring(0,2).toUpperCase()}
+                        <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-swave-orange dark:text-orange-300 font-bold text-xs">
+                            {userRole === 'agency' ? 'SW' : currentClient.substring(0,2).toUpperCase()}
                         </div>
                         <div className="flex-grow overflow-hidden">
                             <p className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">{userRole === 'agency' ? 'Agency Admin' : currentClient}</p>
@@ -447,7 +480,6 @@ export default function App() {
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-            {/* Top Bar */}
             <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between gap-4 z-40 relative">
                 <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
                     <Menu className="w-5 h-5" />
@@ -460,23 +492,22 @@ export default function App() {
                         placeholder="Search posts..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 border-transparent focus:bg-white dark:focus:bg-gray-600 border focus:border-indigo-500 rounded-lg text-sm transition-all outline-none dark:text-white"
+                        className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 border-transparent focus:bg-white dark:focus:bg-gray-600 border focus:border-swave-orange rounded-lg text-sm transition-all outline-none dark:text-white"
                     />
                 </div>
 
                 <div className="flex items-center gap-3">
                      {userRole === 'agency' && (
-                         <button onClick={openNewPostForm} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition-colors">
+                         <button onClick={openNewPostForm} className="bg-swave-orange hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition-colors">
                             <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Create Post</span>
                          </button>
                      )}
                      <div className="h-8 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
                      
-                     {/* Notifications */}
                      <div className="relative" ref={notificationRef}>
                         <button 
                             onClick={() => setShowNotifications(!showNotifications)}
-                            className="p-2 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 relative hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            className="p-2 text-gray-500 hover:text-swave-orange dark:text-gray-400 dark:hover:text-orange-400 relative hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                         >
                             <Bell className="w-5 h-5" />
                             {notifications.length > 0 && (
@@ -484,7 +515,6 @@ export default function App() {
                             )}
                         </button>
                         
-                        {/* Dropdown */}
                         {showNotifications && (
                              <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-in slide-in-from-top-2 fade-in">
                                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex justify-between items-center">
@@ -505,9 +535,9 @@ export default function App() {
                                                          setShowNotifications(false);
                                                      }
                                                  }}
-                                                 className="p-3 border-b border-gray-50 dark:border-gray-700 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/30 cursor-pointer flex gap-3 transition-colors"
+                                                 className="p-3 border-b border-gray-50 dark:border-gray-700 hover:bg-orange-50/50 dark:hover:bg-orange-900/30 cursor-pointer flex gap-3 transition-colors"
                                              >
-                                                 <div className={`mt-1 flex-shrink-0 w-2 h-2 rounded-full ${n.type === 'status' ? 'bg-emerald-500' : 'bg-indigo-500'}`} />
+                                                 <div className={`mt-1 flex-shrink-0 w-2 h-2 rounded-full ${n.type === 'status' ? 'bg-emerald-500' : 'bg-swave-orange'}`} />
                                                  <div>
                                                      <p className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2">{n.text}</p>
                                                      <p className="text-[10px] text-gray-400 mt-1">{new Date(n.time).toLocaleDateString()}</p>
@@ -522,7 +552,6 @@ export default function App() {
                 </div>
             </header>
             
-            {/* Filters Bar */}
             <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2 flex gap-2 overflow-x-auto no-scrollbar items-center">
                  <Filter className="w-4 h-4 text-gray-400 shrink-0" />
                  <select 
@@ -550,7 +579,6 @@ export default function App() {
                  )}
             </div>
 
-            {/* Content Area */}
             <div className="flex-grow overflow-auto bg-gray-100 dark:bg-gray-900 p-4">
                 {viewMode === 'list' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -592,10 +620,9 @@ export default function App() {
                 )}
             </div>
 
-            {/* Create/Edit Modal */}
             {isFormOpen && (
                 <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-                    <form onSubmit={handleSavePost} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
                             <h2 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
                                 {editingPostId ? 'Edit Post' : 'Create New Post'}
@@ -606,7 +633,6 @@ export default function App() {
                         </div>
                         
                         <div className="flex-grow overflow-y-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-7 gap-6">
-                             {/* Left Column: Metadata & Media */}
                              <div className="md:col-span-3 space-y-4">
                                   {userRole === 'agency' && (
                                     <div>
@@ -614,7 +640,7 @@ export default function App() {
                                         <select 
                                             value={newPostClient} 
                                             onChange={e => setNewPostClient(e.target.value)}
-                                            className="w-full p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
+                                            className="w-full p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm focus:ring-2 focus:ring-swave-orange outline-none dark:text-white"
                                         >
                                             {clients.map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
@@ -635,7 +661,7 @@ export default function App() {
                                                       onClick={() => togglePlatform(p)}
                                                       className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
                                                           isSelected 
-                                                          ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm ring-2 ring-indigo-200 dark:ring-indigo-900' 
+                                                          ? 'bg-swave-orange border-swave-orange text-white shadow-sm ring-2 ring-orange-200 dark:ring-orange-900' 
                                                           : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                                                       }`}
                                                   >
@@ -646,9 +672,6 @@ export default function App() {
                                               );
                                           })}
                                       </div>
-                                      {!editingPostId && (
-                                          <p className="text-[10px] text-gray-400 mt-1.5">Select multiple to create batch drafts.</p>
-                                      )}
                                   </div>
 
                                   <div>
@@ -657,7 +680,7 @@ export default function App() {
                                           type="date" 
                                           value={newPostDate}
                                           onChange={e => setNewPostDate(e.target.value)}
-                                          className="w-full p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
+                                          className="w-full p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm focus:ring-2 focus:ring-swave-orange outline-none dark:text-white"
                                       />
                                   </div>
 
@@ -686,7 +709,7 @@ export default function App() {
                                               </div>
                                           ) : (
                                               <div className="py-8 flex flex-col items-center justify-center text-gray-400">
-                                                  {isUploading ? <Loader2 className="w-8 h-8 animate-spin text-indigo-500"/> : <UploadCloud className="w-8 h-8 mb-2" />}
+                                                  {isUploading ? <Loader2 className="w-8 h-8 animate-spin text-swave-orange"/> : <UploadCloud className="w-8 h-8 mb-2" />}
                                                   <p className="text-xs">Click to upload image or video</p>
                                                   <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*,video/*" />
                                               </div>
@@ -695,7 +718,6 @@ export default function App() {
                                   </div>
                              </div>
 
-                             {/* Right Column: Caption & Templates */}
                              <div className="md:col-span-4 flex flex-col">
                                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 flex justify-between">
                                      <span>Caption</span>
@@ -705,13 +727,13 @@ export default function App() {
                                      <textarea 
                                          value={newPostCaption}
                                          onChange={e => setNewPostCaption(e.target.value)}
-                                         className="w-full h-full min-h-[250px] p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none dark:text-white"
+                                         className="w-full h-full min-h-[250px] p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm focus:ring-2 focus:ring-swave-orange outline-none resize-none dark:text-white"
                                          placeholder="Write your caption here..."
                                      />
                                      <button 
                                         type="button" 
                                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                                        className="absolute top-2 right-2 text-gray-400 hover:text-indigo-500"
+                                        className="absolute top-2 right-2 text-gray-400 hover:text-swave-orange"
                                      >
                                          <Smile className="w-5 h-5" />
                                      </button>
@@ -729,7 +751,6 @@ export default function App() {
                                      )}
                                  </div>
 
-                                 {/* Helper Tools */}
                                  <div className="mt-4 space-y-4">
                                      {templates.length > 0 && (
                                          <div>
@@ -755,7 +776,7 @@ export default function App() {
                                                         key={s.id} 
                                                         type="button"
                                                         onClick={() => insertSnippet(s.content)}
-                                                        className="text-xs bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 px-2 py-1 rounded border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+                                                        className="text-xs bg-orange-50 text-swave-orange dark:bg-orange-900/30 dark:text-orange-300 px-2 py-1 rounded border border-orange-100 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors"
                                                      >
                                                          {s.label}
                                                      </button>
@@ -767,18 +788,36 @@ export default function App() {
                              </div>
                         </div>
 
-                        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center">
-                            <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm font-medium">Cancel</button>
-                            <div className="flex gap-2">
-                                <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider">
-                                    Disclaimer
-                                </span>
-                                <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition-colors">
-                                    <Save className="w-4 h-4" /> {editingPostId ? 'Update Post' : `Save ${newPostPlatforms.length} Draft${newPostPlatforms.length !== 1 ? 's' : ''}`}
+                        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex flex-col sm:flex-row justify-between items-center gap-3">
+                            <button 
+                                type="button" 
+                                onClick={() => setIsFormOpen(false)} 
+                                className="w-full sm:w-auto px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                <button 
+                                    type="button"
+                                    disabled={isSaving}
+                                    onClick={() => handleSavePost('Draft')}
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                                >
+                                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    Save as Draft
+                                </button>
+                                <button 
+                                    type="button"
+                                    disabled={isSaving}
+                                    onClick={() => handleSavePost('In Review')}
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-swave-orange hover:bg-orange-600 text-white rounded-lg text-sm font-bold shadow-lg shadow-orange-500/20 transition-all active:scale-95 disabled:opacity-50"
+                                >
+                                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                                    Submit for Review
                                 </button>
                             </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
             )}
         </main>

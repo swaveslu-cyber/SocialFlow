@@ -2,22 +2,32 @@
 import React, { useState, useEffect } from 'react';
 import { UserRole } from '../types';
 import { db } from '../services/db';
-import { Lock, Briefcase, Users, ChevronRight, KeyRound, Loader2, RefreshCw, ArrowLeft, HelpCircle } from 'lucide-react';
+import { Lock, Briefcase, Users, ChevronRight, KeyRound, Loader2, RefreshCw, ArrowLeft, HelpCircle, Building2 } from 'lucide-react';
 
 interface LoginProps {
   clients: string[];
   onLogin: (role: UserRole, clientName?: string) => void;
 }
 
+const SwaveLogo = ({ className = "w-full h-full" }: { className?: string }) => (
+  <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M75 35L55 23.45V31.15L68.3 38.85L45 52.3V44.6L25 56.15V67.7L45 79.25V71.55L31.7 63.85L55 50.4V58.1L75 46.55V35Z" fill="url(#swave-grad)" />
+    <defs>
+      <linearGradient id="swave-grad" x1="25" y1="23.45" x2="75" y2="79.25" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#8E3EBB" />
+        <stop offset="1" stopColor="#F27A21" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
 export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
   const [activeTab, setActiveTab] = useState<'agency' | 'client'>('agency');
   const [password, setPassword] = useState('');
   
-  // Client state
-  const [selectedClient, setSelectedClient] = useState(clients[0] || '');
+  const [selectedClient, setSelectedClient] = useState('');
   const [clientAccessCode, setClientAccessCode] = useState('');
   
-  // Reset State
   const [isResetting, setIsResetting] = useState(false);
   const [securityQuestion, setSecurityQuestion] = useState('Loading question...');
   const [recoveryAnswer, setRecoveryAnswer] = useState('');
@@ -59,8 +69,8 @@ export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
     e.preventDefault();
     setError('');
     
-    if (!selectedClient) {
-        setError("Please select a valid client.");
+    if (!selectedClient.trim()) {
+        setError("Please enter your Organization Name.");
         return;
     }
     if (!clientAccessCode) {
@@ -70,11 +80,11 @@ export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
 
     setIsLoading(true);
     try {
-      const isValid = await db.verifyClientLogin(selectedClient, clientAccessCode);
+      const isValid = await db.verifyClientLogin(selectedClient.trim(), clientAccessCode);
       if (isValid) {
-          onLogin('client', selectedClient);
+          onLogin('client', selectedClient.trim());
       } else {
-          setError("Invalid Access Code for this client.");
+          setError("Invalid Organization or Access Code.");
       }
     } catch (err) {
       setError('Login failed. Please try again.');
@@ -88,7 +98,6 @@ export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
       setError('');
       setIsLoading(true);
       try {
-          // We pass the "answer" as the key
           const success = await db.resetAgencyPassword(recoveryAnswer, newResetPassword);
           if (success) {
               alert("Password reset successfully. Please login with your new password.");
@@ -107,52 +116,54 @@ export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4 transition-colors">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden transition-colors animate-in fade-in slide-in-from-bottom-4">
-        {/* Header */}
-        <div className="bg-indigo-600 dark:bg-indigo-700 p-8 text-center transition-colors relative overflow-hidden">
-           <div className="bg-white/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm z-10 relative">
-            <Lock className="w-8 h-8 text-white" />
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-950 p-4 transition-colors relative overflow-hidden">
+      {/* Decorative background gradients */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-swave-orange/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-swave-purple/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+
+      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden transition-all animate-in fade-in slide-in-from-bottom-4 relative z-10 border border-gray-100 dark:border-gray-700">
+        <div className="bg-gradient-to-br from-swave-purple via-swave-purple to-swave-orange p-10 text-center transition-colors relative overflow-hidden">
+           <div className="bg-white p-4 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6 z-10 relative shadow-2xl transform hover:scale-105 transition-transform">
+            <SwaveLogo className="w-16 h-16" />
           </div>
-          <h2 className="text-3xl font-bold text-white relative z-10">SocialFlow</h2>
-          <p className="text-indigo-100 mt-2 relative z-10">{isResetting ? 'Recover Access' : 'Workspace Access'}</p>
+          <h2 className="text-3xl font-bold text-white relative z-10 tracking-tight">Swave Social</h2>
+          <p className="text-white/80 mt-2 relative z-10 font-semibold uppercase tracking-[0.2em] text-[10px]">Online Growth Agency</p>
           
-          {/* Decorative background circle */}
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
-          <div className="absolute top-12 -left-12 w-24 h-24 bg-indigo-500/50 rounded-full blur-xl"></div>
+          <div className="absolute top-12 -left-12 w-24 h-24 bg-orange-500/20 rounded-full blur-xl"></div>
         </div>
 
         {isResetting ? (
              <div className="p-8">
-                 <button onClick={() => setIsResetting(false)} className="mb-6 flex items-center text-sm text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-300 transition-colors">
+                 <button onClick={() => setIsResetting(false)} className="mb-6 flex items-center text-sm font-medium text-gray-500 hover:text-swave-orange dark:text-gray-400 dark:hover:text-orange-300 transition-colors">
                      <ArrowLeft className="w-4 h-4 mr-1"/> Back to Login
                  </button>
                  
                  <form onSubmit={handleResetPassword} className="space-y-6">
-                    <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-100 dark:border-amber-800/50">
-                        <p className="text-xs font-bold text-amber-800 dark:text-amber-200 uppercase mb-1 flex items-center gap-1">
+                    <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-100 dark:border-orange-800/50">
+                        <p className="text-xs font-bold text-swave-orange dark:text-orange-300 uppercase mb-1 flex items-center gap-1">
                             <HelpCircle className="w-3 h-3"/> Security Question
                         </p>
-                        <p className="text-sm text-gray-800 dark:text-gray-200 font-medium">
+                        <p className="text-sm text-gray-800 dark:text-gray-200 font-semibold">
                             {securityQuestion}
                         </p>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Your Answer</label>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Your Answer</label>
                         <input
                             type="password"
-                            className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                            placeholder="Enter the answer..."
+                            className="block w-full px-4 py-3 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-swave-orange focus:border-swave-orange transition-all outline-none"
+                            placeholder="Enter answer..."
                             value={recoveryAnswer}
                             onChange={(e) => { setRecoveryAnswer(e.target.value); setError(''); }}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">New Password</label>
                         <input
                             type="password"
-                            className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                            className="block w-full px-4 py-3 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-swave-orange focus:border-swave-orange transition-all outline-none"
                             placeholder="Set new password"
                             value={newResetPassword}
                             onChange={(e) => { setNewResetPassword(e.target.value); setError(''); }}
@@ -160,7 +171,7 @@ export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
                     </div>
                     
                     {error && (
-                        <div className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-100 dark:border-red-800 animate-in fade-in">
+                        <div className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-800 animate-in fade-in">
                         {error}
                         </div>
                     )}
@@ -168,51 +179,49 @@ export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
                     <button
                         type="submit"
                         disabled={isLoading || !recoveryAnswer || !newResetPassword}
-                        className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-70 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-swave-purple to-swave-orange text-white py-3.5 rounded-xl font-bold transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95"
                     >
-                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : <>Reset Password <RefreshCw className="w-4 h-4" /></>}
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin"/> : <>Reset Password <RefreshCw className="w-5 h-5" /></>}
                     </button>
                  </form>
              </div>
         ) : (
             <>
-                {/* Tabs */}
                 <div className="flex border-b border-gray-100 dark:border-gray-700">
                 <button
                     onClick={() => { setActiveTab('agency'); setError(''); }}
-                    className={`flex-1 py-4 text-sm font-semibold flex items-center justify-center gap-2 transition-colors relative ${
-                    activeTab === 'agency' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                    className={`flex-1 py-5 text-sm font-bold flex items-center justify-center gap-2 transition-all relative ${
+                    activeTab === 'agency' ? 'text-swave-orange dark:text-orange-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                     }`}
                 >
                     <Briefcase className="w-4 h-4" />
                     Agency Login
-                    {activeTab === 'agency' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 mx-8 rounded-t-full"></div>}
+                    {activeTab === 'agency' && <div className="absolute bottom-0 left-1/4 right-1/4 h-1 bg-swave-orange rounded-full shadow-sm"></div>}
                 </button>
                 <button
                     onClick={() => { setActiveTab('client'); setError(''); }}
-                    className={`flex-1 py-4 text-sm font-semibold flex items-center justify-center gap-2 transition-colors relative ${
-                    activeTab === 'client' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                    className={`flex-1 py-5 text-sm font-bold flex items-center justify-center gap-2 transition-all relative ${
+                    activeTab === 'client' ? 'text-swave-purple dark:text-purple-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                     }`}
                 >
                     <Users className="w-4 h-4" />
                     Client Portal
-                    {activeTab === 'client' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 dark:bg-emerald-400 mx-8 rounded-t-full"></div>}
+                    {activeTab === 'client' && <div className="absolute bottom-0 left-1/4 right-1/4 h-1 bg-swave-purple rounded-full shadow-sm"></div>}
                 </button>
                 </div>
 
-                {/* Form Body */}
                 <div className="p-8">
                 {activeTab === 'agency' ? (
                     <form onSubmit={handleAgencyLogin} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Agency Password</label>
-                        <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Lock className="h-5 w-5 text-gray-400" />
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Agency Password</label>
+                        <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <Lock className="h-4 w-4 text-gray-400 group-focus-within:text-swave-orange transition-colors" />
                         </div>
                         <input
                             type="password"
-                            className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                            className="block w-full pl-11 pr-4 py-3.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-swave-orange focus:border-swave-orange transition-all outline-none"
                             placeholder="Enter password"
                             value={password}
                             onChange={(e) => {
@@ -222,12 +231,12 @@ export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
                         />
                         </div>
                         <div className="flex justify-end mt-2">
-                             <button type="button" onClick={() => setIsResetting(true)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Forgot Password?</button>
+                             <button type="button" onClick={() => setIsResetting(true)} className="text-xs font-semibold text-swave-orange dark:text-orange-400 hover:underline">Forgot Password?</button>
                         </div>
                     </div>
 
                     {error && (
-                        <div className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-100 dark:border-red-800 animate-in fade-in">
+                        <div className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-800 animate-in fade-in">
                         {error}
                         </div>
                     )}
@@ -235,36 +244,42 @@ export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-70 shadow-md hover:shadow-lg transform active:scale-[0.99]"
+                        className="w-full flex items-center justify-center gap-2 bg-swave-orange hover:bg-orange-600 text-white py-4 rounded-xl font-bold transition-all disabled:opacity-70 shadow-lg hover:shadow-xl transform active:scale-[0.97]"
                     >
-                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : <>Access Dashboard <ChevronRight className="w-4 h-4" /></>}
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin"/> : <>Access Dashboard <ChevronRight className="w-5 h-5" /></>}
                     </button>
                     </form>
                 ) : (
                     <form onSubmit={handleClientLogin} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Organization</label>
-                        <select
-                        value={selectedClient}
-                        onChange={(e) => setSelectedClient(e.target.value)}
-                        className="block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                        >
-                        {clients.length === 0 ? <option>No Clients Configured</option> : clients.map(client => (
-                            <option key={client} value={client}>{client}</option>
-                        ))}
-                        </select>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Organization Name</label>
+                        <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <Building2 className="h-4 w-4 text-gray-400 group-focus-within:text-swave-purple transition-colors" />
+                        </div>
+                        <input
+                            type="text"
+                            className="block w-full pl-11 pr-4 py-3.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-swave-purple focus:border-swave-purple transition-all outline-none"
+                            placeholder="Your Company Name"
+                            value={selectedClient}
+                            onChange={(e) => {
+                                setSelectedClient(e.target.value);
+                                setError('');
+                            }}
+                        />
+                        </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Access Code</label>
-                        <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <KeyRound className="h-5 w-5 text-gray-400" />
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Access Code</label>
+                        <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <KeyRound className="h-4 w-4 text-gray-400 group-focus-within:text-swave-purple transition-colors" />
                         </div>
                         <input
                             type="password"
-                            className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                            placeholder="e.g. 1234"
+                            className="block w-full pl-11 pr-4 py-3.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-swave-purple focus:border-swave-purple transition-all outline-none"
+                            placeholder="4-digit code"
                             value={clientAccessCode}
                             onChange={(e) => {
                                 setClientAccessCode(e.target.value);
@@ -272,21 +287,21 @@ export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
                             }}
                         />
                         </div>
-                        <p className="text-xs text-gray-400 mt-1">Ask your agency manager for your code.</p>
+                        <p className="text-[10px] text-gray-400 mt-2 font-medium">Contact your agency manager for access.</p>
                     </div>
                     
                     {error && (
-                        <div className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-100 dark:border-red-800 animate-in fade-in">
+                        <div className="text-red-500 dark:text-red-400 text-sm text-center font-medium bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-800 animate-in fade-in">
                         {error}
                         </div>
                     )}
 
                     <button
                         type="submit"
-                        disabled={clients.length === 0 || isLoading}
-                        className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 shadow-md hover:shadow-lg transform active:scale-[0.99]"
+                        disabled={isLoading}
+                        className="w-full flex items-center justify-center gap-2 bg-swave-purple hover:bg-purple-700 text-white py-4 rounded-xl font-bold transition-all disabled:opacity-50 shadow-lg hover:shadow-xl transform active:scale-[0.97]"
                     >
-                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : <>Enter Portal <ChevronRight className="w-4 h-4" /></>}
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin"/> : <>Enter Portal <ChevronRight className="w-5 h-5" /></>}
                     </button>
                     </form>
                 )}
