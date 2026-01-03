@@ -4,7 +4,7 @@ import {
   LayoutGrid, Calendar as CalendarIcon, List, Settings as SettingsIcon, 
   LogOut, Plus, Search, Filter, Bell, Menu, X, UploadCloud, 
   Image as ImageIcon, Smile, Save, Loader2, ArrowRight,
-  Instagram, Linkedin, Twitter, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag
+  Instagram, Linkedin, Twitter, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag, DollarSign
 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -16,16 +16,12 @@ import { CalendarView } from './components/CalendarView';
 import { KanbanBoard } from './components/KanbanBoard';
 import { Settings } from './components/Settings';
 import { DailyBriefing } from './components/DailyBriefing';
+import { FinanceModule } from './components/FinanceModule';
+import { SwaveLogo } from './components/Logo';
 import { 
   Post, PostStatus, UserRole, Platform, MediaType, 
   Template, Snippet, PLATFORMS, Campaign 
 } from './types';
-
-const SwaveLogo = ({ className = "w-full h-full" }: { className?: string }) => (
-  <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M75 35L55 23.45V31.15L68.3 38.85L45 52.3V44.6L25 56.15V67.7L45 79.25V71.55L31.7 63.85L55 50.4V58.1L75 46.55V35Z" fill="currentColor" />
-  </svg>
-);
 
 export default function App() {
   const [userRole, setUserRole] = useState<UserRole>(null);
@@ -37,7 +33,7 @@ export default function App() {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'kanban' | 'trash'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'kanban' | 'trash' | 'finance'>('list');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [showDailyBriefing, setShowDailyBriefing] = useState(false);
@@ -66,6 +62,16 @@ export default function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // --- THEME INIT ---
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       await db.init();
@@ -76,7 +82,23 @@ export default function App() {
     init();
   }, []);
 
-  useEffect(() => { if (userRole) loadData(); }, [userRole]);
+  // --- REALTIME LISTENER ---
+  useEffect(() => {
+      if (!userRole) return;
+      
+      // Initial Load
+      loadData();
+
+      // Subscribe to changes
+      const subscription = db.subscribeToPosts(() => {
+          // Silent reload on database change
+          loadData(true);
+      });
+
+      return () => {
+          subscription.unsubscribe();
+      };
+  }, [userRole]);
 
   useEffect(() => {
     if (!loading && userRole === 'agency' && posts.length > 0) {
@@ -137,7 +159,7 @@ export default function App() {
         await uploadBytes(storageRef, file);
         const url = await getDownloadURL(storageRef);
         setNewPostMediaUrl(url);
-      } catch (error) { alert("Upload failed."); } finally { setIsUploading(false); }
+      } catch (error) { alert("Upload failed. Please check your network or Storage rules."); } finally { setIsUploading(false); }
     }
   };
 
@@ -163,6 +185,7 @@ export default function App() {
         await Promise.all(createPromises);
       }
       closeForm();
+      // loadData is handled by subscription now, but we can call it optimistically
       loadData(true); 
     } catch (error) { alert("Error saving."); } finally { setIsSaving(false); }
   };
@@ -174,7 +197,6 @@ export default function App() {
       if (confirm("Delete permanently?")) {
         setPosts(prev => prev.filter(p => p.id !== id));
         await db.deletePost(id);
-        loadData(true); 
       }
     } else if (confirm("Trash this post?")) {
         await handleStatusChange(id, 'Trashed');
@@ -196,7 +218,6 @@ export default function App() {
          });
     }
     await db.updatePost(id, { status }, userRole === 'agency' ? 'Agency' : currentClient);
-    loadData(true); 
   };
 
   const openNewPostForm = () => {
@@ -278,7 +299,7 @@ export default function App() {
   if (isSettingsOpen) return <Settings clients={clients} templates={templates} snippets={snippets} onUpdate={() => loadData(true)} onClose={() => setIsSettingsOpen(false)} />;
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden relative">
+    <div className="flex h-screen bg-[#F5F7FA] dark:bg-gray-950 overflow-hidden relative">
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-swave-orange/10 rounded-full blur-[160px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
         <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-swave-purple/10 rounded-full blur-[160px] pointer-events-none translate-y-1/2 -translate-x-1/2"></div>
@@ -308,32 +329,47 @@ export default function App() {
                         <div className="space-y-1">
                             <button 
                                 onClick={() => { setViewMode('list'); setSidebarOpen(false); }} 
-                                className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${viewMode === 'list' ? 'bg-swave-orange text-white shadow-xl shadow-orange-200' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50'}`}
+                                className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${viewMode === 'list' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                             >
                                 <List className="w-5 h-5" /> Master Feed
                             </button>
                             <button 
                                 onClick={() => { setViewMode('calendar'); setSidebarOpen(false); }} 
-                                className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${viewMode === 'calendar' ? 'bg-swave-orange text-white shadow-xl shadow-orange-200' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50'}`}
+                                className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${viewMode === 'calendar' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                             >
                                 <CalendarIcon className="w-5 h-5" /> Schedule Plan
                             </button>
                             <button 
                                 onClick={() => { setViewMode('kanban'); setSidebarOpen(false); }} 
-                                className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${viewMode === 'kanban' ? 'bg-swave-orange text-white shadow-xl shadow-orange-200' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50'}`}
+                                className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${viewMode === 'kanban' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                             >
                                 <LayoutGrid className="w-5 h-5" /> Workflow Board
                             </button>
                             {userRole === 'agency' && (
                                 <button 
                                     onClick={() => { setViewMode('trash'); setSidebarOpen(false); }} 
-                                    className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all mt-4 ${viewMode === 'trash' ? 'bg-red-500 text-white shadow-xl shadow-red-100' : 'text-gray-600 hover:bg-red-50 hover:text-red-600'}`}
+                                    className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all mt-4 ${viewMode === 'trash' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-gray-600 hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400'}`}
                                 >
                                     <Trash2 className="w-5 h-5" /> Archive
                                 </button>
                             )}
                         </div>
                     </div>
+                    
+                    {/* FINANCE Section (Agency Only) */}
+                    {userRole === 'agency' && (
+                        <div>
+                            <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4">Finance</p>
+                            <div className="space-y-1">
+                                <button 
+                                    onClick={() => { setViewMode('finance'); setSidebarOpen(false); }} 
+                                    className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${viewMode === 'finance' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                                >
+                                    <DollarSign className="w-5 h-5" /> Invoicing
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* ADMINISTRATION Section */}
                     {userRole === 'agency' && (
@@ -342,7 +378,7 @@ export default function App() {
                              <div className="space-y-1">
                                  <button 
                                    onClick={() => { setIsSettingsOpen(true); setSidebarOpen(false); }} 
-                                   className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${isSettingsOpen ? 'bg-swave-purple text-white shadow-xl' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50'}`}
+                                   className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${isSettingsOpen ? 'bg-swave-purple text-white shadow-lg shadow-purple-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                                  >
                                     <SettingsIcon className="w-5 h-5" /> Agency Settings
                                 </button>
@@ -364,7 +400,11 @@ export default function App() {
         </aside>
 
         {/* Main Dashboard Area */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10 bg-gray-50/30 dark:bg-gray-950">
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10 bg-transparent dark:bg-gray-950">
+            {viewMode === 'finance' ? (
+                <FinanceModule />
+            ) : (
+            <>
             {/* Unified Top Navigation & Filter Bar */}
             <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-3xl sticky top-0 z-40 border-b border-gray-100 dark:border-gray-800 px-6 py-4 md:px-10">
                 <div className="flex flex-wrap items-center justify-between gap-6 mb-6">
@@ -381,8 +421,12 @@ export default function App() {
                                     </button>
                                     {showClientSelector && (
                                         <div className="absolute top-full left-0 mt-4 w-72 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl z-20 overflow-hidden animate-in slide-in-from-top-2">
-                                            <button onClick={() => { setFilterClient('All'); setShowClientSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-black uppercase tracking-widest border-b ${filterClient === 'All' ? 'text-swave-orange' : 'text-gray-600'}`}>Show All</button>
-                                            {clients.map(c => <button key={c} onClick={() => { setFilterClient(c); setShowClientSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-bold border-b ${filterClient === c ? 'text-swave-purple' : 'text-gray-700'}`}>{c}</button>)}
+                                            <button onClick={() => { setFilterClient('All'); setShowClientSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-black uppercase tracking-widest border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${filterClient === 'All' ? 'text-swave-orange' : 'text-gray-600'}`}>Show All</button>
+                                            <div className="max-h-80 overflow-y-auto no-scrollbar">
+                                                {clients.map(c => (
+                                                    <button key={c} onClick={() => { setFilterClient(c); setShowClientSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-bold border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${filterClient === c ? 'text-swave-purple' : 'text-gray-700 dark:text-gray-200'}`}>{c}</button>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -394,10 +438,12 @@ export default function App() {
                                     </button>
                                     {showCampaignSelector && (
                                         <div className="absolute top-full left-0 mt-4 w-72 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl z-20 overflow-hidden animate-in slide-in-from-top-2">
-                                            <button onClick={() => { setFilterCampaign('All'); setShowCampaignSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-black uppercase tracking-widest border-b ${filterCampaign === 'All' ? 'text-swave-orange' : 'text-gray-600'}`}>General Feed</button>
-                                            {Array.from(new Set(posts.map(p => p.campaign).filter(Boolean))).map(c => (
-                                                <button key={c} onClick={() => { setFilterCampaign(c!); setShowCampaignSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-bold border-b ${filterCampaign === c ? 'text-swave-orange' : 'text-gray-700'}`}>{c}</button>
-                                            ))}
+                                            <button onClick={() => { setFilterCampaign('All'); setShowCampaignSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-black uppercase tracking-widest border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${filterCampaign === 'All' ? 'text-swave-orange' : 'text-gray-600'}`}>General Feed</button>
+                                            <div className="max-h-80 overflow-y-auto no-scrollbar">
+                                                {Array.from(new Set(posts.map(p => p.campaign).filter(Boolean))).map(c => (
+                                                    <button key={c} onClick={() => { setFilterCampaign(c!); setShowCampaignSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-bold border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${filterCampaign === c ? 'text-swave-orange' : 'text-gray-700 dark:text-gray-200'}`}>{c}</button>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -406,99 +452,140 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-3">
                          {userRole === 'agency' && viewMode !== 'trash' && (
-                             <button onClick={openNewPostForm} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white p-3.5 md:px-6 md:py-4 rounded-2xl text-sm font-black flex items-center gap-2.5 shadow-2xl transition-all active:scale-95"><Plus className="w-6 h-6" /> <span className="hidden md:inline">Produce Post</span></button>
+                             <button onClick={openNewPostForm} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white p-3.5 md:px-6 md:py-4 rounded-2xl text-sm font-black flex items-center gap-2.5 shadow-2xl shadow-orange-300/40 dark:shadow-none hover:scale-[1.02] transition-all active:scale-95"><Plus className="w-6 h-6 md:w-5 md:h-5" /> <span className="hidden md:inline">Produce Post</span></button>
                          )}
+                         <div className="relative" ref={notificationRef}>
+                            <button onClick={() => setShowNotifications(!showNotifications)} className="p-3.5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 text-gray-500 hover:text-swave-orange transition-all active:scale-90">
+                                <Bell className="w-6 h-6" />
+                                {notifications.length > 0 && <span className="absolute top-3.5 right-3.5 w-3.5 h-3.5 bg-red-500 rounded-full border-4 border-white dark:border-gray-800"></span>}
+                            </button>
+                            {showNotifications && (
+                                <div className="absolute right-0 top-full mt-5 w-80 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-in slide-in-from-top-2">
+                                     <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900">
+                                         <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Inbox</span>
+                                         <span className="text-[10px] bg-swave-orange text-white px-3 py-1 rounded-full font-black tracking-widest ml-2">{notifications.length} NEW</span>
+                                     </div>
+                                     <div className="max-h-[400px] overflow-y-auto no-scrollbar pb-2">
+                                         {notifications.length === 0 ? (
+                                             <div className="p-12 text-center text-gray-400 text-sm font-bold italic opacity-40">Your inbox is clear. ✨</div>
+                                         ) : (
+                                             notifications.map(n => (
+                                                 <div key={n.id} onClick={() => { const p = posts.find(post => post.id === n.postId); if(p) { openEditPostForm(p); setShowNotifications(false); } }} className="p-5 border-b border-gray-50 dark:border-gray-800 hover:bg-orange-50/40 dark:hover:bg-orange-900/10 cursor-pointer flex gap-4 transition-colors">
+                                                     <div className={`mt-2 flex-shrink-0 w-3 h-3 rounded-full ${n.type === 'status' ? 'bg-emerald-500 shadow-md shadow-emerald-200' : 'bg-swave-orange shadow-md shadow-orange-200'}`} />
+                                                     <div className="flex-grow">
+                                                         <p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 leading-snug">{n.text}</p>
+                                                         <p className="text-xs text-gray-400 font-black mt-2 uppercase tracking-widest">{new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
+                                                     </div>
+                                                 </div>
+                                             ))
+                                         )}
+                                     </div>
+                                </div>
+                            )}
+                         </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2 pt-1">
-                    <div className="flex items-center gap-2.5 p-2 bg-gray-100/50 dark:bg-gray-800/50 rounded-[2rem] border border-gray-100 shadow-inner w-full md:w-auto">
-                        <div className="flex gap-2.5">
+                    <div className="flex items-center gap-2.5 p-2 bg-gray-100/50 dark:bg-gray-800/50 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-inner w-full md:w-auto">
+                        <div className="flex gap-2.5 min-w-full md:min-w-0">
                             {STATUS_PILLS.map((pill) => (
-                                <button key={pill.label} onClick={() => setFilterStatus(pill.value)} className={`px-6 py-2.5 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterStatus === pill.value ? pill.color + ' shadow-xl scale-105' : 'bg-transparent text-gray-400 hover:text-gray-700'}`}>{pill.label}</button>
+                                <button key={pill.label} onClick={() => setFilterStatus(pill.value)} className={`px-6 py-2.5 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterStatus === pill.value ? pill.color + ' shadow-xl scale-105 ring-4 ring-white dark:ring-gray-900 z-10' : 'bg-transparent text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>{pill.label}</button>
                             ))}
                         </div>
                     </div>
                 </div>
             </header>
 
-            <div className="flex-grow overflow-auto p-6 md:p-12 pb-40 no-scrollbar">
+            <div className="flex-grow overflow-auto p-6 md:p-12 pb-20 no-scrollbar">
                 {(viewMode === 'list' || viewMode === 'trash') && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {filteredPosts.map(post => <PostCard key={post.id} post={post} role={userRole} onDelete={handleDeletePost} onRestore={handleRestorePost} onStatusChange={handleStatusChange} onEdit={openEditPostForm} onUpdate={() => loadData(true)} />)}
                     </div>
                 )}
-            </div>
 
-            {isFormOpen && (
-                <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in">
-                    <div className="bg-white dark:bg-gray-800 rounded-[4rem] shadow-2xl w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col scale-100 animate-in zoom-in-90">
-                        <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-white dark:bg-gray-800">
-                            <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">Studio Workspace</h2>
-                            <button type="button" onClick={closeForm} className="p-4 hover:bg-gray-100 rounded-3xl transition-all text-gray-500 hover:rotate-180 duration-500"><X className="w-8 h-8" /></button>
-                        </div>
-                        <div className="flex-grow overflow-y-auto p-10 lg:p-12 grid grid-cols-1 lg:grid-cols-7 gap-12 no-scrollbar">
-                             <div className="lg:col-span-3 space-y-10">
-                                  {userRole === 'agency' && (
-                                    <div>
-                                        <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Strategic Account</label>
-                                        <select value={newPostClient} onChange={e => setNewPostClient(e.target.value)} className="w-full p-5 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl">{clients.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                {viewMode === 'calendar' && (
+                    <div className="h-full bg-white dark:bg-gray-900 rounded-[3.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+                         <CalendarView posts={filteredPosts} onPostClick={openEditPostForm} />
+                    </div>
+                )}
+
+                {viewMode === 'kanban' && (
+                     <KanbanBoard posts={filteredPosts} role={userRole} onPostClick={openEditPostForm} onStatusChange={handleStatusChange} onDelete={handleDeletePost} />
+                )}
+            </div>
+            </>
+            )}
+        </main>
+
+        {isFormOpen && (
+            <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in">
+                <div className="bg-white dark:bg-gray-800 rounded-[4rem] shadow-2xl w-full max-w-[95vw] h-[95vh] overflow-hidden flex flex-col scale-100 animate-in zoom-in-90">
+                    <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-white dark:bg-gray-800">
+                        <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">Studio Workspace</h2>
+                        <button type="button" onClick={closeForm} className="p-4 hover:bg-gray-100 rounded-3xl transition-all text-gray-500 hover:rotate-180 duration-500"><X className="w-8 h-8" /></button>
+                    </div>
+                    <div className="flex-grow overflow-y-auto p-10 lg:p-12 grid grid-cols-1 lg:grid-cols-7 gap-12 no-scrollbar">
+                            <div className="lg:col-span-3 space-y-10">
+                                {userRole === 'agency' && (
+                                <div>
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Strategic Account</label>
+                                    <select value={newPostClient} onChange={e => setNewPostClient(e.target.value)} className="w-full p-5 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl">{clients.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                                </div>
+                                )}
+                                <div>
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Campaign Name</label>
+                                    <input list="campaigns-list" value={newPostCampaign} onChange={e => setNewPostCampaign(e.target.value)} placeholder="e.g. Winter Sale 2024" className="w-full p-5 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl" />
+                                    <datalist id="campaigns-list">
+                                        {Array.from(new Set(posts.map(p => p.campaign).filter(Boolean))).map(c => <option key={c} value={c!} />)}
+                                    </datalist>
+                                </div>
+                                <div>
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Target Channels</label>
+                                    <div className="flex flex-wrap gap-3">{PLATFORMS.map(p => <button key={p} type="button" onClick={() => togglePlatform(p)} className={`flex items-center gap-3 px-6 py-4 rounded-[1.25rem] text-[11px] font-black border-2 transition-all active:scale-95 ${newPostPlatforms.includes(p) ? 'bg-gray-900 text-white border-gray-900 shadow-2xl' : 'bg-white border-gray-100 text-gray-500 hover:border-swave-orange'}`}>{p}</button>)}</div>
+                                </div>
+                                <div>
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Activation Date</label>
+                                    <input type="date" value={newPostDate} onChange={e => setNewPostDate(e.target.value)} className="w-full p-5 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black shadow-xl outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Creative Asset</label>
+                                    <div className="border-4 border-dashed border-gray-200 rounded-[3rem] p-10 text-center relative bg-white/30">
+                                        {newPostMediaUrl ? (
+                                            <div className="relative rounded-[2rem] overflow-hidden bg-gray-100 border flex justify-center items-center min-h-[250px] shadow-2xl">
+                                                {newPostMediaType === 'video' ? <video src={newPostMediaUrl} className="w-full h-auto max-h-[400px] object-contain" controls /> : <img src={newPostMediaUrl} alt="Preview" className="w-full h-auto max-h-[400px] object-contain" />}
+                                                <button type="button" onClick={() => setNewPostMediaUrl('')} className="absolute top-6 right-6 bg-red-500 text-white p-3 rounded-full active:scale-90"><X className="w-6 h-6" /></button>
+                                            </div>
+                                        ) : (
+                                            <div className="py-12 flex flex-col items-center justify-center text-gray-400">
+                                                {isUploading ? <Loader2 className="w-16 h-16 animate-spin text-swave-orange"/> : <UploadCloud className="w-16 h-16 mb-5 opacity-40" />}
+                                                <p className="text-sm font-black uppercase">Deploy Assets</p>
+                                                <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*,video/*" />
+                                            </div>
+                                        )}
                                     </div>
-                                  )}
-                                  <div>
-                                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Campaign Name</label>
-                                      <input list="campaigns-list" value={newPostCampaign} onChange={e => setNewPostCampaign(e.target.value)} placeholder="e.g. Winter Sale 2024" className="w-full p-5 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl" />
-                                      <datalist id="campaigns-list">
-                                          {Array.from(new Set(posts.map(p => p.campaign).filter(Boolean))).map(c => <option key={c} value={c!} />)}
-                                      </datalist>
-                                  </div>
-                                  <div>
-                                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Target Channels</label>
-                                      <div className="flex flex-wrap gap-3">{PLATFORMS.map(p => <button key={p} type="button" onClick={() => togglePlatform(p)} className={`flex items-center gap-3 px-6 py-4 rounded-[1.25rem] text-[11px] font-black border-2 transition-all active:scale-95 ${newPostPlatforms.includes(p) ? 'bg-gray-900 text-white border-gray-900 shadow-2xl' : 'bg-white border-gray-100 text-gray-500 hover:border-swave-orange'}`}>{p}</button>)}</div>
-                                  </div>
-                                  <div>
-                                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Activation Date</label>
-                                      <input type="date" value={newPostDate} onChange={e => setNewPostDate(e.target.value)} className="w-full p-5 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black shadow-xl outline-none" />
-                                  </div>
-                                  <div>
-                                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Creative Asset</label>
-                                      <div className="border-4 border-dashed border-gray-200 rounded-[3rem] p-10 text-center relative bg-white/30">
-                                          {newPostMediaUrl ? (
-                                              <div className="relative rounded-[2rem] overflow-hidden bg-gray-100 border flex justify-center items-center min-h-[250px] shadow-2xl">
-                                                  {newPostMediaType === 'video' ? <video src={newPostMediaUrl} className="w-full h-auto max-h-[400px] object-contain" controls /> : <img src={newPostMediaUrl} alt="Preview" className="w-full h-auto max-h-[400px] object-contain" />}
-                                                  <button type="button" onClick={() => setNewPostMediaUrl('')} className="absolute top-6 right-6 bg-red-500 text-white p-3 rounded-full active:scale-90"><X className="w-6 h-6" /></button>
-                                              </div>
-                                          ) : (
-                                              <div className="py-12 flex flex-col items-center justify-center text-gray-400">
-                                                  {isUploading ? <Loader2 className="w-16 h-16 animate-spin text-swave-orange"/> : <UploadCloud className="w-16 h-16 mb-5 opacity-40" />}
-                                                  <p className="text-sm font-black uppercase">Deploy Assets</p>
-                                                  <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*,video/*" />
-                                              </div>
-                                          )}
-                                      </div>
-                                  </div>
-                             </div>
-                             <div className="lg:col-span-4 flex flex-col h-full space-y-10">
-                                 <div className="flex-grow flex flex-col">
-                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 flex justify-between items-center"><span>Post Copy / Caption</span><span className="font-black bg-swave-purple/10 text-swave-purple px-4 py-1.5 rounded-full text-[10px]">{newPostCaption.length} CHARS</span></label>
-                                    <div className="relative flex-grow flex flex-col min-h-[400px]">
-                                        <textarea value={newPostCaption} onChange={e => setNewPostCaption(e.target.value)} className="w-full flex-grow p-8 rounded-[2.5rem] bg-white border-none text-[16px] font-medium outline-none resize-none shadow-2xl leading-relaxed transition-all" placeholder="Tell a story..." />
-                                        <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="absolute bottom-8 right-8 text-gray-400 hover:text-swave-orange bg-gray-50 p-4 rounded-3xl shadow-lg active:scale-90"><Smile className="w-7 h-7" /></button>
-                                        {showEmojiPicker && <div className="absolute bottom-24 right-8 z-20 shadow-2xl rounded-[2.5rem] overflow-hidden"><EmojiPicker onEmojiClick={(e) => { setNewPostCaption(prev => prev + e.emoji); setShowEmojiPicker(false); }} width={350} height={450} previewConfig={{ showPreview: false }} /></div>}
-                                    </div>
-                                 </div>
-                             </div>
-                        </div>
-                        <div className="p-10 border-t border-gray-100 bg-white flex flex-col sm:flex-row justify-between items-center gap-6">
-                            <button type="button" onClick={() => setIsFormOpen(false)} className="w-full sm:w-auto px-10 py-5 text-gray-400 hover:text-red-500 rounded-3xl text-sm font-black uppercase tracking-[0.2em] transition-colors">Discard</button>
-                            <div className="flex gap-5 w-full sm:w-auto">
-                                <button type="button" disabled={isSaving} onClick={() => handleSavePost('Draft')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 bg-gray-100 text-gray-900 rounded-[1.5rem] text-sm font-black active:scale-95 disabled:opacity-50"><Save className="w-5 h-5" /> Store Draft</button>
-                                <button type="button" disabled={isSaving} onClick={() => handleSavePost('In Review')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-12 py-5 bg-gradient-to-r from-swave-purple to-swave-orange text-white rounded-[1.5rem] text-sm font-black shadow-2xl active:scale-95 disabled:opacity-50 uppercase tracking-widest">Finalize & Review</button>
+                                </div>
                             </div>
+                            <div className="lg:col-span-4 flex flex-col h-full space-y-10">
+                                <div className="flex-grow flex flex-col">
+                                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 flex justify-between items-center"><span>Post Copy / Caption</span><span className="font-black bg-swave-purple/10 text-swave-purple px-4 py-1.5 rounded-full text-[10px]">{newPostCaption.length} CHARS</span></label>
+                                <div className="relative flex-grow flex flex-col min-h-[400px]">
+                                    <textarea value={newPostCaption} onChange={e => setNewPostCaption(e.target.value)} className="w-full flex-grow p-8 rounded-[2.5rem] bg-white border-none text-[16px] font-medium outline-none resize-none shadow-2xl leading-relaxed transition-all" placeholder="Tell a story..." />
+                                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="absolute bottom-8 right-8 text-gray-400 hover:text-swave-orange bg-gray-50 p-4 rounded-3xl shadow-lg active:scale-90"><Smile className="w-7 h-7" /></button>
+                                    {showEmojiPicker && <div className="absolute bottom-24 right-8 z-20 shadow-2xl rounded-[2.5rem] overflow-hidden"><EmojiPicker onEmojiClick={(e) => { setNewPostCaption(prev => prev + e.emoji); setShowEmojiPicker(false); }} width={350} height={450} previewConfig={{ showPreview: false }} /></div>}
+                                </div>
+                                </div>
+                            </div>
+                    </div>
+                    <div className="p-10 border-t border-gray-100 bg-white flex flex-col sm:flex-row justify-between items-center gap-6">
+                        <button type="button" onClick={() => setIsFormOpen(false)} className="w-full sm:w-auto px-10 py-5 text-gray-400 hover:text-red-500 rounded-3xl text-sm font-black uppercase tracking-[0.2em] transition-colors">Discard</button>
+                        <div className="flex gap-5 w-full sm:w-auto">
+                            <button type="button" disabled={isSaving} onClick={() => handleSavePost('Draft')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 bg-gray-100 text-gray-900 rounded-[1.5rem] text-sm font-black active:scale-95 disabled:opacity-50"><Save className="w-5 h-5" /> Store Draft</button>
+                            <button type="button" disabled={isSaving} onClick={() => handleSavePost('In Review')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-12 py-5 bg-gradient-to-r from-swave-purple to-swave-orange text-white rounded-[1.5rem] text-sm font-black shadow-2xl active:scale-95 disabled:opacity-50 uppercase tracking-widest">Finalize & Review</button>
                         </div>
                     </div>
                 </div>
-            )}
-        </main>
+            </div>
+        )}
     </div>
   );
 }

@@ -81,6 +81,50 @@ export interface ClientProfile {
     facebook?: string;
     tiktok?: string;
   };
+  // Billing Info
+  billingAddress?: string;
+  taxId?: string;
+  currency?: 'USD' | 'EUR' | 'GBP' | 'XCD';
+}
+
+export interface ServiceItem {
+  id: string;
+  name: string;
+  defaultRate: number;
+  description?: string;
+}
+
+export interface InvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export type InvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'Void';
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string; // INV-2024-001
+  clientId: string;
+  clientName: string;
+  clientCompany?: string;
+  clientAddress?: string;
+  clientTaxId?: string;
+  issueDate: string;
+  dueDate: string;
+  status: InvoiceStatus;
+  items: InvoiceItem[];
+  subtotal: number;
+  discountValue: number; // Flat amount
+  taxRate: number; // Percentage
+  taxAmount: number;
+  grandTotal: number;
+  currency: 'USD' | 'EUR' | 'GBP' | 'XCD';
+  notes?: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export type UserRole = 'agency' | 'client' | null;

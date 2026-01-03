@@ -2,24 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { UserRole } from '../types';
 import { db } from '../services/db';
+import { SwaveLogo } from './Logo';
 import { Lock, Briefcase, Users, ChevronRight, KeyRound, Loader2, RefreshCw, ArrowLeft, HelpCircle, Building2 } from 'lucide-react';
 
 interface LoginProps {
   clients: string[];
   onLogin: (role: UserRole, clientName?: string) => void;
 }
-
-const SwaveLogo = ({ className = "w-full h-full" }: { className?: string }) => (
-  <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M75 35L55 23.45V31.15L68.3 38.85L45 52.3V44.6L25 56.15V67.7L45 79.25V71.55L31.7 63.85L55 50.4V58.1L75 46.55V35Z" fill="url(#swave-grad)" />
-    <defs>
-      <linearGradient id="swave-grad" x1="25" y1="23.45" x2="75" y2="79.25" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#8E3EBB" />
-        <stop offset="1" stopColor="#F27A21" />
-      </linearGradient>
-    </defs>
-  </svg>
-);
 
 export const Login: React.FC<LoginProps> = ({ clients, onLogin }) => {
   const [activeTab, setActiveTab] = useState<'agency' | 'client'>('agency');

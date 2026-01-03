@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { Template, Snippet, Platform, PLATFORMS, ClientProfile } from '../types';
-import { Trash2, Plus, Save, X, Building2, FileText, Hash, KeyRound, Copy, ShieldCheck, ArrowLeft, Mail, Phone, Globe, Instagram, Linkedin, Twitter, Facebook, Video, Edit3, UserCircle, StickyNote, Download, Upload, Database, RefreshCw, Lock, HelpCircle } from 'lucide-react';
+import { Trash2, Plus, Save, X, Building2, FileText, Hash, KeyRound, Copy, ShieldCheck, ArrowLeft, Mail, Phone, Globe, Instagram, Linkedin, Twitter, Facebook, Video, Edit3, UserCircle, StickyNote, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, CreditCard, Coins, Check, AlertTriangle, Moon, Sun } from 'lucide-react';
 
 interface SettingsProps {
   clients: string[]; 
@@ -15,6 +15,9 @@ interface SettingsProps {
 export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templates, snippets, onUpdate, onClose }) => {
   const [activeTab, setActiveTab] = useState<'clients' | 'templates' | 'snippets' | 'security'>('clients');
 
+  // Theme State
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
   // Client State
   const [newClientName, setNewClientName] = useState('');
   const [editingClient, setEditingClient] = useState<ClientProfile | null>(null);
@@ -23,16 +26,36 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   const [fullProfiles, setFullProfiles] = useState<ClientProfile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // Theme Toggle Effect
+  useEffect(() => {
+    if (document.documentElement.classList.contains('dark')) {
+      setIsDarkMode(true);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+      setIsDarkMode(true);
+    }
+  };
+
   React.useEffect(() => {
       const loadProfiles = async () => {
           const profiles = await db.getClients();
           setFullProfiles(profiles);
       };
       loadProfiles();
-  }, [clientNames]); // Reload when names change
+  }, [clientNames]); 
 
   // Template State
   const [editingTemplate, setEditingTemplate] = useState<Partial<Template> | null>(null);
+  const [tempTags, setTempTags] = useState('');
 
   // Snippet State
   const [editingSnippet, setEditingSnippet] = useState<Partial<Snippet> | null>(null);
@@ -50,6 +73,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
     }
   }, [activeTab]);
 
+  // --- HANDLERS (Same as before, logic unchanged) ---
   const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newClientName.trim()) {
@@ -62,14 +86,11 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   const handleUpdateClient = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!editingClient) return;
-      
       try {
           await db.updateClient(originalClientName, editingClient);
           setEditingClient(null);
           onUpdate();
-      } catch (err: any) {
-          alert(err.message);
-      }
+      } catch (err: any) { alert(err.message); }
   };
 
   const handleEditClick = (client: ClientProfile) => {
@@ -77,14 +98,33 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       setOriginalClientName(client.name);
   };
 
+  const handleNewTemplate = () => {
+      setEditingTemplate({ id: crypto.randomUUID(), name: '', platform: 'Instagram', captionSkeleton: '', tags: [] });
+      setTempTags('');
+  };
+
+  const handleEditTemplate = (t: Template) => {
+      setEditingTemplate({...t});
+      setTempTags(t.tags.join(', '));
+  };
+
   const handleSaveTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingTemplate && editingTemplate.name && editingTemplate.captionSkeleton) {
-       await db.saveTemplate(editingTemplate as Template);
+       const tagsArray = tempTags.split(',').map(t => t.trim()).filter(Boolean);
+       await db.saveTemplate({ ...editingTemplate, tags: tagsArray } as Template);
        setEditingTemplate(null);
        onUpdate();
     }
   };
+
+  const handleDeleteTemplate = async (id: string) => {
+      if(confirm("Delete template?")) { await db.deleteTemplate(id); onUpdate(); }
+  };
+
+  const handleNewSnippet = () => setEditingSnippet({ id: crypto.randomUUID(), label: '', content: '' });
+  
+  const handleEditSnippet = (s: Snippet) => setEditingSnippet({...s});
 
   const handleSaveSnippet = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -95,12 +135,13 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       }
   };
 
+  const handleDeleteSnippet = async (id: string) => {
+      if(confirm("Delete snippet?")) { await db.deleteSnippet(id); onUpdate(); }
+  };
+
   const handleUpdatePassword = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (newAgencyPass.length < 4) {
-          alert("Password too short");
-          return;
-      }
+      if (newAgencyPass.length < 4) { alert("Password too short"); return; }
       await db.updateAgencyPassword(newAgencyPass);
       setNewAgencyPass('');
       alert("Agency password updated successfully!");
@@ -108,35 +149,18 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
 
   const handleUpdateRecovery = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (newRecoveryQuestion.length < 5 || newRecoveryAnswer.length < 3) {
-          alert("Please provide a valid question and answer.");
-          return;
-      }
+      if (newRecoveryQuestion.length < 5 || newRecoveryAnswer.length < 3) { alert("Please provide a valid question and answer."); return; }
       await db.updateRecoverySettings(newRecoveryQuestion, newRecoveryAnswer);
       setNewRecoveryAnswer('');
-      alert("Recovery settings updated successfully! Please remember this answer.");
+      alert("Recovery settings updated successfully!");
   }
 
   const handleClearData = async () => {
       if (confirm("WARNING: This will delete ALL posts, clients, and settings. This action cannot be undone. Are you sure?")) {
           setIsProcessing(true);
-          try {
-              await db.clearDatabase();
-              onUpdate();
-              alert("All data cleared.");
-          } catch (e) {
-              console.error(e);
-              alert("Failed to clear data.");
-          } finally {
-              setIsProcessing(false);
-          }
+          try { await db.clearDatabase(); onUpdate(); alert("All data cleared."); } catch (e) { console.error(e); alert("Failed to clear data."); } finally { setIsProcessing(false); }
       }
   };
-
-  const copyToClipboard = (text: string) => {
-      navigator.clipboard.writeText(text);
-      alert(`Copied: ${text}`);
-  }
 
   const handleExportData = async () => {
     const json = await db.exportDatabase();
@@ -150,465 +174,351 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
     document.body.removeChild(link);
   };
 
+  const copyToClipboard = (text: string) => {
+      navigator.clipboard.writeText(text);
+      // Optional toast here
+  }
+
+  const PlatformIcon = ({ platform }: { platform: string }) => {
+    switch (platform) {
+      case 'Instagram': return <Instagram className="w-4 h-4 text-pink-600" />;
+      case 'LinkedIn': return <Linkedin className="w-4 h-4 text-blue-700" />;
+      case 'Twitter': return <Twitter className="w-4 h-4 text-blue-400" />;
+      case 'Facebook': return <Facebook className="w-4 h-4 text-blue-600" />;
+      case 'TikTok': return <Video className="w-4 h-4 text-black dark:text-white" />;
+      default: return null;
+    }
+  };
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden animate-in fade-in max-w-4xl mx-auto flex flex-col h-full md:h-auto">
-      <div className="border-b border-gray-200 dark:border-gray-700 flex items-center bg-gray-50/50 dark:bg-gray-900/20">
-         <button 
-            onClick={onClose}
-            className="p-4 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-r border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shrink-0"
-            title="Back to Dashboard"
-         >
-            <ArrowLeft className="w-5 h-5" />
-         </button>
-         
-         <div className="flex overflow-x-auto no-scrollbar flex-grow">
-            <button
-            onClick={() => setActiveTab('clients')}
-            className={`px-4 md:px-6 py-4 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${activeTab === 'clients' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 bg-white dark:bg-gray-800' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
-            >
-            <Building2 className="w-4 h-4" /> Clients
-            </button>
-            <button
-            onClick={() => setActiveTab('templates')}
-            className={`px-4 md:px-6 py-4 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${activeTab === 'templates' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 bg-white dark:bg-gray-800' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
-            >
-            <FileText className="w-4 h-4" /> Templates
-            </button>
-            <button
-            onClick={() => setActiveTab('snippets')}
-            className={`px-4 md:px-6 py-4 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${activeTab === 'snippets' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 bg-white dark:bg-gray-800' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
-            >
-            <Hash className="w-4 h-4" /> Snippets
-            </button>
-            <button
-            onClick={() => setActiveTab('security')}
-            className={`px-4 md:px-6 py-4 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${activeTab === 'security' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 bg-white dark:bg-gray-800' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
-            >
-            <ShieldCheck className="w-4 h-4" /> Security
-            </button>
-        </div>
+    <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-in fade-in zoom-in-95 w-[95vw] max-w-[1920px] mx-auto flex flex-col h-[92vh]">
+      {/* HEADER */}
+      <div className="border-b border-gray-100 dark:border-gray-700 flex items-center justify-between p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md sticky top-0 z-20">
+         <div className="flex items-center gap-4">
+             <button 
+                onClick={onClose}
+                className="p-3 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all"
+             >
+                <ArrowLeft className="w-5 h-5" />
+             </button>
+             <h2 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">System Settings</h2>
+         </div>
+         <div className="flex items-center gap-3">
+             <button onClick={toggleTheme} className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                {isDarkMode ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}
+             </button>
+         </div>
       </div>
 
-      <div className="p-4 md:p-6 overflow-y-auto">
-        {/* --- CLIENTS TAB --- */}
-        {activeTab === 'clients' && (
-          <div className="space-y-6">
-            {!editingClient ? (
-                <>
-                    <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-lg p-4 text-sm text-indigo-800 dark:text-indigo-300">
-                    <p className="font-bold mb-1">How Client Login Works:</p>
-                    When you add a client, an <strong>Access Code</strong> is automatically generated. Send this code to your client. They will need to select their organization name and enter the code to access the portal.
-                    </div>
-                    
-                    <form onSubmit={handleAddClient} className="flex gap-2">
-                    <input
-                        value={newClientName}
-                        onChange={(e) => setNewClientName(e.target.value)}
-                        placeholder="New Client Name"
-                        className="flex-grow p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
-                    />
-                    <button type="submit" disabled={!newClientName.trim()} className="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium">Add</button>
-                    </form>
+      <div className="flex flex-col md:flex-row h-full overflow-hidden">
+        {/* SIDEBAR TABS */}
+        <div className="w-full md:w-64 bg-gray-50/50 dark:bg-gray-900/30 border-r border-gray-100 dark:border-gray-700 p-4 flex flex-row md:flex-col gap-2 overflow-x-auto no-scrollbar md:overflow-visible flex-shrink-0">
+            {[
+                { id: 'clients', label: 'Clients', icon: Building2 },
+                { id: 'templates', label: 'Templates', icon: FileText },
+                { id: 'snippets', label: 'Snippets', icon: Hash },
+                { id: 'security', label: 'Security', icon: ShieldCheck }
+            ].map((tab) => (
+                <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all w-full whitespace-nowrap md:whitespace-normal ${activeTab === tab.id ? 'bg-gradient-to-r from-swave-purple to-swave-orange text-white shadow-lg shadow-purple-500/20 dark:shadow-none' : 'text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-200'}`}
+                >
+                    <tab.icon className="w-5 h-5" /> {tab.label}
+                </button>
+            ))}
+        </div>
 
-                    <div className="grid grid-cols-1 gap-3">
-                    {fullProfiles.map(client => (
-                        <div key={client.name} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 dark:bg-gray-750 rounded-lg border border-gray-200 dark:border-gray-600 group gap-3">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-white dark:bg-gray-600 rounded-full flex items-center justify-center border border-gray-200 dark:border-gray-500 shadow-sm font-bold text-gray-600 dark:text-gray-200 shrink-0">
-                                {client.name.substring(0,2).toUpperCase()}
-                            </div>
-                            <div>
-                                <p className="font-bold text-gray-800 dark:text-gray-100">{client.name}</p>
-                                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    <KeyRound className="w-3 h-3" /> 
-                                    <span>Code: <span className="font-mono bg-white dark:bg-gray-600 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-500 select-all font-semibold text-gray-700 dark:text-gray-300">{client.accessCode}</span></span>
-                                    <button onClick={() => copyToClipboard(client.accessCode)} className="text-indigo-600 dark:text-indigo-400 hover:underline">Copy</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex gap-2 justify-end sm:justify-start">
-                            <button 
-                                onClick={() => handleEditClick(client)}
-                                className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
-                                title="Edit Client Details"
-                            >
-                                <Edit3 className="w-4 h-4" />
-                            </button>
-                            <button 
-                                onClick={async () => {
-                                if(confirm(`Remove ${client.name}? They will lose access immediately.`)) {
-                                    await db.removeClient(client.name);
-                                    onUpdate();
-                                }
-                                }}
-                                className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
-                                title="Remove Client"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        </div>
-                        </div>
-                    ))}
-                    </div>
-                </>
-            ) : (
-                <form onSubmit={handleUpdateClient} className="border border-indigo-100 dark:border-indigo-900 rounded-xl p-4 md:p-6 bg-indigo-50/30 dark:bg-indigo-900/10 space-y-6">
-                    <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-4">
-                        <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2">
-                            <UserCircle className="w-5 h-5 text-indigo-600" /> 
-                            <span className="truncate max-w-[150px] sm:max-w-none">Editing {originalClientName}</span>
-                        </h3>
-                        <div className="flex items-center gap-2">
-                            <div className="text-xs bg-white dark:bg-gray-700 px-3 py-1 rounded border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                                <KeyRound className="w-3 h-3"/> {editingClient.accessCode}
-                            </div>
-                        </div>
-                    </div>
+        {/* CONTENT AREA */}
+        <div className="flex-grow p-6 md:p-8 overflow-y-auto bg-white dark:bg-gray-800 relative">
+            {/* BACKGROUND DECORATION */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-500/5 to-orange-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Basic Info */}
-                        <div className="space-y-4">
-                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide">Contact Information</h4>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Client Name</label>
-                                <input 
-                                    required
-                                    value={editingClient.name} 
-                                    onChange={e => setEditingClient({...editingClient, name: e.target.value})}
-                                    className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                />
-                                <p className="text-[10px] text-gray-400 mt-1">Changing the name will update all existing posts.</p>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1"><Mail className="w-3 h-3"/> Email Address</label>
-                                <input 
-                                    type="email"
-                                    value={editingClient.email || ''} 
-                                    onChange={e => setEditingClient({...editingClient, email: e.target.value})}
-                                    className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    placeholder="contact@company.com"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1"><Phone className="w-3 h-3"/> Phone Number</label>
-                                <input 
-                                    type="tel"
-                                    value={editingClient.phone || ''} 
-                                    onChange={e => setEditingClient({...editingClient, phone: e.target.value})}
-                                    className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    placeholder="+1 (555) 000-0000"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1"><Globe className="w-3 h-3"/> Website</label>
-                                <input 
-                                    type="url"
-                                    value={editingClient.website || ''} 
-                                    onChange={e => setEditingClient({...editingClient, website: e.target.value})}
-                                    className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    placeholder="https://company.com"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Social Links */}
-                        <div className="space-y-4">
-                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide">Social Accounts</h4>
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <Instagram className="w-4 h-4 text-gray-400 shrink-0" />
-                                    <input 
-                                        placeholder="Instagram Profile URL"
-                                        value={editingClient.socialAccounts?.instagram || ''}
-                                        onChange={e => setEditingClient({...editingClient, socialAccounts: {...editingClient.socialAccounts, instagram: e.target.value}})}
-                                        className="flex-grow p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Linkedin className="w-4 h-4 text-gray-400 shrink-0" />
-                                    <input 
-                                        placeholder="LinkedIn Page URL"
-                                        value={editingClient.socialAccounts?.linkedin || ''}
-                                        onChange={e => setEditingClient({...editingClient, socialAccounts: {...editingClient.socialAccounts, linkedin: e.target.value}})}
-                                        className="flex-grow p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Twitter className="w-4 h-4 text-gray-400 shrink-0" />
-                                    <input 
-                                        placeholder="Twitter/X Profile URL"
-                                        value={editingClient.socialAccounts?.twitter || ''}
-                                        onChange={e => setEditingClient({...editingClient, socialAccounts: {...editingClient.socialAccounts, twitter: e.target.value}})}
-                                        className="flex-grow p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Facebook className="w-4 h-4 text-gray-400 shrink-0" />
-                                    <input 
-                                        placeholder="Facebook Page URL"
-                                        value={editingClient.socialAccounts?.facebook || ''}
-                                        onChange={e => setEditingClient({...editingClient, socialAccounts: {...editingClient.socialAccounts, facebook: e.target.value}})}
-                                        className="flex-grow p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Video className="w-4 h-4 text-gray-400 shrink-0" />
-                                    <input 
-                                        placeholder="TikTok Profile URL"
-                                        value={editingClient.socialAccounts?.tiktok || ''}
-                                        onChange={e => setEditingClient({...editingClient, socialAccounts: {...editingClient.socialAccounts, tiktok: e.target.value}})}
-                                        className="flex-grow p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Notes */}
-                    <div className="pt-2">
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1"><StickyNote className="w-3 h-3"/> Internal Notes</label>
-                        <textarea 
-                            value={editingClient.notes || ''}
-                            onChange={e => setEditingClient({...editingClient, notes: e.target.value})}
-                            className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg h-24 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
-                            placeholder="Add essential info for the team (e.g. Brand voice guidelines, preferred posting times, key contacts...)"
-                        />
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-2 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800 p-2 -mx-2 sm:mx-0 sm:p-0 sm:relative sm:bg-transparent">
-                        <button type="button" onClick={() => setEditingClient(null)} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Cancel</button>
-                        <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 font-medium"><Save className="w-4 h-4"/> Save Profile</button>
-                    </div>
-                </form>
-            )}
-          </div>
-        )}
-
-        {/* --- TEMPLATES TAB --- */}
-        {activeTab === 'templates' && (
-          <div className="space-y-6">
-            {!editingTemplate ? (
-               <>
-                 <div className="flex justify-between items-center">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Create templates for recurring content types.</p>
-                    <button 
-                        onClick={() => setEditingTemplate({ platform: 'Instagram', tags: [] })}
-                        className="flex items-center gap-1 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-medium"
-                    >
-                        <Plus className="w-3 h-3" /> New Template
-                    </button>
-                 </div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {templates.map(t => (
-                        <div key={t.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-indigo-200 dark:hover:border-indigo-500 transition-colors bg-gray-50/50 dark:bg-gray-750">
-                            <div className="flex justify-between items-start mb-2">
+            {/* --- CLIENTS TAB --- */}
+            {activeTab === 'clients' && (
+            <div className="space-y-8 animate-in slide-in-from-right-4 relative z-10">
+                {!editingClient ? (
+                    <>
+                         <div className="flex flex-col md:flex-row gap-4">
+                            <div className="flex-grow bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800 rounded-2xl p-6 flex gap-4">
+                                <div className="p-3 bg-indigo-100 dark:bg-indigo-800 rounded-xl h-fit text-indigo-600 dark:text-indigo-200"><KeyRound className="w-6 h-6"/></div>
                                 <div>
-                                    <h4 className="font-bold text-gray-800 dark:text-gray-100">{t.name}</h4>
-                                    <span className="text-xs px-2 py-0.5 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded text-gray-500 dark:text-gray-300">{t.platform}</span>
-                                </div>
-                                <div className="flex gap-1">
-                                    <button onClick={() => setEditingTemplate(t)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Edit</button>
-                                    <button onClick={() => { if(confirm('Delete template?')) { db.deleteTemplate(t.id); onUpdate(); }}} className="text-xs text-red-500 hover:underline ml-2">Delete</button>
+                                    <h4 className="font-bold text-indigo-900 dark:text-indigo-100 text-sm mb-1">Access Management</h4>
+                                    <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed max-w-xl">
+                                        Each client receives a unique Access Code. Share this code along with their Organization Name.
+                                    </p>
                                 </div>
                             </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 italic border-l-2 border-gray-300 dark:border-gray-600 pl-2 mb-2">{t.captionSkeleton}</p>
-                            <div className="flex gap-1 flex-wrap">
-                                {t.tags.map(tag => <span key={tag} className="text-[10px] bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 px-1.5 py-0.5 rounded">{tag}</span>)}
-                            </div>
+                            
+                            <form onSubmit={handleAddClient} className="flex-grow flex gap-3 max-w-xl">
+                                <input
+                                    value={newClientName}
+                                    onChange={(e) => setNewClientName(e.target.value)}
+                                    placeholder="Enter New Organization Name..."
+                                    className="flex-grow p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-swave-orange outline-none font-medium transition-all"
+                                />
+                                <button type="submit" disabled={!newClientName.trim()} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-8 rounded-2xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-50 disabled:scale-100">Add</button>
+                            </form>
                         </div>
-                    ))}
-                 </div>
-               </>
-            ) : (
-                <form onSubmit={handleSaveTemplate} className="border border-indigo-100 dark:border-indigo-900 rounded-xl p-6 bg-indigo-50/30 dark:bg-indigo-900/10 space-y-4">
-                    <h3 className="font-bold text-lg text-gray-800 dark:text-white">{editingTemplate.id ? 'Edit Template' : 'New Template'}</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Template Name</label>
-                            <input 
-                                required
-                                value={editingTemplate.name || ''} 
-                                onChange={e => setEditingTemplate({...editingTemplate, name: e.target.value})}
-                                className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Platform</label>
-                            <select
-                                value={editingTemplate.platform}
-                                onChange={e => setEditingTemplate({...editingTemplate, platform: e.target.value as Platform})}
-                                className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                            >
-                                {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Caption Structure</label>
-                         <textarea 
-                             required
-                             value={editingTemplate.captionSkeleton || ''}
-                             onChange={e => setEditingTemplate({...editingTemplate, captionSkeleton: e.target.value})}
-                             className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg h-24 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                         />
-                    </div>
-                    <div>
-                         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Default Tags (comma separated)</label>
-                         <input 
-                             value={editingTemplate.tags?.join(', ') || ''}
-                             onChange={e => setEditingTemplate({...editingTemplate, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean)})}
-                             className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                             placeholder="#tag1, #tag2"
-                         />
-                    </div>
-                    <div className="flex justify-end gap-2">
-                        <button type="button" onClick={() => setEditingTemplate(null)} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Cancel</button>
-                        <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 font-medium"><Save className="w-4 h-4"/> Save Template</button>
-                    </div>
-                </form>
-            )}
-          </div>
-        )}
 
-        {/* --- SNIPPETS TAB --- */}
-        {activeTab === 'snippets' && (
-             <div className="space-y-6">
-             {!editingSnippet ? (
-                <>
-                  <div className="flex justify-between items-center">
-                     <p className="text-sm text-gray-500 dark:text-gray-400">Snippets are reusable blocks of text.</p>
-                     <button 
-                         onClick={() => setEditingSnippet({ })}
-                         className="flex items-center gap-1 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-medium"
-                     >
-                         <Plus className="w-3 h-3" /> New Snippet
-                     </button>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3">
-                     {snippets.map(s => (
-                         <div key={s.id} className="flex items-center justify-between border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:border-indigo-200 dark:hover:border-indigo-500 transition-colors bg-white dark:bg-gray-750">
-                             <div className="flex-grow">
-                                 <h4 className="font-bold text-sm text-gray-800 dark:text-gray-100">{s.label}</h4>
-                                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-md">{s.content}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                            {fullProfiles.map(client => (
+                                <div key={client.name} className="flex flex-col justify-between p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-swave-purple/30 hover:shadow-lg hover:shadow-purple-500/5 transition-all group gap-4 relative overflow-hidden min-h-[140px]">
+                                    <div className="flex items-center gap-5 relative z-10">
+                                        <div className="w-12 h-12 bg-gradient-to-br from-swave-purple to-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-purple-200 dark:shadow-none shrink-0">
+                                            {client.name.substring(0,2).toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-black text-gray-900 dark:text-white text-base truncate">{client.name}</p>
+                                            <div className="flex items-center gap-3 mt-1">
+                                                <code className="text-xs font-mono font-bold bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300 tracking-widest">{client.accessCode}</code>
+                                                <button onClick={() => copyToClipboard(client.accessCode)} className="text-xs font-bold text-swave-orange hover:underline whitespace-nowrap">Copy Code</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 justify-end relative z-10 border-t border-gray-50 dark:border-gray-700/50 pt-3">
+                                        <button onClick={() => handleEditClick(client)} className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-swave-purple hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-colors flex items-center gap-2"><Edit3 className="w-4 h-4"/> Edit</button>
+                                        <button onClick={async () => { if(confirm(`Remove ${client.name}?`)) { await db.removeClient(client.name); onUpdate(); }}} className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors flex items-center gap-2"><Trash2 className="w-4 h-4"/> Remove</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                ) : (
+                    <form onSubmit={handleUpdateClient} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-[2rem] p-8 shadow-xl relative overflow-hidden h-full flex flex-col">
+                        <div className="flex justify-between items-center mb-8 border-b border-gray-100 dark:border-gray-700 pb-4 shrink-0">
+                             <div>
+                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Editing Profile</p>
+                                 <h3 className="text-2xl font-black text-gray-900 dark:text-white mt-1">{originalClientName}</h3>
                              </div>
-                             <div className="flex gap-2">
-                                 <button onClick={() => setEditingSnippet(s)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Edit</button>
-                                 <button onClick={() => { if(confirm('Delete snippet?')) { db.deleteSnippet(s.id); onUpdate(); }}} className="text-xs text-red-500 hover:underline">Delete</button>
+                             <div className="bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-xl font-mono font-bold text-gray-600 dark:text-gray-300">{editingClient.accessCode}</div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-auto pr-4">
+                             <div className="space-y-6">
+                                 <h4 className="text-xs font-bold text-swave-purple uppercase tracking-widest flex items-center gap-2"><UserCircle className="w-4 h-4"/> Identity & Contact</h4>
+                                 <div className="space-y-4">
+                                     <input required value={editingClient.name} onChange={e => setEditingClient({...editingClient, name: e.target.value})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border-none focus:ring-2 focus:ring-swave-purple outline-none font-bold" placeholder="Organization Name"/>
+                                     <input type="email" value={editingClient.email || ''} onChange={e => setEditingClient({...editingClient, email: e.target.value})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border-none focus:ring-2 focus:ring-swave-purple outline-none" placeholder="Email Address"/>
+                                     <input type="tel" value={editingClient.phone || ''} onChange={e => setEditingClient({...editingClient, phone: e.target.value})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border-none focus:ring-2 focus:ring-swave-purple outline-none" placeholder="Phone Number"/>
+                                     <input type="url" value={editingClient.website || ''} onChange={e => setEditingClient({...editingClient, website: e.target.value})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border-none focus:ring-2 focus:ring-swave-purple outline-none" placeholder="Website URL"/>
+                                 </div>
                              </div>
-                         </div>
-                     ))}
-                  </div>
-                </>
-             ) : (
-                 <form onSubmit={handleSaveSnippet} className="border border-indigo-100 dark:border-indigo-900 rounded-xl p-6 bg-indigo-50/30 dark:bg-indigo-900/10 space-y-4">
-                     <h3 className="font-bold text-lg text-gray-800 dark:text-white">{editingSnippet.id ? 'Edit Snippet' : 'New Snippet'}</h3>
-                     <div>
-                         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Label (for button)</label>
-                         <input 
-                             required
-                             value={editingSnippet.label || ''} 
-                             onChange={e => setEditingSnippet({...editingSnippet, label: e.target.value})}
-                             className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                         />
-                     </div>
-                     <div>
-                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Content</label>
-                          <textarea 
-                              required
-                              value={editingSnippet.content || ''}
-                              onChange={e => setEditingSnippet({...editingSnippet, content: e.target.value})}
-                              className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg h-24 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                          />
-                     </div>
-                     <div className="flex justify-end gap-2">
-                         <button type="button" onClick={() => setEditingSnippet(null)} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Cancel</button>
-                         <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 font-medium"><Save className="w-4 h-4"/> Save Snippet</button>
-                     </div>
-                 </form>
-             )}
-           </div>
-        )}
-
-        {/* --- SECURITY TAB --- */}
-        {activeTab === 'security' && (
-            <div className="space-y-6 max-w-md">
-                <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 rounded-lg p-4 text-sm text-amber-800 dark:text-amber-200">
-                    <p className="font-bold mb-1 flex items-center gap-2"><ShieldCheck className="w-4 h-4"/> Security & Data</p>
-                    Manage your data and security settings here.
-                </div>
-
-                {/* Data Section */}
-                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 bg-gray-50/30 dark:bg-gray-750 space-y-4">
-                    <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2">
-                        <Database className="w-5 h-5 text-indigo-500"/> Data Management
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 gap-3">
-                        <button 
-                            onClick={handleExportData}
-                            className="flex items-center justify-center gap-2 p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-200"
-                        >
-                            <Download className="w-4 h-4" /> Export Backup (JSON)
-                        </button>
-
-                        <button 
-                            onClick={handleClearData}
-                            disabled={isProcessing}
-                            className="flex items-center justify-center gap-2 p-3 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900/50 rounded-lg text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400 disabled:opacity-50"
-                        >
-                            {isProcessing ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Trash2 className="w-4 h-4" />}
-                            Clear All Data
-                        </button>
-                    </div>
-                </div>
-
-                <div className="space-y-6">
-                    <form onSubmit={handleUpdatePassword} className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 bg-gray-50/30 dark:bg-gray-750 space-y-4">
-                        <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2"><Lock className="w-4 h-4" /> Update Agency Password</h3>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
-                            <input 
-                                type="password"
-                                required
-                                minLength={4}
-                                value={newAgencyPass} 
-                                onChange={e => setNewAgencyPass(e.target.value)}
-                                className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                            />
+                             <div className="space-y-6">
+                                 <h4 className="text-xs font-bold text-swave-orange uppercase tracking-widest flex items-center gap-2"><Receipt className="w-4 h-4"/> Financial Details</h4>
+                                 <div className="space-y-4">
+                                     <select value={editingClient.currency || 'USD'} onChange={e => setEditingClient({...editingClient, currency: e.target.value as any})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border-none focus:ring-2 focus:ring-swave-orange outline-none font-bold">
+                                         <option value="USD">USD ($)</option>
+                                         <option value="EUR">EUR (€)</option>
+                                         <option value="GBP">GBP (£)</option>
+                                         <option value="XCD">XCD ($)</option>
+                                     </select>
+                                     <input value={editingClient.taxId || ''} onChange={e => setEditingClient({...editingClient, taxId: e.target.value})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border-none focus:ring-2 focus:ring-swave-orange outline-none font-mono" placeholder="Tax ID / VAT"/>
+                                     <textarea value={editingClient.billingAddress || ''} onChange={e => setEditingClient({...editingClient, billingAddress: e.target.value})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border-none focus:ring-2 focus:ring-swave-orange outline-none h-32 resize-none" placeholder="Billing Address"/>
+                                 </div>
+                             </div>
                         </div>
-                        <button type="submit" className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Update Password</button>
-                    </form>
 
-                    <form onSubmit={handleUpdateRecovery} className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 bg-gray-50/30 dark:bg-gray-750 space-y-4">
-                        <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2"><KeyRound className="w-4 h-4" /> Update Recovery Settings</h3>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Security Question</label>
-                            <input 
-                                type="text"
-                                required
-                                minLength={5}
-                                value={newRecoveryQuestion} 
-                                onChange={e => setNewRecoveryQuestion(e.target.value)}
-                                className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-2"
-                                placeholder="e.g. What is my pet's name?"
-                            />
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Security Answer (Recovery Key)</label>
-                            <input 
-                                type="password"
-                                required
-                                minLength={3}
-                                value={newRecoveryAnswer} 
-                                onChange={e => setNewRecoveryAnswer(e.target.value)}
-                                className="w-full p-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                placeholder="e.g. Fluffy"
-                            />
-                            <p className="text-[10px] text-gray-400 mt-1">If you forget your password, you will be asked this question.</p>
+                        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 shrink-0">
+                            <button type="button" onClick={() => setEditingClient(null)} className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Cancel</button>
+                            <button type="submit" className="px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-all">Save Changes</button>
                         </div>
-                        <button type="submit" className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Update Recovery Settings</button>
                     </form>
-                </div>
+                )}
             </div>
-        )}
+            )}
+
+            {/* --- TEMPLATES TAB --- */}
+            {activeTab === 'templates' && (
+                <div className="space-y-8 animate-in slide-in-from-right-4 relative z-10 h-full flex flex-col">
+                    {editingTemplate ? (
+                        <form onSubmit={handleSaveTemplate} className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl relative h-full flex flex-col">
+                            <button type="button" onClick={() => setEditingTemplate(null)} className="absolute top-6 right-6 p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:rotate-90 transition-transform"><X className="w-5 h-5"/></button>
+                            <h3 className="text-xl font-black mb-8">{editingTemplate.id ? 'Edit Template' : 'New Template'}</h3>
+                            
+                            <div className="flex-grow overflow-y-auto pr-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-gray-400 uppercase">Template Name</label>
+                                        <input required value={editingTemplate.name} onChange={e => setEditingTemplate({...editingTemplate, name: e.target.value})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 rounded-xl font-bold outline-none focus:ring-2 focus:ring-swave-purple" placeholder="e.g. Weekly Update"/>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-gray-400 uppercase">Platform</label>
+                                        <select value={editingTemplate.platform} onChange={e => setEditingTemplate({...editingTemplate, platform: e.target.value as Platform})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 rounded-xl font-bold outline-none focus:ring-2 focus:ring-swave-purple">
+                                            {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-2 mb-6">
+                                    <label className="text-xs font-bold text-gray-400 uppercase">Caption Structure</label>
+                                    <textarea required value={editingTemplate.captionSkeleton} onChange={e => setEditingTemplate({...editingTemplate, captionSkeleton: e.target.value})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 rounded-xl font-mono text-sm min-h-[200px] outline-none focus:ring-2 focus:ring-swave-purple leading-relaxed" placeholder="Write your template here..."/>
+                                </div>
+
+                                <div className="space-y-2 mb-8">
+                                    <label className="text-xs font-bold text-gray-400 uppercase">Tags</label>
+                                    <input value={tempTags} onChange={e => setTempTags(e.target.value)} className="w-full p-4 bg-gray-50 dark:bg-gray-900 rounded-xl outline-none focus:ring-2 focus:ring-swave-purple" placeholder="newsletter, weekly, urgent"/>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end pt-6 border-t border-gray-100 dark:border-gray-700 shrink-0">
+                                <button type="submit" className="px-8 py-3 bg-swave-purple text-white rounded-xl font-bold shadow-lg hover:bg-purple-700 transition-colors">Save Template</button>
+                            </div>
+                        </form>
+                    ) : (
+                        <>
+                            <button onClick={handleNewTemplate} className="w-full py-6 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl text-gray-400 font-bold hover:border-swave-purple hover:text-swave-purple hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all flex items-center justify-center gap-2 group shrink-0">
+                                <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full group-hover:bg-swave-purple group-hover:text-white transition-colors"><Plus className="w-5 h-5"/></div> Create New Template
+                            </button>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 overflow-y-auto pb-4">
+                                {templates.map(t => (
+                                    <div key={t.id} className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:border-swave-purple/20 transition-all group relative h-full flex flex-col">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2.5 bg-gray-50 dark:bg-gray-700 rounded-xl"><PlatformIcon platform={t.platform} /></div>
+                                                <h4 className="font-bold text-gray-900 dark:text-white truncate max-w-[150px]">{t.name}</h4>
+                                            </div>
+                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => handleEditTemplate(t)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-gray-500"><Edit3 className="w-4 h-4"/></button>
+                                                <button onClick={() => handleDeleteTemplate(t.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-500"><Trash2 className="w-4 h-4"/></button>
+                                            </div>
+                                        </div>
+                                        <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 mb-4 border border-gray-100 dark:border-gray-700 font-mono text-xs text-gray-600 dark:text-gray-300 line-clamp-4 leading-relaxed flex-grow">
+                                            {t.captionSkeleton}
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 mt-auto">
+                                            {t.tags.map(tag => (
+                                                <span key={tag} className="px-2.5 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-purple-100 dark:border-purple-800">#{tag}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
+
+            {/* --- SNIPPETS TAB --- */}
+            {activeTab === 'snippets' && (
+                 <div className="space-y-8 animate-in slide-in-from-right-4 relative z-10 h-full flex flex-col">
+                    {editingSnippet ? (
+                        <form onSubmit={handleSaveSnippet} className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl relative h-full flex flex-col">
+                             <button type="button" onClick={() => setEditingSnippet(null)} className="absolute top-6 right-6 p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:rotate-90 transition-transform"><X className="w-5 h-5"/></button>
+                             <h3 className="text-xl font-black mb-8">{editingSnippet.id ? 'Edit Snippet' : 'New Snippet'}</h3>
+                             
+                             <div className="flex-grow space-y-6 overflow-y-auto pr-4">
+                                 <div className="space-y-2">
+                                     <label className="text-xs font-bold text-gray-400 uppercase">Label</label>
+                                     <input required value={editingSnippet.label} onChange={e => setEditingSnippet({...editingSnippet, label: e.target.value})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 rounded-xl font-bold outline-none focus:ring-2 focus:ring-swave-orange" placeholder="e.g. Hashtag Set 1"/>
+                                 </div>
+                                 <div className="space-y-2">
+                                     <label className="text-xs font-bold text-gray-400 uppercase">Content</label>
+                                     <textarea required value={editingSnippet.content} onChange={e => setEditingSnippet({...editingSnippet, content: e.target.value})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 rounded-xl font-mono text-sm min-h-[250px] outline-none focus:ring-2 focus:ring-swave-orange leading-relaxed" placeholder="#growth #social #agency"/>
+                                 </div>
+                             </div>
+                             <div className="flex justify-end pt-6 border-t border-gray-100 dark:border-gray-700 shrink-0">
+                                 <button type="submit" className="px-8 py-3 bg-swave-orange text-white rounded-xl font-bold shadow-lg hover:bg-orange-600 transition-colors">Save Snippet</button>
+                             </div>
+                        </form>
+                    ) : (
+                        <>
+                             <button onClick={handleNewSnippet} className="w-full py-6 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl text-gray-400 font-bold hover:border-swave-orange hover:text-swave-orange hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-all flex items-center justify-center gap-2 group shrink-0">
+                                <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full group-hover:bg-swave-orange group-hover:text-white transition-colors"><Plus className="w-5 h-5"/></div> Create New Snippet
+                            </button>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto pb-4">
+                                {snippets.map(s => (
+                                    <div key={s.id} className="p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-all group flex flex-col justify-between gap-4 h-full">
+                                         <div className="flex gap-4 min-w-0 items-start">
+                                             <div className="p-3 bg-orange-50 dark:bg-orange-900/20 text-swave-orange rounded-xl shrink-0"><Hash className="w-6 h-6"/></div>
+                                             <div className="min-w-0 pt-1 w-full">
+                                                 <h4 className="font-bold text-gray-900 dark:text-white truncate text-base">{s.label}</h4>
+                                                 <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700 font-mono text-xs text-gray-500 dark:text-gray-400 break-all relative group/code cursor-pointer line-clamp-3 hover:line-clamp-none transition-all" onClick={() => copyToClipboard(s.content)}>
+                                                     {s.content}
+                                                     <div className="absolute right-2 top-2 opacity-0 group-hover/code:opacity-100 bg-black/50 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur">COPY</div>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                         <div className="flex gap-2 justify-end border-t border-gray-50 dark:border-gray-700/50 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                             <button onClick={() => handleEditSnippet(s)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500"><Edit3 className="w-4 h-4"/></button>
+                                             <button onClick={() => handleDeleteSnippet(s.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-500"><Trash2 className="w-4 h-4"/></button>
+                                         </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                 </div>
+            )}
+
+            {/* --- SECURITY TAB --- */}
+            {activeTab === 'security' && (
+                 <div className="space-y-10 max-w-2xl mx-auto animate-in slide-in-from-right-4 relative z-10">
+                     {/* Agency Password */}
+                     <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl">
+                         <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-3 mb-6"><Lock className="w-6 h-6 text-indigo-600"/> Agency Access</h3>
+                         <form onSubmit={handleUpdatePassword} className="flex gap-3">
+                             <input 
+                                type="password"
+                                value={newAgencyPass}
+                                onChange={e => setNewAgencyPass(e.target.value)}
+                                placeholder="New Master Password"
+                                className="flex-grow p-4 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-600 transition-all font-bold"
+                             />
+                             <button type="submit" disabled={!newAgencyPass} className="bg-indigo-600 text-white px-8 rounded-2xl font-bold hover:bg-indigo-700 disabled:opacity-50 transition-colors">Update</button>
+                         </form>
+                     </div>
+
+                     {/* Recovery Settings */}
+                     <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl">
+                         <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-3 mb-6"><HelpCircle className="w-6 h-6 text-swave-purple"/> Account Recovery</h3>
+                         <form onSubmit={handleUpdateRecovery} className="space-y-5">
+                             <div className="space-y-2">
+                                 <label className="text-xs font-bold text-gray-400 uppercase">Security Question</label>
+                                 <input 
+                                    value={newRecoveryQuestion}
+                                    onChange={e => setNewRecoveryQuestion(e.target.value)}
+                                    placeholder="e.g. What was your first pet's name?"
+                                    className="w-full p-4 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl outline-none focus:ring-2 focus:ring-swave-purple font-medium"
+                                 />
+                             </div>
+                             <div className="space-y-2">
+                                 <label className="text-xs font-bold text-gray-400 uppercase">Answer</label>
+                                 <input 
+                                    type="password"
+                                    value={newRecoveryAnswer}
+                                    onChange={e => setNewRecoveryAnswer(e.target.value)}
+                                    placeholder="Your secure answer"
+                                    className="w-full p-4 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl outline-none focus:ring-2 focus:ring-swave-purple font-medium"
+                                 />
+                             </div>
+                             <div className="flex justify-end pt-2">
+                                <button type="submit" disabled={!newRecoveryAnswer} className="bg-swave-purple text-white px-8 py-3 rounded-2xl font-bold hover:bg-purple-700 disabled:opacity-50 transition-colors shadow-lg">Save Settings</button>
+                             </div>
+                         </form>
+                     </div>
+
+                     {/* Data Management */}
+                     <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl">
+                         <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-3 mb-6"><Database className="w-6 h-6 text-blue-500"/> Data Management</h3>
+                         <button onClick={handleExportData} className="w-full py-4 border-2 border-gray-100 dark:border-gray-700 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold flex items-center justify-center gap-2 transition-all group">
+                             <div className="p-2 bg-gray-100 dark:bg-gray-900 rounded-full group-hover:bg-blue-500 group-hover:text-white transition-colors"><Download className="w-5 h-5"/></div> Backup Database (JSON)
+                         </button>
+                     </div>
+
+                     {/* Danger Zone */}
+                     <div className="bg-red-50 dark:bg-red-900/10 p-8 rounded-[2rem] border-2 border-red-100 dark:border-red-900/50">
+                         <h3 className="text-xl font-black text-red-600 dark:text-red-400 flex items-center gap-3 mb-4"><AlertTriangle className="w-6 h-6"/> Danger Zone</h3>
+                         <p className="text-sm font-medium text-red-800 dark:text-red-300 mb-6 leading-relaxed bg-red-100/50 dark:bg-red-900/20 p-4 rounded-xl border border-red-200 dark:border-red-800/50">
+                             WARNING: This action will permanently delete all posts, clients, templates, and invoices. This action cannot be undone. Please ensure you have a backup before proceeding.
+                         </p>
+                         <button onClick={handleClearData} disabled={isProcessing} className="w-full py-4 bg-red-600 text-white rounded-2xl hover:bg-red-700 font-bold flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl hover:shadow-red-500/20 transition-all">
+                            {isProcessing ? <RefreshCw className="w-5 h-5 animate-spin"/> : <Trash2 className="w-5 h-5"/>} Wipe Database
+                         </button>
+                     </div>
+                 </div>
+            )}
+        </div>
       </div>
     </div>
   );

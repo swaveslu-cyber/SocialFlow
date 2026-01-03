@@ -1,21 +1,36 @@
 
 import { supabase } from './supabaseClient';
-import { Post, PostStatus, Template, Snippet, ClientProfile, Comment, Campaign } from '../types';
+import { Post, PostStatus, Template, Snippet, ClientProfile, Comment, Campaign, Invoice, ServiceItem } from '../types';
 
 export const db = {
   init: async (): Promise<void> => {
     console.log("Supabase Service Initialized");
-    const { data: pwd } = await supabase.from('app_config').select('value').eq('key', 'agency_password').maybeSingle();
-    if (!pwd) await supabase.from('app_config').insert({ key: 'agency_password', value: 'admin123' });
+    try {
+        const { data: pwd } = await supabase.from('app_config').select('value').eq('key', 'agency_password').maybeSingle();
+        if (!pwd) await supabase.from('app_config').insert({ key: 'agency_password', value: 'admin123' });
 
-    const { data: rec } = await supabase.from('app_config').select('value').eq('key', 'agency_recovery_key').maybeSingle();
-    if (!rec) await supabase.from('app_config').insert({ key: 'agency_recovery_key', value: 'recover-admin' });
+        const { data: rec } = await supabase.from('app_config').select('value').eq('key', 'agency_recovery_key').maybeSingle();
+        if (!rec) await supabase.from('app_config').insert({ key: 'agency_recovery_key', value: 'recover-admin' });
 
-    const { data: q } = await supabase.from('app_config').select('value').eq('key', 'agency_recovery_question').maybeSingle();
-    if (!q) await supabase.from('app_config').insert({ key: 'agency_recovery_question', value: 'What is the default recovery key?' });
+        const { data: q } = await supabase.from('app_config').select('value').eq('key', 'agency_recovery_question').maybeSingle();
+        if (!q) await supabase.from('app_config').insert({ key: 'agency_recovery_question', value: 'What is the default recovery key?' });
 
-    const { count, error } = await supabase.from('clients').select('*', { count: 'exact', head: true });
-    if (!error && count === 0) await db.seedDatabase();
+        const { count, error } = await supabase.from('clients').select('*', { count: 'exact', head: true });
+        if (!error && count === 0) await db.seedDatabase();
+    } catch (e) {
+        console.error("Initialization Error:", e);
+    }
+  },
+
+  // --- REALTIME SUBSCRIPTIONS ---
+  subscribeToPosts: (onUpdate: () => void) => {
+      return supabase
+        .channel('public:posts')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+            console.log('Realtime update received');
+            onUpdate();
+        })
+        .subscribe();
   },
 
   checkConfig: (): boolean => true,
@@ -23,7 +38,7 @@ export const db = {
   // --- AUTH ---
   verifyAgencyPassword: async (inputPass: string): Promise<boolean> => {
       const { data, error } = await supabase.from('app_config').select('value').eq('key', 'agency_password').single();
-      if (error) return false;
+      if (error) return inputPass === 'admin123'; // Fallback default
       return data && inputPass === data.value;
   },
   
@@ -38,7 +53,8 @@ export const db = {
 
   resetAgencyPassword: async (recoveryAnswer: string, newPass: string): Promise<boolean> => {
       const { data } = await supabase.from('app_config').select('value').eq('key', 'agency_recovery_key').single();
-      if (!data || data.value !== recoveryAnswer) return false;
+      if (!data) return recoveryAnswer === 'recover-admin'; // Fallback
+      if (data.value !== recoveryAnswer) return false;
       await db.updateAgencyPassword(newPass);
       return true;
   },
@@ -160,14 +176,17 @@ export const db = {
       const { data } = await supabase.from('clients').select('id').eq('name', name).maybeSingle();
       if (data) return;
       const accessCode = Math.floor(1000 + Math.random() * 9000).toString();
-      await supabase.from('clients').insert({ name, accessCode });
+      await supabase.from('clients').insert({ name, accessCode, currency: 'USD' });
   },
 
   updateClient: async (originalName: string, updatedProfile: ClientProfile): Promise<void> => {
       const { error } = await supabase.from('clients').update({
             name: updatedProfile.name, email: updatedProfile.email,
             phone: updatedProfile.phone, website: updatedProfile.website,
-            notes: updatedProfile.notes, socialAccounts: updatedProfile.socialAccounts
+            notes: updatedProfile.notes, socialAccounts: updatedProfile.socialAccounts,
+            billingAddress: updatedProfile.billingAddress,
+            taxId: updatedProfile.taxId,
+            currency: updatedProfile.currency
         }).eq('name', originalName);
       if (error) throw error;
 
@@ -218,11 +237,40 @@ export const db = {
       await supabase.from('snippets').delete().eq('id', id);
   },
 
+  // --- FINANCE: INVOICES & SERVICES ---
+  getInvoices: async (): Promise<Invoice[]> => {
+    const { data, error } = await supabase.from('invoices').select('*').order('"createdAt"', { ascending: false });
+    if (error) throw error;
+    return data as Invoice[];
+  },
+  saveInvoice: async (invoice: Invoice): Promise<void> => {
+    const { error } = await supabase.from('invoices').upsert(invoice);
+    if (error) throw error;
+  },
+  deleteInvoice: async (id: string): Promise<void> => {
+    const { error } = await supabase.from('invoices').delete().eq('id', id);
+    if (error) throw error;
+  },
+  
+  getServices: async (): Promise<ServiceItem[]> => {
+    const { data, error } = await supabase.from('services').select('*');
+    if (error) throw error;
+    return data as ServiceItem[];
+  },
+  saveService: async (service: ServiceItem): Promise<void> => {
+    const { error } = await supabase.from('services').upsert(service);
+    if (error) throw error;
+  },
+  deleteService: async (id: string): Promise<void> => {
+    const { error } = await supabase.from('services').delete().eq('id', id);
+    if (error) throw error;
+  },
+
   exportDatabase: async (): Promise<string> => {
-      const [posts, clients, templates, snippets] = await Promise.all([
-          db.getAllPosts(), db.getClients(), db.getTemplates(), db.getSnippets()
+      const [posts, clients, templates, snippets, invoices, services] = await Promise.all([
+          db.getAllPosts(), db.getClients(), db.getTemplates(), db.getSnippets(), db.getInvoices(), db.getServices()
       ]);
-      return JSON.stringify({ posts, clients, templates, snippets, timestamp: Date.now() }, null, 2);
+      return JSON.stringify({ posts, clients, templates, snippets, invoices, services, timestamp: Date.now() }, null, 2);
   },
 
   seedDatabase: async (): Promise<void> => {
@@ -245,13 +293,22 @@ export const db = {
           mediaUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800",
           mediaType: "image", status: "Draft"
       }, "Agency");
+
+      await db.saveService({ id: crypto.randomUUID(), name: 'Social Media Management', defaultRate: 1500, description: 'Monthly Retainer' });
+      await db.saveService({ id: crypto.randomUUID(), name: 'Content Creation', defaultRate: 500, description: 'Per Asset Pack' });
   },
 
   clearDatabase: async (): Promise<void> => {
-     await supabase.from('posts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-     await supabase.from('clients').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-     await supabase.from('templates').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-     await supabase.from('snippets').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-     await supabase.from('campaigns').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+     try {
+         await supabase.from('posts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+         await supabase.from('clients').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+         await supabase.from('templates').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+         await supabase.from('snippets').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+         await supabase.from('campaigns').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+         await supabase.from('invoices').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+         await supabase.from('services').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+     } catch (e) {
+         console.error("Failed to clear Supabase tables:", e);
+     }
   }
 };

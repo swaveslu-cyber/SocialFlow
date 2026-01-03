@@ -1,18 +1,13 @@
 
 import React from 'react';
 import { Post, Platform } from '../types';
+import { SwaveLogo } from './Logo';
 import { X, Calendar, AlertCircle, CheckCircle2, ArrowRight, Instagram, Linkedin, Twitter, Facebook, Video, Briefcase } from 'lucide-react';
 
 interface DailyBriefingProps {
   posts: Post[];
   onClose: () => void;
 }
-
-const SwaveLogo = ({ className = "w-full h-full" }: { className?: string }) => (
-  <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M75 35L55 23.45V31.15L68.3 38.85L45 52.3V44.6L25 56.15V67.7L45 79.25V71.55L31.7 63.85L55 50.4V58.1L75 46.55V35Z" fill="white" fillOpacity="0.9" />
-  </svg>
-);
 
 const PlatformIcon = ({ platform }: { platform: string }) => {
   switch (platform) {
