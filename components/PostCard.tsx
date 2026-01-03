@@ -217,35 +217,36 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
             {viewMode === 'history' && renderHistory()}
         </div>
         {!compact && (
-            <div className={`p-3 mx-4 mb-4 short:mx-3 short:mb-3 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-md rounded-2xl flex items-center justify-between gap-3 relative transition-all ${viewMode !== 'content' ? 'opacity-0 h-0 p-0 m-0 overflow-hidden' : 'opacity-100'}`}>
-                <div className="flex items-center gap-1.5 shrink-0">
+            <div className={`p-2 mx-2 mb-2 short:mx-2 short:mb-2 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-md rounded-2xl flex items-center justify-between gap-2 relative transition-all ${viewMode !== 'content' ? 'opacity-0 h-0 p-0 m-0 overflow-hidden' : 'opacity-100'}`}>
+                <div className="flex items-center gap-1 shrink-0">
                     <button onClick={() => setViewMode('content')} className={`p-2.5 short:p-2 rounded-xl transition-all ${viewMode === 'content' ? 'bg-white dark:bg-gray-700 text-swave-orange shadow-md scale-105' : 'text-gray-400 hover:text-gray-600'}`}><Eye className="w-4 h-4 short:w-3.5 short:h-3.5" /></button>
                     <button onClick={() => setViewMode('comments')} className={`p-2.5 short:p-2 rounded-xl transition-all relative ${viewMode === 'comments' ? 'bg-white dark:bg-gray-700 text-swave-purple shadow-md scale-105' : 'text-gray-400 hover:text-gray-600'}`}>
                         <MessageSquare className="w-4 h-4 short:w-3.5 short:h-3.5" />
                         {visibleComments.length > 0 && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-swave-orange rounded-full border-2 border-gray-50 dark:border-gray-900"></span>}
                     </button>
                 </div>
-                <div className="flex items-center justify-end gap-2 flex-grow min-w-0">
-                    <div className="flex items-center gap-2">
+                {/* COMPACT FOOTER ACTIONS TO PREVENT OVERLAP */}
+                <div className="flex items-center justify-end gap-1 flex-grow min-w-0">
+                    <div className="flex items-center gap-1">
                         {post.status === 'Trashed' ? (
-                            <button onClick={() => onRestore?.(ids)} className="text-[10px] bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-4 py-2.5 rounded-xl hover:scale-105 font-black flex items-center gap-2 transition-all active:scale-95"><RotateCcw className="w-3.5 h-3.5"/> Restore</button>
+                            <button onClick={() => onRestore?.(ids)} className="text-[10px] bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-2 py-2 rounded-xl hover:scale-105 font-black flex items-center gap-1 transition-all active:scale-95"><RotateCcw className="w-3.5 h-3.5"/> Restore</button>
                         ) : (
                             <>
-                                {/* RBAC BUTTON LOGIC */}
+                                {/* RBAC BUTTON LOGIC - Compact Layout */}
                                 {PERMISSIONS.isInternal(user.role) && post.status === 'Draft' && (
-                                    <button onClick={() => onStatusChange?.(ids, 'In Review')} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white px-5 py-2.5 short:px-3 short:py-2 rounded-xl text-[10px] font-black flex items-center gap-2 shadow-lg hover:scale-[1.03] transition-all active:scale-95 whitespace-nowrap uppercase tracking-widest">Review <ArrowRight className="w-3.5 h-3.5"/></button>
+                                    <button onClick={() => onStatusChange?.(ids, 'In Review')} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white px-2 py-2 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-lg hover:scale-[1.03] transition-all active:scale-95 whitespace-nowrap">Review <ArrowRight className="w-3 h-3"/></button>
                                 )}
                                 {PERMISSIONS.canApprove(user.role) && post.status === 'In Review' && (
-                                    <button onClick={() => onStatusChange?.(ids, 'Approved')} className="bg-emerald-500 text-white px-5 py-2.5 short:px-3 short:py-2 rounded-xl text-[10px] font-black shadow-lg hover:bg-emerald-600 transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap uppercase tracking-widest"><Check className="w-3.5 h-3.5"/> Approve</button>
+                                    <button onClick={() => onStatusChange?.(ids, 'Approved')} className="bg-emerald-500 text-white px-2 py-2 rounded-xl text-[10px] font-black shadow-lg hover:bg-emerald-600 transition-all active:scale-95 flex items-center gap-1 whitespace-nowrap"><Check className="w-3 h-3"/> Approve</button>
                                 )}
                                 {PERMISSIONS.canPublish(user.role) && post.status === 'Approved' && (
-                                    <button onClick={() => onStatusChange?.(ids, 'Scheduled')} className="bg-blue-600 text-white px-5 py-2.5 short:px-3 short:py-2 rounded-xl text-[10px] font-black shadow-lg hover:bg-blue-700 transition-all active:scale-95 whitespace-nowrap uppercase tracking-widest">Schedule</button>
+                                    <button onClick={() => onStatusChange?.(ids, 'Scheduled')} className="bg-blue-600 text-white px-2 py-2 rounded-xl text-[10px] font-black shadow-lg hover:bg-blue-700 transition-all active:scale-95 whitespace-nowrap">Schedule</button>
                                 )}
                             </>
                         )}
                     </div>
                     <div className="relative shrink-0">
-                        <button onClick={() => setShowMoreMenu(!showMoreMenu)} className={`p-2.5 short:p-2 rounded-xl transition-all ${showMoreMenu ? 'bg-gray-200 dark:bg-gray-700 text-gray-800' : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400'}`}><MoreHorizontal className="w-4 h-4 short:w-3.5 short:h-3.5" /></button>
+                        <button onClick={() => setShowMoreMenu(!showMoreMenu)} className={`p-2 rounded-xl transition-all ${showMoreMenu ? 'bg-gray-200 dark:bg-gray-700 text-gray-800' : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400'}`}><MoreHorizontal className="w-4 h-4" /></button>
                         {showMoreMenu && (
                             <>
                                 <div className="fixed inset-0 z-10" onClick={() => setShowMoreMenu(false)}></div>

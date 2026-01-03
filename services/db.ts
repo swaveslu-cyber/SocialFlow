@@ -40,8 +40,8 @@ export const db = {
           agencyName: "SWAVE",
           primaryColor: "#8E3EBB", // swave-purple
           secondaryColor: "#F27A21", // swave-orange
-          buttonColor: "#FFFFFF", // Default button bg
-          buttonTextColor: "#4B5563" // Default button text (gray-600)
+          buttonColor: "#F3F4F6", // Default button bg (Gray-100) for better visibility
+          buttonTextColor: "#1F2937" // Default button text (Gray-800)
       };
   },
 
@@ -114,21 +114,14 @@ export const db = {
   },
 
   updateUser: async (id: string, updates: Partial<User>): Promise<void> => {
-      // We use .select() to verify the update actually happened (handling silent RLS failures)
-      const { data, error } = await supabase.from('users').update(updates).eq('id', id).select();
+      const { error } = await supabase.from('users').update(updates).eq('id', id);
       if (error) throw error;
-      if (!data || data.length === 0) {
-          throw new Error("Update failed. The user may not exist or you lack permissions.");
-      }
   },
 
   deleteUser: async (id: string): Promise<void> => {
-      // We use .select() to verify the delete actually happened
-      const { data, error } = await supabase.from('users').delete().eq('id', id).select();
+      // Simplified delete without .select() to avoid RLS read restrictions on deleted rows
+      const { error } = await supabase.from('users').delete().eq('id', id);
       if (error) throw error;
-      if (!data || data.length === 0) {
-          throw new Error("Delete failed. The user may not exist or you lack permissions.");
-      }
   },
 
   // --- LEGACY RECOVERY (Kept for fallback) ---

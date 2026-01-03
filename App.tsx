@@ -42,8 +42,8 @@ export default function App() {
       agencyName: 'SWAVE', 
       primaryColor: '#8E3EBB', 
       secondaryColor: '#F27A21',
-      buttonColor: '#FFFFFF',
-      buttonTextColor: '#4B5563'
+      buttonColor: '#F3F4F6', // Updated default
+      buttonTextColor: '#1F2937'
   });
   const [loading, setLoading] = useState(true);
 
@@ -124,8 +124,8 @@ export default function App() {
       if (branding) {
           document.documentElement.style.setProperty('--color-primary', branding.primaryColor);
           document.documentElement.style.setProperty('--color-secondary', branding.secondaryColor);
-          document.documentElement.style.setProperty('--color-button', branding.buttonColor || '#FFFFFF');
-          document.documentElement.style.setProperty('--color-button-text', branding.buttonTextColor || '#4B5563');
+          document.documentElement.style.setProperty('--color-button', branding.buttonColor || '#F3F4F6');
+          document.documentElement.style.setProperty('--color-button-text', branding.buttonTextColor || '#1F2937');
           document.title = `${branding.agencyName} - Operations`;
       }
   }, [branding]);
@@ -363,13 +363,13 @@ export default function App() {
                     <div>
                         <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Operations</p>
                         <div className="space-y-1">
-                            <button onClick={() => { setViewMode('list'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'list' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                            <button onClick={() => { setViewMode('list'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'list' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <List className="w-5 h-5 short:w-4 short:h-4" /> Master Feed
                             </button>
-                            <button onClick={() => { setViewMode('calendar'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'calendar' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                            <button onClick={() => { setViewMode('calendar'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'calendar' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <CalendarIcon className="w-5 h-5 short:w-4 short:h-4" /> Schedule Plan
                             </button>
-                            <button onClick={() => { setViewMode('kanban'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'kanban' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                            <button onClick={() => { setViewMode('kanban'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'kanban' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <LayoutGrid className="w-5 h-5 short:w-4 short:h-4" /> Workflow Board
                             </button>
                             {PERMISSIONS.canDelete(currentUser.role) && (
@@ -383,7 +383,7 @@ export default function App() {
                         <div>
                             <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Finance</p>
                             <div className="space-y-1">
-                                <button onClick={() => { setViewMode('finance'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'finance' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                                <button onClick={() => { setViewMode('finance'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'finance' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                     <DollarSign className="w-5 h-5 short:w-4 short:h-4" /> Invoicing
                                 </button>
                             </div>
@@ -393,7 +393,7 @@ export default function App() {
                         <div>
                              <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Administration</p>
                              <div className="space-y-1">
-                                 <button onClick={() => { setIsSettingsOpen(true); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${isSettingsOpen ? 'bg-swave-purple text-white shadow-lg shadow-purple-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                                 <button onClick={() => { setIsSettingsOpen(true); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${isSettingsOpen ? 'bg-swave-purple text-white shadow-lg shadow-purple-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                     <SettingsIcon className="w-5 h-5 short:w-4 short:h-4" /> Settings & Team
                                 </button>
                              </div>
@@ -438,7 +438,7 @@ export default function App() {
                         {!currentUser.clientId && viewMode !== 'trash' && (
                              <div className="flex gap-3 short:gap-1.5">
                                 <div className="relative">
-                                    <button onClick={() => { setShowClientSelector(!showClientSelector); setShowCampaignSelector(false); }} className="flex items-center gap-3 px-6 py-3.5 short:py-2 short:px-4 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-gray-200 rounded-2xl border border-gray-100 shadow-sm transition-all active:scale-95">
+                                    <button onClick={() => { setShowClientSelector(!showClientSelector); setShowCampaignSelector(false); }} className="flex items-center gap-3 px-6 py-3.5 short:py-2 short:px-4 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-gray-200 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm transition-all active:scale-95">
                                         <Building2 className="w-4 h-4 text-swave-purple" />
                                         <span className="text-sm font-black hidden sm:inline">{filterClient === 'All' ? 'All Portfolios' : filterClient}</span>
                                         <ChevronDown className="w-4 h-4 text-gray-400" />
@@ -463,7 +463,7 @@ export default function App() {
                                 </div>
                                 <input
                                     type="text"
-                                    className="block w-64 pl-10 pr-3 py-3.5 border border-gray-100 dark:border-gray-700 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-white rounded-2xl text-sm font-medium focus:ring-2 focus:ring-swave-orange focus:border-swave-orange transition-all outline-none"
+                                    className="block w-64 pl-10 pr-3 py-3.5 border border-gray-200 dark:border-gray-700 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-white rounded-2xl text-sm font-medium focus:ring-2 focus:ring-swave-orange focus:border-swave-orange transition-all outline-none"
                                     placeholder="Search content..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -476,11 +476,11 @@ export default function App() {
                              <button onClick={openNewPostForm} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white p-3.5 md:px-6 md:py-4 short:py-2 rounded-2xl text-sm font-black flex items-center gap-2.5 shadow-2xl shadow-orange-300/40 dark:shadow-none hover:scale-[1.02] transition-all active:scale-95"><Plus className="w-6 h-6 md:w-5 md:h-5" /> <span className="hidden md:inline">Produce Post</span></button>
                          )}
                          <div className="flex gap-2">
-                             <button onClick={() => setShowDailyBriefing(true)} className="p-3.5 short:p-2 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-gray-400 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:text-swave-purple transition-all active:scale-90" title="Daily Briefing">
+                             <button onClick={() => setShowDailyBriefing(true)} className="p-3.5 short:p-2 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-gray-400 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:text-swave-purple transition-all active:scale-90" title="Daily Briefing">
                                 <Sun className="w-6 h-6 short:w-5 short:h-5" />
                              </button>
                              <div className="relative" ref={notificationRef}>
-                                <button onClick={() => setShowNotifications(!showNotifications)} className="p-3.5 short:p-2 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-gray-400 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:text-swave-orange transition-all active:scale-90">
+                                <button onClick={() => setShowNotifications(!showNotifications)} className="p-3.5 short:p-2 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-gray-400 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:text-swave-orange transition-all active:scale-90">
                                     <Bell className="w-6 h-6 short:w-5 short:h-5" />
                                     {notifications.length > 0 && <span className="absolute top-3.5 right-3.5 w-3.5 h-3.5 short:w-2.5 short:h-2.5 bg-red-500 rounded-full border-4 border-white dark:border-gray-800"></span>}
                                 </button>
@@ -505,7 +505,7 @@ export default function App() {
                 <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2 pt-1 short:pb-1">
                     <div className="flex items-center gap-2.5 p-2 short:p-1 bg-gray-100/50 dark:bg-gray-800/50 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-inner w-full md:w-auto">
                         <div className="flex gap-2.5 short:gap-1.5 min-w-full md:min-w-0">
-                            {STATUS_PILLS.map((pill) => <button key={pill.label} onClick={() => setFilterStatus(pill.value)} className={`px-6 py-2.5 short:py-1.5 short:px-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterStatus === pill.value ? pill.color + ' shadow-xl scale-105 ring-4 ring-white dark:ring-gray-900 z-10' : 'bg-[var(--color-button)] text-[var(--color-button-text)] hover:opacity-80 dark:bg-gray-800 dark:text-gray-400'}`}>{pill.label}</button>)}
+                            {STATUS_PILLS.map((pill) => <button key={pill.label} onClick={() => setFilterStatus(pill.value)} className={`px-6 py-2.5 short:py-1.5 short:px-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterStatus === pill.value ? pill.color + ' shadow-xl scale-105 ring-4 ring-white dark:ring-gray-900 z-10' : 'bg-[var(--color-button)] text-[var(--color-button-text)] border border-gray-200 dark:border-gray-700 hover:opacity-80 dark:bg-gray-800 dark:text-gray-400'}`}>{pill.label}</button>)}
                         </div>
                     </div>
                 </div>

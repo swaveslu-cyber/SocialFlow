@@ -26,8 +26,8 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       agencyName: 'SWAVE', 
       primaryColor: '#8E3EBB', 
       secondaryColor: '#F27A21',
-      buttonColor: '#FFFFFF',
-      buttonTextColor: '#4B5563' 
+      buttonColor: '#F3F4F6', // Default update
+      buttonTextColor: '#1F2937' 
   });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
@@ -44,6 +44,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'agency_creator' as UserRole, clientId: '' });
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [isSavingUser, setIsSavingUser] = useState(false);
+  const [isDeletingUser, setIsDeletingUser] = useState<string | null>(null);
   
   // Password Visibility Toggle State
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
@@ -155,12 +156,17 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
           return;
       }
       if(confirm("Remove this user permanently? This cannot be undone.")) {
+          setIsDeletingUser(id);
           try {
               await db.deleteUser(id);
+              // Force delay to allow DB propagation if needed
+              await new Promise(r => setTimeout(r, 500));
               await loadTeam();
           } catch (e: any) {
               console.error(e);
-              alert(`Failed to delete user.\n\nPossible Reason: Database permissions denied or the user no longer exists.\n\nTechnical Error: ${e.message}`);
+              alert(`Failed to delete user. Please ensure database permissions are set.\n\nTechnical Error: ${e.message}`);
+          } finally {
+              setIsDeletingUser(null);
           }
       }
   };
@@ -290,8 +296,8 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       </div>
 
       <div className="flex flex-col md:flex-row h-full overflow-hidden">
-        {/* SIDEBAR TABS */}
-        <div className="w-full md:w-64 bg-gray-50/50 dark:bg-gray-900/30 border-r border-gray-100 dark:border-gray-700 p-4 flex flex-row md:flex-col gap-2 overflow-x-auto no-scrollbar md:overflow-visible flex-shrink-0">
+        {/* SIDEBAR TABS - Updated Contrast */}
+        <div className="w-full md:w-64 bg-gray-100 dark:bg-gray-900/50 border-r border-gray-100 dark:border-gray-700 p-4 flex flex-row md:flex-col gap-2 overflow-x-auto no-scrollbar md:overflow-visible flex-shrink-0">
             {[
                 { id: 'clients', label: 'Clients', icon: Building2 },
                 { id: 'team', label: 'Team & Roles', icon: Users },
@@ -303,7 +309,11 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                 <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all w-full whitespace-nowrap md:whitespace-normal ${activeTab === tab.id ? 'bg-gradient-to-r from-swave-purple to-swave-orange text-white shadow-lg shadow-purple-500/20 dark:shadow-none' : 'text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-200'}`}
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all w-full whitespace-nowrap md:whitespace-normal ${
+                        activeTab === tab.id 
+                        ? 'bg-gradient-to-r from-swave-purple to-swave-orange text-white shadow-lg shadow-purple-500/20 dark:shadow-none' 
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200 border border-transparent'
+                    }`}
                 >
                     <tab.icon className="w-5 h-5" /> {tab.label}
                 </button>
@@ -443,8 +453,8 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                                      <Edit2 className="w-4 h-4"/>
                                                  </button>
                                                  {u.id !== currentUser.id && (
-                                                     <button type="button" onClick={() => handleDeleteUser(u.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Delete User">
-                                                         <Trash2 className="w-4 h-4"/>
+                                                     <button type="button" onClick={() => handleDeleteUser(u.id)} disabled={isDeletingUser === u.id} className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50" title="Delete User">
+                                                         {isDeletingUser === u.id ? <Loader2 className="w-4 h-4 animate-spin text-red-500"/> : <Trash2 className="w-4 h-4"/>}
                                                      </button>
                                                  )}
                                               </div>
@@ -456,8 +466,8 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                      </div>
                 </div>
             )}
-
-            {/* --- BRANDING TAB --- */}
+            
+            {/* ... rest of the file ... */}
             {activeTab === 'branding' && (
                 <div className="space-y-10 animate-in slide-in-from-right-4 relative z-10 max-w-2xl mx-auto">
                     <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl space-y-6">
@@ -532,7 +542,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                 </div>
             )}
 
-            {/* --- SECURITY / DATA TAB --- */}
+            {/* ... (Security tab remains same) */}
             {activeTab === 'security' && (
                  <div className="space-y-10 max-w-2xl mx-auto animate-in slide-in-from-right-4 relative z-10">
                      <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl">
