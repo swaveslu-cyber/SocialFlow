@@ -3,8 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../services/firebaseConfig';
-import { Template, Snippet, Platform, PLATFORMS, ClientProfile, User, UserRole, AppConfig } from '../types';
-import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2 } from 'lucide-react';
+import { Template, Snippet, Platform, PLATFORMS, ClientProfile, User, UserRole, AppConfig, BrandKit } from '../types';
+import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2, BookOpen } from 'lucide-react';
+import { OnboardingWizard } from './OnboardingWizard';
+import { BrandCard } from './BrandCard';
 
 interface SettingsProps {
   clients: string[]; 
@@ -26,10 +28,13 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       agencyName: 'SWAVE', 
       primaryColor: '#8E3EBB', 
       secondaryColor: '#F27A21',
+      primaryTextColor: '#FFFFFF',
+      secondaryTextColor: '#FFFFFF',
       buttonColor: '#F3F4F6', // Default update
       buttonTextColor: '#1F2937' 
   });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isSavingBranding, setIsSavingBranding] = useState(false);
 
   // Client State
   const [newClientName, setNewClientName] = useState('');
@@ -38,6 +43,10 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   
   const [fullProfiles, setFullProfiles] = useState<ClientProfile[]>([]);
   const [teamMembers, setTeamMembers] = useState<User[]>([]);
+  
+  // Onboarding State
+  const [onboardingClient, setOnboardingClient] = useState<string | null>(null);
+  const [viewingBrandKit, setViewingBrandKit] = useState<BrandKit | null>(null);
   
   // Team State
   const [showNewUserForm, setShowNewUserForm] = useState(false);
@@ -102,6 +111,16 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       onUpdate();
       loadProfiles();
     }
+  };
+
+  const handleOpenBrandKit = async (clientName: string) => {
+      const kit = await db.getBrandKit(clientName);
+      if (kit) {
+          setViewingBrandKit(kit);
+      } else {
+          // Launch wizard if no kit exists
+          setOnboardingClient(clientName);
+      }
   };
 
   const handleSaveUser = async (e: React.FormEvent) => {
@@ -194,9 +213,17 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   };
 
   const saveBranding = async () => {
-      await db.saveAppConfig(brandingConfig);
-      onUpdate(); // Trigger App reload to apply colors
-      alert("Branding saved!");
+      setIsSavingBranding(true);
+      try {
+          await db.saveAppConfig(brandingConfig);
+          onUpdate(); // Trigger App reload to apply colors
+          alert("Branding saved successfully!");
+      } catch (e: any) {
+          console.error(e);
+          alert(`Failed to save branding. Check database permissions.\nError: ${e.message}`);
+      } finally {
+          setIsSavingBranding(false);
+      }
   };
 
   // ... (Existing Template/Snippet handlers remain same)
@@ -276,6 +303,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   };
 
   return (
+    <>
     <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-in fade-in zoom-in-95 w-[95vw] max-w-[1920px] mx-auto flex flex-col h-[92vh]">
       {/* HEADER */}
       <div className="border-b border-gray-100 dark:border-gray-700 flex items-center justify-between p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md sticky top-0 z-20">
@@ -311,7 +339,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                     onClick={() => setActiveTab(tab.id as any)}
                     className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all w-full whitespace-nowrap md:whitespace-normal ${
                         activeTab === tab.id 
-                        ? 'bg-gradient-to-r from-swave-purple to-swave-orange text-white shadow-lg shadow-purple-500/20 dark:shadow-none' 
+                        ? 'bg-gradient-to-r from-swave-purple to-swave-orange text-swave-purple-text shadow-lg shadow-purple-500/20 dark:shadow-none' 
                         : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200 border border-transparent'
                     }`}
                 >
@@ -347,7 +375,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                             {fullProfiles.map(client => (
                                 <div key={client.name} className="flex flex-col justify-between p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-swave-purple/30 hover:shadow-lg hover:shadow-purple-500/5 transition-all group gap-4 relative overflow-hidden min-h-[140px]">
                                     <div className="flex items-center gap-5 relative z-10">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-swave-purple to-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-purple-200 dark:shadow-none shrink-0">
+                                        <div className="w-12 h-12 bg-gradient-to-br from-swave-purple to-indigo-600 rounded-2xl flex items-center justify-center text-swave-purple-text font-black text-lg shadow-lg shadow-purple-200 dark:shadow-none shrink-0">
                                             {client.name.substring(0,2).toUpperCase()}
                                         </div>
                                         <div className="min-w-0">
@@ -355,6 +383,9 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                         </div>
                                     </div>
                                     <div className="flex gap-2 justify-end relative z-10 border-t border-gray-50 dark:border-gray-700/50 pt-3">
+                                        <button onClick={() => handleOpenBrandKit(client.name)} className="px-4 py-2 text-xs font-bold text-white bg-gray-900 dark:bg-white dark:text-gray-900 hover:scale-105 rounded-xl transition-all shadow-md flex items-center gap-2">
+                                            <BookOpen className="w-3 h-3" /> Brand Kit
+                                        </button>
                                         <button onClick={() => handleEditClick(client)} className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-swave-purple hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-colors">Edit</button>
                                         <button onClick={async () => { if(confirm(`Remove ${client.name}?`)) { await db.removeClient(client.name); onUpdate(); loadProfiles(); }}} className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors">Remove</button>
                                     </div>
@@ -369,12 +400,14 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
             </div>
             )}
             
+            {/* ... (Other tabs remain the same) ... */}
+            
             {/* --- TEAM TAB --- */}
             {activeTab === 'team' && (
                 <div className="space-y-8 animate-in slide-in-from-right-4 relative z-10">
                      <div className="flex justify-between items-center">
                          <h3 className="text-xl font-black text-gray-900 dark:text-white">User Management</h3>
-                         <button onClick={() => { setShowNewUserForm(!showNewUserForm); setEditingUserId(null); setNewUser({ name: '', email: '', password: '', role: 'agency_creator', clientId: '' }); }} className="flex items-center gap-2 bg-swave-purple text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-purple-700 transition-all">
+                         <button onClick={() => { setShowNewUserForm(!showNewUserForm); setEditingUserId(null); setNewUser({ name: '', email: '', password: '', role: 'agency_creator', clientId: '' }); }} className="flex items-center gap-2 bg-swave-purple text-swave-purple-text px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-purple-700 transition-all">
                              <UserPlus className="w-4 h-4" /> {showNewUserForm ? 'Close Form' : 'Add User'}
                          </button>
                      </div>
@@ -401,7 +434,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                              )}
                              <div className="flex justify-end gap-2">
                                  <button type="button" onClick={() => { setShowNewUserForm(false); setEditingUserId(null); }} className="px-4 py-2 text-gray-500 font-bold">Cancel</button>
-                                 <button type="submit" disabled={isSavingUser} className="px-4 py-2 bg-swave-purple text-white rounded-lg font-bold flex items-center gap-2">
+                                 <button type="submit" disabled={isSavingUser} className="px-4 py-2 bg-swave-purple text-swave-purple-text rounded-lg font-bold flex items-center gap-2">
                                      {isSavingUser && <Loader2 className="w-4 h-4 animate-spin"/>}
                                      {editingUserId ? 'Save Changes' : 'Create User'}
                                  </button>
@@ -467,7 +500,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                 </div>
             )}
             
-            {/* ... rest of the file ... */}
+            {/* --- BRANDING TAB --- */}
             {activeTab === 'branding' && (
                 <div className="space-y-10 animate-in slide-in-from-right-4 relative z-10 max-w-2xl mx-auto">
                     <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl space-y-6">
@@ -499,17 +532,34 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                     </div>
                                 </div>
                                 <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Primary Text Color</label>
+                                    <div className="flex gap-2 items-center p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                                        <input type="color" value={brandingConfig.primaryTextColor || '#FFFFFF'} onChange={e => setBrandingConfig({...brandingConfig, primaryTextColor: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-none"/>
+                                        <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{brandingConfig.primaryTextColor || '#FFFFFF'}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Secondary Text Color</label>
+                                    <div className="flex gap-2 items-center p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                                        <input type="color" value={brandingConfig.secondaryTextColor || '#FFFFFF'} onChange={e => setBrandingConfig({...brandingConfig, secondaryTextColor: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-none"/>
+                                        <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{brandingConfig.secondaryTextColor || '#FFFFFF'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-50 dark:border-gray-700/50">
+                                <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Button Color</label>
                                     <div className="flex gap-2 items-center p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                                        <input type="color" value={brandingConfig.buttonColor || '#FFFFFF'} onChange={e => setBrandingConfig({...brandingConfig, buttonColor: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-none"/>
-                                        <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{brandingConfig.buttonColor || '#FFFFFF'}</span>
+                                        <input type="color" value={brandingConfig.buttonColor || '#F3F4F6'} onChange={e => setBrandingConfig({...brandingConfig, buttonColor: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-none"/>
+                                        <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{brandingConfig.buttonColor || '#F3F4F6'}</span>
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Button Text Color</label>
                                     <div className="flex gap-2 items-center p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                                        <input type="color" value={brandingConfig.buttonTextColor || '#4B5563'} onChange={e => setBrandingConfig({...brandingConfig, buttonTextColor: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-none"/>
-                                        <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{brandingConfig.buttonTextColor || '#4B5563'}</span>
+                                        <input type="color" value={brandingConfig.buttonTextColor || '#1F2937'} onChange={e => setBrandingConfig({...brandingConfig, buttonTextColor: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-none"/>
+                                        <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{brandingConfig.buttonTextColor || '#1F2937'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -534,10 +584,103 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                         </div>
 
                         <div className="pt-4 flex justify-end">
-                            <button onClick={saveBranding} className="bg-swave-purple text-white px-8 py-3 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl">
-                                <Save className="w-4 h-4 inline mr-2"/> Save Changes
+                            <button onClick={saveBranding} disabled={isSavingBranding} className="bg-swave-purple text-swave-purple-text px-8 py-3 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-50 flex items-center gap-2">
+                                {isSavingBranding ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>} 
+                                Save Changes
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- TEMPLATES TAB --- */}
+            {activeTab === 'templates' && (
+                <div className="space-y-6 animate-in slide-in-from-right-4 relative z-10">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-xl font-black text-gray-900 dark:text-white">Content Templates</h3>
+                        <button onClick={handleNewTemplate} className="bg-swave-purple text-swave-purple-text px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition-all flex items-center gap-2">
+                            <Plus className="w-4 h-4" /> New Template
+                        </button>
+                    </div>
+                    
+                    {editingTemplate && (
+                        <form onSubmit={handleSaveTemplate} className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-4 mb-8 animate-in fade-in">
+                            <div className="flex justify-between">
+                                <h4 className="font-bold text-gray-700 dark:text-gray-200">Editor</h4>
+                                <button type="button" onClick={() => setEditingTemplate(null)}><X className="w-5 h-5 text-gray-400"/></button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <input required value={editingTemplate.name} onChange={e => setEditingTemplate({...editingTemplate, name: e.target.value})} placeholder="Template Name" className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" />
+                                <select value={editingTemplate.platform} onChange={e => setEditingTemplate({...editingTemplate, platform: e.target.value as Platform})} className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                    {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                            </div>
+                            <textarea required value={editingTemplate.captionSkeleton} onChange={e => setEditingTemplate({...editingTemplate, captionSkeleton: e.target.value})} placeholder="Caption structure..." className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 h-32" />
+                            <input value={tempTags} onChange={e => setTempTags(e.target.value)} placeholder="Tags (comma separated)..." className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" />
+                            <div className="flex justify-end">
+                                <button type="submit" className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-2 rounded-xl font-bold">Save Template</button>
+                            </div>
+                        </form>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {templates.map(t => (
+                            <div key={t.id} className="p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group relative">
+                                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => handleEditTemplate(t)} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-blue-500"><Edit2 className="w-3 h-3"/></button>
+                                    <button onClick={() => handleDeleteTemplate(t.id)} className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-500"><Trash2 className="w-3 h-3"/></button>
+                                </div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">{t.platform}</span>
+                                    <h4 className="font-bold text-gray-900 dark:text-white">{t.name}</h4>
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3 whitespace-pre-wrap mb-3">{t.captionSkeleton}</p>
+                                <div className="flex gap-2 flex-wrap">
+                                    {t.tags.map(tag => <span key={tag} className="text-[9px] text-swave-purple bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded font-bold">{tag}</span>)}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* --- SNIPPETS TAB --- */}
+            {activeTab === 'snippets' && (
+                <div className="space-y-6 animate-in slide-in-from-right-4 relative z-10">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-xl font-black text-gray-900 dark:text-white">Reusable Snippets</h3>
+                        <button onClick={handleNewSnippet} className="bg-swave-orange text-swave-orange-text px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition-all flex items-center gap-2">
+                            <Plus className="w-4 h-4" /> New Snippet
+                        </button>
+                    </div>
+
+                    {editingSnippet && (
+                        <form onSubmit={handleSaveSnippet} className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-4 mb-8 animate-in fade-in">
+                            <div className="flex justify-between">
+                                <h4 className="font-bold text-gray-700 dark:text-gray-200">Snippet Editor</h4>
+                                <button type="button" onClick={() => setEditingSnippet(null)}><X className="w-5 h-5 text-gray-400"/></button>
+                            </div>
+                            <input required value={editingSnippet.label} onChange={e => setEditingSnippet({...editingSnippet, label: e.target.value})} placeholder="Label (e.g. CTA Website)" className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" />
+                            <textarea required value={editingSnippet.content} onChange={e => setEditingSnippet({...editingSnippet, content: e.target.value})} placeholder="Snippet content..." className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 h-24" />
+                            <div className="flex justify-end">
+                                <button type="submit" className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-2 rounded-xl font-bold">Save Snippet</button>
+                            </div>
+                        </form>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {snippets.map(s => (
+                            <div key={s.id} className="p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group relative flex flex-col justify-between">
+                                <div>
+                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => handleEditSnippet(s)} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-blue-500"><Edit2 className="w-3 h-3"/></button>
+                                        <button onClick={() => handleDeleteSnippet(s.id)} className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-500"><Trash2 className="w-3 h-3"/></button>
+                                    </div>
+                                    <h4 className="font-bold text-gray-900 dark:text-white mb-2">{s.label}</h4>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono bg-gray-50 dark:bg-gray-900 p-2 rounded-lg break-words">{s.content}</p>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
@@ -562,5 +705,30 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
         </div>
       </div>
     </div>
+    
+    {/* Modals for Onboarding / Brand Card */}
+    {onboardingClient && (
+        <OnboardingWizard 
+            clientName={onboardingClient} 
+            onComplete={() => {
+                const name = onboardingClient;
+                setOnboardingClient(null);
+                handleOpenBrandKit(name);
+            }}
+            onCancel={() => setOnboardingClient(null)} 
+        />
+    )}
+    
+    {viewingBrandKit && (
+        <BrandCard 
+            kit={viewingBrandKit} 
+            onClose={() => setViewingBrandKit(null)} 
+            onEdit={() => {
+                setOnboardingClient(viewingBrandKit.client_name);
+                setViewingBrandKit(null);
+            }}
+        />
+    )}
+    </>
   );
 };

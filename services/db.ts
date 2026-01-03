@@ -1,6 +1,6 @@
 
 import { supabase } from './supabaseClient';
-import { Post, PostStatus, Template, Snippet, ClientProfile, Comment, Campaign, Invoice, ServiceItem, User, UserRole, AppConfig } from '../types';
+import { Post, PostStatus, Template, Snippet, ClientProfile, Comment, Campaign, Invoice, ServiceItem, User, UserRole, AppConfig, BrandKit } from '../types';
 
 export const db = {
   init: async (): Promise<void> => {
@@ -40,6 +40,8 @@ export const db = {
           agencyName: "SWAVE",
           primaryColor: "#8E3EBB", // swave-purple
           secondaryColor: "#F27A21", // swave-orange
+          primaryTextColor: "#FFFFFF",
+          secondaryTextColor: "#FFFFFF",
           buttonColor: "#F3F4F6", // Default button bg (Gray-100) for better visibility
           buttonTextColor: "#1F2937" // Default button text (Gray-800)
       };
@@ -52,6 +54,18 @@ export const db = {
           value: config
       }, { onConflict: 'key' });
       
+      if (error) throw error;
+  },
+
+  // --- BRAND KITS (ONBOARDING) ---
+  getBrandKit: async (clientName: string): Promise<BrandKit | null> => {
+      const { data, error } = await supabase.from('client_brand_kits').select('*').eq('client_name', clientName).maybeSingle();
+      if (error) return null;
+      return data as BrandKit;
+  },
+
+  saveBrandKit: async (kit: BrandKit): Promise<void> => {
+      const { error } = await supabase.from('client_brand_kits').upsert(kit, { onConflict: 'client_name' });
       if (error) throw error;
   },
 
@@ -332,11 +346,45 @@ export const db = {
       await db.addCampaign("Q1 Product Launch", clientName);
       await db.addCampaign("Brand Awareness", clientName);
 
-      await db.saveTemplate({
-          id: crypto.randomUUID(), name: "Product Launch", platform: "LinkedIn",
-          captionSkeleton: "We are thrilled to announce the launch of [Product]! 🚀",
-          tags: ["#launch", "#startup"]
-      });
+      // --- TEMPLATES SEEDING ---
+      const templates: Template[] = [
+          {
+              id: crypto.randomUUID(), name: "Corporate Announcement", platform: "LinkedIn",
+              captionSkeleton: "We are proud to announce a new strategic partnership with [Partner Name]. This collaboration marks a significant milestone in our journey to [Goal]. Read the full press release here: [Link]",
+              tags: ["#Partnership", "#BusinessGrowth"]
+          },
+          {
+              id: crypto.randomUUID(), name: "Hype Launch", platform: "Twitter",
+              captionSkeleton: "🚨 IT IS FINALLY HERE! 🚨\n\n[Product Name] is live. You asked, we delivered. \n\nGrab yours before they are gone: [Link] 🔥",
+              tags: ["#LaunchDay", "#Hype"]
+          },
+          {
+              id: crypto.randomUUID(), name: "Behind the Scenes", platform: "Instagram",
+              captionSkeleton: "Ever wonder what goes into making [Product]? 🛠️ Here is a sneak peek at the team hard at work.\n\nDrop a comment if you want to see more BTS content! 👇",
+              tags: ["#BTS", "#TeamCulture"]
+          },
+          {
+              id: crypto.randomUUID(), name: "Educational Tip", platform: "LinkedIn",
+              captionSkeleton: "Did you know that [Statistic/Fact]? 💡\n\nMany businesses struggle with [Problem], but the solution is often simpler than you think.\n\n1. [Tip 1]\n2. [Tip 2]\n3. [Tip 3]\n\nFollow for more industry insights!",
+              tags: ["#Tips", "#Education"]
+          },
+          {
+              id: crypto.randomUUID(), name: "Flash Sale", platform: "Instagram",
+              captionSkeleton: "⚡ FLASH SALE ALERT ⚡\n\nFor the next 24 hours only, get [Discount]% OFF everything!\n\nCode: [Code]\n\nDon't sleep on this. ⏰",
+              tags: ["#Sale", "#Discount"]
+          }
+      ];
+      for (const t of templates) await db.saveTemplate(t);
+
+      // --- SNIPPETS SEEDING ---
+      const snippets: Snippet[] = [
+          { id: crypto.randomUUID(), label: "CTA - Bio Link", content: "Tap the link in our bio to get started! 🔗" },
+          { id: crypto.randomUUID(), label: "CTA - Sales", content: "Shop the collection now at [Website] 🛍️" },
+          { id: crypto.randomUUID(), label: "Tech Hashtags", content: "#TechTrends #Innovation #FutureOfWork #SaaS #StartupLife" },
+          { id: crypto.randomUUID(), label: "Legal Disclaimer", content: "*Limited time offer. Terms and conditions apply. Not valid with other offers." },
+          { id: crypto.randomUUID(), label: "Question Engagement", content: "What are your thoughts on this? Let us know in the comments! 👇" }
+      ];
+      for (const s of snippets) await db.saveSnippet(s);
 
       const author = "Agency Director";
       const today = new Date().toISOString().split('T')[0];
@@ -379,6 +427,7 @@ export const db = {
          await supabase.from('campaigns').delete().neq('id', '00000000-0000-0000-0000-000000000000');
          await supabase.from('invoices').delete().neq('id', '00000000-0000-0000-0000-000000000000');
          await supabase.from('services').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+         await supabase.from('client_brand_kits').delete().neq('id', '00000000-0000-0000-0000-000000000000');
          // We do not delete users here to prevent lockout
      } catch (e) {
          console.error("Failed to clear Supabase tables:", e);

@@ -124,6 +124,8 @@ export default function App() {
       if (branding) {
           document.documentElement.style.setProperty('--color-primary', branding.primaryColor);
           document.documentElement.style.setProperty('--color-secondary', branding.secondaryColor);
+          document.documentElement.style.setProperty('--color-primary-text', branding.primaryTextColor || '#FFFFFF');
+          document.documentElement.style.setProperty('--color-secondary-text', branding.secondaryTextColor || '#FFFFFF');
           document.documentElement.style.setProperty('--color-button', branding.buttonColor || '#F3F4F6');
           document.documentElement.style.setProperty('--color-button-text', branding.buttonTextColor || '#1F2937');
           document.title = `${branding.agencyName} - Operations`;
@@ -327,11 +329,11 @@ export default function App() {
 
   const STATUS_PILLS: { label: string, value: PostStatus | 'All', color: string }[] = [
     { label: 'All', value: 'All', color: 'bg-gray-100 text-gray-800' },
-    { label: 'Draft', value: 'Draft', color: 'bg-gray-400 text-white' },
-    { label: 'Review', value: 'In Review', color: 'bg-amber-500 text-white' },
-    { label: 'Approved', value: 'Approved', color: 'bg-emerald-500 text-white' },
-    { label: 'Scheduled', value: 'Scheduled', color: 'bg-blue-500 text-white' },
-    { label: 'Published', value: 'Published', color: 'bg-indigo-600 text-white' },
+    { label: 'Draft', value: 'Draft', color: 'bg-gray-600 text-white' }, // Darkened from 400
+    { label: 'Review', value: 'In Review', color: 'bg-amber-600 text-white' }, // Darkened from 500
+    { label: 'Approved', value: 'Approved', color: 'bg-emerald-600 text-white' }, // Darkened from 500
+    { label: 'Scheduled', value: 'Scheduled', color: 'bg-blue-600 text-white' }, // Darkened from 500
+    { label: 'Published', value: 'Published', color: 'bg-indigo-600 text-white' }, // Good
   ];
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950"><Loader2 className="w-10 h-10 animate-spin text-swave-orange" /></div>;
@@ -363,13 +365,13 @@ export default function App() {
                     <div>
                         <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Operations</p>
                         <div className="space-y-1">
-                            <button onClick={() => { setViewMode('list'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'list' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                            <button onClick={() => { setViewMode('list'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'list' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <List className="w-5 h-5 short:w-4 short:h-4" /> Master Feed
                             </button>
-                            <button onClick={() => { setViewMode('calendar'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'calendar' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                            <button onClick={() => { setViewMode('calendar'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'calendar' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <CalendarIcon className="w-5 h-5 short:w-4 short:h-4" /> Schedule Plan
                             </button>
-                            <button onClick={() => { setViewMode('kanban'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'kanban' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                            <button onClick={() => { setViewMode('kanban'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'kanban' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <LayoutGrid className="w-5 h-5 short:w-4 short:h-4" /> Workflow Board
                             </button>
                             {PERMISSIONS.canDelete(currentUser.role) && (
@@ -383,7 +385,7 @@ export default function App() {
                         <div>
                             <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Finance</p>
                             <div className="space-y-1">
-                                <button onClick={() => { setViewMode('finance'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'finance' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                                <button onClick={() => { setViewMode('finance'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'finance' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                     <DollarSign className="w-5 h-5 short:w-4 short:h-4" /> Invoicing
                                 </button>
                             </div>
@@ -393,7 +395,7 @@ export default function App() {
                         <div>
                              <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Administration</p>
                              <div className="space-y-1">
-                                 <button onClick={() => { setIsSettingsOpen(true); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${isSettingsOpen ? 'bg-swave-purple text-white shadow-lg shadow-purple-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                                 <button onClick={() => { setIsSettingsOpen(true); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${isSettingsOpen ? 'bg-swave-purple text-swave-purple-text shadow-lg shadow-purple-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                     <SettingsIcon className="w-5 h-5 short:w-4 short:h-4" /> Settings & Team
                                 </button>
                              </div>
@@ -403,7 +405,7 @@ export default function App() {
 
                 <div className="p-8 short:p-4 border-t border-gray-100 dark:border-gray-800">
                     <div className="flex items-center gap-3 mb-4 px-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white ${!currentUser.clientId ? 'bg-swave-purple' : 'bg-swave-orange'}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${!currentUser.clientId ? 'bg-swave-purple text-swave-purple-text' : 'bg-swave-orange text-swave-orange-text'}`}>
                             {currentUser.name.substring(0,2).toUpperCase()}
                         </div>
                         <div className="min-w-0">
@@ -473,7 +475,7 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-3 short:gap-1.5">
                          {PERMISSIONS.canEdit(currentUser.role) && viewMode !== 'trash' && (
-                             <button onClick={openNewPostForm} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white p-3.5 md:px-6 md:py-4 short:py-2 rounded-2xl text-sm font-black flex items-center gap-2.5 shadow-2xl shadow-orange-300/40 dark:shadow-none hover:scale-[1.02] transition-all active:scale-95"><Plus className="w-6 h-6 md:w-5 md:h-5" /> <span className="hidden md:inline">Produce Post</span></button>
+                             <button onClick={openNewPostForm} className="bg-gradient-to-r from-swave-purple to-swave-orange text-swave-purple-text p-3.5 md:px-6 md:py-4 short:py-2 rounded-2xl text-sm font-black flex items-center gap-2.5 shadow-2xl shadow-orange-300/40 dark:shadow-none hover:scale-[1.02] transition-all active:scale-95"><Plus className="w-6 h-6 md:w-5 md:h-5" /> <span className="hidden md:inline">Produce Post</span></button>
                          )}
                          <div className="flex gap-2">
                              <button onClick={() => setShowDailyBriefing(true)} className="p-3.5 short:p-2 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-gray-400 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:text-swave-purple transition-all active:scale-90" title="Daily Briefing">
@@ -488,7 +490,7 @@ export default function App() {
                                     <div className="absolute right-0 top-full mt-5 w-80 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-in slide-in-from-top-2">
                                          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900">
                                              <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Inbox</span>
-                                             <span className="text-[10px] bg-swave-orange text-white px-3 py-1 rounded-full font-black tracking-widest ml-2">{notifications.length} NEW</span>
+                                             <span className="text-[10px] bg-swave-orange text-swave-orange-text px-3 py-1 rounded-full font-black tracking-widest ml-2">{notifications.length} NEW</span>
                                          </div>
                                          <div className="max-h-[400px] overflow-y-auto no-scrollbar pb-2">
                                              {notifications.length === 0 ? <div className="p-12 text-center text-gray-400 text-sm font-bold italic opacity-40">Your inbox is clear. ✨</div> : notifications.map(n => <div key={n.id} onClick={() => { const p = posts.find(post => post.id === n.postId); if(p) { /* handle scroll to or open */ setShowNotifications(false); } }} className="p-5 border-b border-gray-50 dark:border-gray-800 hover:bg-orange-50/40 dark:hover:bg-orange-900/10 cursor-pointer flex gap-4 transition-colors">

@@ -32,12 +32,12 @@ const PlatformIcon = ({ platform }: { platform: string }) => {
 
 const StatusBadge = ({ status }: { status: PostStatus }) => {
   const styles: Record<string, string> = {
-    'Draft': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-    'In Review': 'bg-amber-500 text-white shadow-md shadow-amber-200 dark:shadow-none',
-    'Approved': 'bg-emerald-500 text-white shadow-md shadow-emerald-200 dark:shadow-none',
-    'Scheduled': 'bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-none',
-    'Published': 'bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none',
-    'Trashed': 'bg-red-500 text-white shadow-md shadow-red-200 dark:shadow-none',
+    'Draft': 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300', // Darkened text for legibility
+    'In Review': 'bg-amber-600 text-white shadow-md shadow-amber-200 dark:shadow-none', // Darkened bg
+    'Approved': 'bg-emerald-600 text-white shadow-md shadow-emerald-200 dark:shadow-none', // Darkened bg
+    'Scheduled': 'bg-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-none', // Darkened bg
+    'Published': 'bg-indigo-700 text-white shadow-md shadow-indigo-200 dark:shadow-none', // Darkened bg
+    'Trashed': 'bg-red-600 text-white shadow-md shadow-red-200 dark:shadow-none', // Darkened bg
   };
   return (
     <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all duration-300 ${styles[status] || styles['Draft']}`}>
@@ -232,15 +232,15 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
                             <button onClick={() => onRestore?.(ids)} className="text-[10px] bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-2 py-2 rounded-xl hover:scale-105 font-black flex items-center gap-1 transition-all active:scale-95"><RotateCcw className="w-3.5 h-3.5"/> Restore</button>
                         ) : (
                             <>
-                                {/* RBAC BUTTON LOGIC - Compact Layout */}
+                                {/* RBAC BUTTON LOGIC - Compact Layout & Improved Contrast */}
                                 {PERMISSIONS.isInternal(user.role) && post.status === 'Draft' && (
-                                    <button onClick={() => onStatusChange?.(ids, 'In Review')} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white px-2 py-2 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-lg hover:scale-[1.03] transition-all active:scale-95 whitespace-nowrap">Review <ArrowRight className="w-3 h-3"/></button>
+                                    <button onClick={() => onStatusChange?.(ids, 'In Review')} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white px-2 py-2 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md hover:scale-[1.03] transition-all active:scale-95 whitespace-nowrap">Review <ArrowRight className="w-3 h-3"/></button>
                                 )}
                                 {PERMISSIONS.canApprove(user.role) && post.status === 'In Review' && (
-                                    <button onClick={() => onStatusChange?.(ids, 'Approved')} className="bg-emerald-500 text-white px-2 py-2 rounded-xl text-[10px] font-black shadow-lg hover:bg-emerald-600 transition-all active:scale-95 flex items-center gap-1 whitespace-nowrap"><Check className="w-3 h-3"/> Approve</button>
+                                    <button onClick={() => onStatusChange?.(ids, 'Approved')} className="bg-emerald-600 text-white px-2 py-2 rounded-xl text-[10px] font-black shadow-md hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-1 whitespace-nowrap"><Check className="w-3 h-3"/> Approve</button>
                                 )}
                                 {PERMISSIONS.canPublish(user.role) && post.status === 'Approved' && (
-                                    <button onClick={() => onStatusChange?.(ids, 'Scheduled')} className="bg-blue-600 text-white px-2 py-2 rounded-xl text-[10px] font-black shadow-lg hover:bg-blue-700 transition-all active:scale-95 whitespace-nowrap">Schedule</button>
+                                    <button onClick={() => onStatusChange?.(ids, 'Scheduled')} className="bg-blue-600 text-white px-2 py-2 rounded-xl text-[10px] font-black shadow-md hover:bg-blue-700 transition-all active:scale-95 whitespace-nowrap">Schedule</button>
                                 )}
                             </>
                         )}

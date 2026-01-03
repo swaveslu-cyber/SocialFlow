@@ -17,6 +17,8 @@ export interface AppConfig {
   logoUrl?: string;
   primaryColor: string; // Replaces 'swave-purple'
   secondaryColor: string; // Replaces 'swave-orange'
+  primaryTextColor?: string; // New: Text color for primary backgrounds
+  secondaryTextColor?: string; // New: Text color for secondary backgrounds
   buttonColor?: string; // New: Custom background for secondary/icon buttons
   buttonTextColor?: string; // New: Custom text color for secondary/icon buttons
 }
@@ -112,6 +114,50 @@ export interface ClientProfile {
   billingAddress?: string;
   taxId?: string;
   currency?: 'USD' | 'EUR' | 'GBP' | 'XCD';
+}
+
+// --- NEW ONBOARDING TYPES ---
+export interface BrandKit {
+  id?: string;
+  client_name: string;
+  company_details: {
+    name: string;
+    website: string;
+    industry: string;
+    one_liner: string;
+  };
+  brand_voice: {
+    formal_casual: number; // 1-10
+    exclusive_inclusive: number; // 1-10
+    informative_entertaining: number; // 1-10
+    soft_bold: number; // 1-10
+    restricted_words: string[];
+  };
+  visual_identity: {
+    colors: {
+      primary: string;
+      secondary: string;
+      accent: string;
+    };
+    logo_light?: string;
+    logo_dark?: string;
+    font_names: string;
+    aesthetic_links: string[];
+  };
+  target_audience: {
+    age_brackets: string[];
+    gender_focus: string;
+    geo_focus: string;
+    pain_point: string;
+    motivation: string;
+  };
+  access_status: {
+    meta_invited: boolean;
+    linkedin_invited: boolean;
+    tiktok_invited: boolean;
+    google_invited: boolean;
+    manual_credentials?: string;
+  };
 }
 
 export interface ServiceItem {
