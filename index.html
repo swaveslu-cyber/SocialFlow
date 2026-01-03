@@ -11,6 +11,10 @@
         darkMode: 'class',
         theme: {
           extend: {
+            screens: {
+              'short': { 'raw': '(max-height: 500px)' },
+              'landscape-sm': { 'raw': '(max-height: 500px) and (min-width: 640px)' }
+            },
             colors: {
               swave: {
                 orange: '#F27A21',

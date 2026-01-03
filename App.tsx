@@ -309,12 +309,12 @@ export default function App() {
         <aside className={`fixed inset-y-0 left-0 z-[60] w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl md:shadow-none`}>
             <div className="h-full flex flex-col">
                 {/* Logo Section */}
-                <div className="p-8 flex items-center justify-between">
+                <div className="p-8 short:p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-swave-purple to-swave-orange flex items-center justify-center p-2 shadow-xl shadow-orange-100 transition-transform hover:scale-110 active:scale-95 cursor-pointer">
+                        <div className="w-10 h-10 short:w-8 short:h-8 rounded-2xl bg-gradient-to-br from-swave-purple to-swave-orange flex items-center justify-center p-2 shadow-xl shadow-orange-100 transition-transform hover:scale-110 active:scale-95 cursor-pointer">
                             <SwaveLogo className="w-full h-full text-white" />
                         </div>
-                        <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter leading-none">SWAVE</h1>
+                        <h1 className="text-2xl short:text-xl font-black text-gray-900 dark:text-white tracking-tighter leading-none uppercase">SWAVE</h1>
                     </div>
                     <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                         <X className="w-6 h-6" />
@@ -322,35 +322,35 @@ export default function App() {
                 </div>
 
                 {/* Nav Links */}
-                <div className="flex-grow px-4 space-y-8 overflow-y-auto no-scrollbar">
+                <div className="flex-grow px-4 short:px-2 space-y-8 short:space-y-4 overflow-y-auto no-scrollbar">
                     {/* OPERATIONS Section */}
                     <div>
-                        <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4">Operations</p>
+                        <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Operations</p>
                         <div className="space-y-1">
                             <button 
                                 onClick={() => { setViewMode('list'); setSidebarOpen(false); }} 
-                                className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${viewMode === 'list' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                                className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'list' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                             >
-                                <List className="w-5 h-5" /> Master Feed
+                                <List className="w-5 h-5 short:w-4 short:h-4" /> Master Feed
                             </button>
                             <button 
                                 onClick={() => { setViewMode('calendar'); setSidebarOpen(false); }} 
-                                className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${viewMode === 'calendar' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                                className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'calendar' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                             >
-                                <CalendarIcon className="w-5 h-5" /> Schedule Plan
+                                <CalendarIcon className="w-5 h-5 short:w-4 short:h-4" /> Schedule Plan
                             </button>
                             <button 
                                 onClick={() => { setViewMode('kanban'); setSidebarOpen(false); }} 
-                                className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${viewMode === 'kanban' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                                className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'kanban' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                             >
-                                <LayoutGrid className="w-5 h-5" /> Workflow Board
+                                <LayoutGrid className="w-5 h-5 short:w-4 short:h-4" /> Workflow Board
                             </button>
                             {userRole === 'agency' && (
                                 <button 
                                     onClick={() => { setViewMode('trash'); setSidebarOpen(false); }} 
-                                    className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all mt-4 ${viewMode === 'trash' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-gray-600 hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400'}`}
+                                    className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all mt-4 short:mt-2 ${viewMode === 'trash' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-gray-600 hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400'}`}
                                 >
-                                    <Trash2 className="w-5 h-5" /> Archive
+                                    <Trash2 className="w-5 h-5 short:w-4 short:h-4" /> Archive
                                 </button>
                             )}
                         </div>
@@ -359,13 +359,13 @@ export default function App() {
                     {/* FINANCE Section (Agency Only) */}
                     {userRole === 'agency' && (
                         <div>
-                            <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4">Finance</p>
+                            <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Finance</p>
                             <div className="space-y-1">
                                 <button 
                                     onClick={() => { setViewMode('finance'); setSidebarOpen(false); }} 
-                                    className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${viewMode === 'finance' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                                    className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'finance' ? 'bg-swave-orange text-white shadow-lg shadow-orange-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                                 >
-                                    <DollarSign className="w-5 h-5" /> Invoicing
+                                    <DollarSign className="w-5 h-5 short:w-4 short:h-4" /> Invoicing
                                 </button>
                             </div>
                         </div>
@@ -374,13 +374,13 @@ export default function App() {
                     {/* ADMINISTRATION Section */}
                     {userRole === 'agency' && (
                         <div>
-                             <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4">Administration</p>
+                             <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Administration</p>
                              <div className="space-y-1">
                                  <button 
                                    onClick={() => { setIsSettingsOpen(true); setSidebarOpen(false); }} 
-                                   className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-black rounded-2xl transition-all ${isSettingsOpen ? 'bg-swave-purple text-white shadow-lg shadow-purple-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                                   className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${isSettingsOpen ? 'bg-swave-purple text-white shadow-lg shadow-purple-500/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                                  >
-                                    <SettingsIcon className="w-5 h-5" /> Agency Settings
+                                    <SettingsIcon className="w-5 h-5 short:w-4 short:h-4" /> Agency Settings
                                 </button>
                              </div>
                         </div>
@@ -388,10 +388,10 @@ export default function App() {
                 </div>
 
                 {/* Footer Section */}
-                <div className="p-8 border-t border-gray-100 dark:border-gray-800">
+                <div className="p-8 short:p-4 border-t border-gray-100 dark:border-gray-800">
                     <button 
                         onClick={handleLogout} 
-                        className="w-full flex items-center justify-center gap-2.5 px-4 py-4 text-[12px] font-black text-red-600 uppercase tracking-widest hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl transition-all active:scale-95"
+                        className="w-full flex items-center justify-center gap-2.5 px-4 py-4 short:py-2 text-[12px] font-black text-red-600 uppercase tracking-widest hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl transition-all active:scale-95"
                     >
                         <LogOut className="w-4 h-4" /> End Session
                     </button>
@@ -406,15 +406,15 @@ export default function App() {
             ) : (
             <>
             {/* Unified Top Navigation & Filter Bar */}
-            <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-3xl sticky top-0 z-40 border-b border-gray-100 dark:border-gray-800 px-6 py-4 md:px-10">
-                <div className="flex flex-wrap items-center justify-between gap-6 mb-6">
+            <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-3xl sticky top-0 z-40 border-b border-gray-100 dark:border-gray-800 px-6 py-4 md:px-10 short:py-2">
+                <div className="flex flex-wrap items-center justify-between gap-6 mb-6 short:mb-2">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setSidebarOpen(true)} className="md:hidden p-3 bg-white dark:bg-gray-800 rounded-[1.25rem] shadow-sm border border-gray-100 dark:border-gray-700 transition-transform active:scale-90"><Menu className="w-6 h-6" /></button>
+                        <button onClick={() => setSidebarOpen(true)} className="md:hidden p-3 short:p-2 bg-white dark:bg-gray-800 rounded-[1.25rem] shadow-sm border border-gray-100 dark:border-gray-700 transition-transform active:scale-90"><Menu className="w-6 h-6 short:w-5 short:h-5" /></button>
                         
                         {userRole === 'agency' && viewMode !== 'trash' && (
-                             <div className="flex gap-3">
+                             <div className="flex gap-3 short:gap-1.5">
                                 <div className="relative">
-                                    <button onClick={() => { setShowClientSelector(!showClientSelector); setShowCampaignSelector(false); }} className="flex items-center gap-3 px-6 py-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm transition-all active:scale-95">
+                                    <button onClick={() => { setShowClientSelector(!showClientSelector); setShowCampaignSelector(false); }} className="flex items-center gap-3 px-6 py-3.5 short:py-2 short:px-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm transition-all active:scale-95">
                                         <Building2 className="w-4 h-4 text-swave-purple" />
                                         <span className="text-sm font-black text-gray-700 dark:text-gray-200 hidden sm:inline">{filterClient === 'All' ? 'All Portfolios' : filterClient}</span>
                                         <ChevronDown className="w-4 h-4 text-gray-400" />
@@ -431,7 +431,7 @@ export default function App() {
                                     )}
                                 </div>
                                 <div className="relative">
-                                    <button onClick={() => { setShowCampaignSelector(!showCampaignSelector); setShowClientSelector(false); }} className="flex items-center gap-3 px-6 py-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm transition-all active:scale-95">
+                                    <button onClick={() => { setShowCampaignSelector(!showCampaignSelector); setShowClientSelector(false); }} className="flex items-center gap-3 px-6 py-3.5 short:py-2 short:px-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm transition-all active:scale-95">
                                         <Flag className="w-4 h-4 text-swave-orange" />
                                         <span className="text-sm font-black text-gray-700 dark:text-gray-200 hidden sm:inline">{filterCampaign === 'All' ? 'All Campaigns' : filterCampaign}</span>
                                         <ChevronDown className="w-4 h-4 text-gray-400" />
@@ -450,14 +450,14 @@ export default function App() {
                              </div>
                         )}
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 short:gap-1.5">
                          {userRole === 'agency' && viewMode !== 'trash' && (
-                             <button onClick={openNewPostForm} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white p-3.5 md:px-6 md:py-4 rounded-2xl text-sm font-black flex items-center gap-2.5 shadow-2xl shadow-orange-300/40 dark:shadow-none hover:scale-[1.02] transition-all active:scale-95"><Plus className="w-6 h-6 md:w-5 md:h-5" /> <span className="hidden md:inline">Produce Post</span></button>
+                             <button onClick={openNewPostForm} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white p-3.5 md:px-6 md:py-4 short:py-2 rounded-2xl text-sm font-black flex items-center gap-2.5 shadow-2xl shadow-orange-300/40 dark:shadow-none hover:scale-[1.02] transition-all active:scale-95"><Plus className="w-6 h-6 md:w-5 md:h-5" /> <span className="hidden md:inline">Produce Post</span></button>
                          )}
                          <div className="relative" ref={notificationRef}>
-                            <button onClick={() => setShowNotifications(!showNotifications)} className="p-3.5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 text-gray-500 hover:text-swave-orange transition-all active:scale-90">
-                                <Bell className="w-6 h-6" />
-                                {notifications.length > 0 && <span className="absolute top-3.5 right-3.5 w-3.5 h-3.5 bg-red-500 rounded-full border-4 border-white dark:border-gray-800"></span>}
+                            <button onClick={() => setShowNotifications(!showNotifications)} className="p-3.5 short:p-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 text-gray-500 hover:text-swave-orange transition-all active:scale-90">
+                                <Bell className="w-6 h-6 short:w-5 short:h-5" />
+                                {notifications.length > 0 && <span className="absolute top-3.5 right-3.5 w-3.5 h-3.5 short:w-2.5 short:h-2.5 bg-red-500 rounded-full border-4 border-white dark:border-gray-800"></span>}
                             </button>
                             {showNotifications && (
                                 <div className="absolute right-0 top-full mt-5 w-80 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-in slide-in-from-top-2">
@@ -485,20 +485,20 @@ export default function App() {
                          </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2 pt-1">
-                    <div className="flex items-center gap-2.5 p-2 bg-gray-100/50 dark:bg-gray-800/50 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-inner w-full md:w-auto">
-                        <div className="flex gap-2.5 min-w-full md:min-w-0">
+                <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2 pt-1 short:pb-1">
+                    <div className="flex items-center gap-2.5 p-2 short:p-1 bg-gray-100/50 dark:bg-gray-800/50 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-inner w-full md:w-auto">
+                        <div className="flex gap-2.5 short:gap-1.5 min-w-full md:min-w-0">
                             {STATUS_PILLS.map((pill) => (
-                                <button key={pill.label} onClick={() => setFilterStatus(pill.value)} className={`px-6 py-2.5 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterStatus === pill.value ? pill.color + ' shadow-xl scale-105 ring-4 ring-white dark:ring-gray-900 z-10' : 'bg-transparent text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>{pill.label}</button>
+                                <button key={pill.label} onClick={() => setFilterStatus(pill.value)} className={`px-6 py-2.5 short:py-1.5 short:px-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterStatus === pill.value ? pill.color + ' shadow-xl scale-105 ring-4 ring-white dark:ring-gray-900 z-10' : 'bg-transparent text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>{pill.label}</button>
                             ))}
                         </div>
                     </div>
                 </div>
             </header>
 
-            <div className="flex-grow overflow-auto p-6 md:p-12 pb-20 no-scrollbar">
+            <div className="flex-grow overflow-auto p-6 md:p-12 pb-20 no-scrollbar short:p-4 short:pb-24">
                 {(viewMode === 'list' || viewMode === 'trash') && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 short:gap-4">
                         {filteredPosts.map(post => <PostCard key={post.id} post={post} role={userRole} onDelete={handleDeletePost} onRestore={handleRestorePost} onStatusChange={handleStatusChange} onEdit={openEditPostForm} onUpdate={() => loadData(true)} />)}
                     </div>
                 )}
@@ -518,69 +518,69 @@ export default function App() {
         </main>
 
         {isFormOpen && (
-            <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in">
-                <div className="bg-white dark:bg-gray-800 rounded-[4rem] shadow-2xl w-full max-w-[95vw] h-[95vh] overflow-hidden flex flex-col scale-100 animate-in zoom-in-90">
-                    <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-white dark:bg-gray-800">
-                        <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">Studio Workspace</h2>
-                        <button type="button" onClick={closeForm} className="p-4 hover:bg-gray-100 rounded-3xl transition-all text-gray-500 hover:rotate-180 duration-500"><X className="w-8 h-8" /></button>
+            <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in short:p-2">
+                <div className="bg-white dark:bg-gray-800 rounded-[4rem] shadow-2xl w-full max-w-[95vw] h-[95vh] short:h-[98vh] short:rounded-[2rem] overflow-hidden flex flex-col scale-100 animate-in zoom-in-90">
+                    <div className="p-10 short:p-4 border-b border-gray-100 flex justify-between items-center bg-white dark:bg-gray-800">
+                        <h2 className="text-3xl short:text-xl font-black text-gray-900 dark:text-white tracking-tighter">Studio Workspace</h2>
+                        <button type="button" onClick={closeForm} className="p-4 short:p-2 hover:bg-gray-100 rounded-3xl transition-all text-gray-500 hover:rotate-180 duration-500"><X className="w-8 h-8 short:w-6 short:h-6" /></button>
                     </div>
-                    <div className="flex-grow overflow-y-auto p-10 lg:p-12 grid grid-cols-1 lg:grid-cols-7 gap-12 no-scrollbar">
-                            <div className="lg:col-span-3 space-y-10">
+                    <div className="flex-grow overflow-y-auto p-10 lg:p-12 short:p-4 grid grid-cols-1 lg:grid-cols-7 gap-12 short:gap-6 no-scrollbar">
+                            <div className="lg:col-span-3 space-y-10 short:space-y-4">
                                 {userRole === 'agency' && (
-                                <div>
-                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Strategic Account</label>
-                                    <select value={newPostClient} onChange={e => setNewPostClient(e.target.value)} className="w-full p-5 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl">{clients.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                                <div className="short:flex short:items-center short:gap-4">
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 short:mb-0 short:w-32">Strategic Account</label>
+                                    <select value={newPostClient} onChange={e => setNewPostClient(e.target.value)} className="w-full p-5 short:p-3 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl">{clients.map(c => <option key={c} value={c}>{c}</option>)}</select>
                                 </div>
                                 )}
-                                <div>
-                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Campaign Name</label>
-                                    <input list="campaigns-list" value={newPostCampaign} onChange={e => setNewPostCampaign(e.target.value)} placeholder="e.g. Winter Sale 2024" className="w-full p-5 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl" />
+                                <div className="short:flex short:items-center short:gap-4">
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 short:mb-0 short:w-32">Campaign Name</label>
+                                    <input list="campaigns-list" value={newPostCampaign} onChange={e => setNewPostCampaign(e.target.value)} placeholder="e.g. Winter Sale 2024" className="w-full p-5 short:p-3 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl" />
                                     <datalist id="campaigns-list">
                                         {Array.from(new Set(posts.map(p => p.campaign).filter(Boolean))).map(c => <option key={c} value={c!} />)}
                                     </datalist>
                                 </div>
-                                <div>
-                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Target Channels</label>
-                                    <div className="flex flex-wrap gap-3">{PLATFORMS.map(p => <button key={p} type="button" onClick={() => togglePlatform(p)} className={`flex items-center gap-3 px-6 py-4 rounded-[1.25rem] text-[11px] font-black border-2 transition-all active:scale-95 ${newPostPlatforms.includes(p) ? 'bg-gray-900 text-white border-gray-900 shadow-2xl' : 'bg-white border-gray-100 text-gray-500 hover:border-swave-orange'}`}>{p}</button>)}</div>
+                                <div className="short:flex short:items-center short:gap-4">
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 short:mb-0 short:w-32">Channels</label>
+                                    <div className="flex flex-wrap gap-3 short:gap-1.5">{PLATFORMS.map(p => <button key={p} type="button" onClick={() => togglePlatform(p)} className={`flex items-center gap-3 short:gap-1.5 px-6 py-4 short:py-2 short:px-3 rounded-[1.25rem] text-[11px] font-black border-2 transition-all active:scale-95 ${newPostPlatforms.includes(p) ? 'bg-gray-900 text-white border-gray-900 shadow-2xl' : 'bg-white border-gray-100 text-gray-500 hover:border-swave-orange'}`}>{p}</button>)}</div>
+                                </div>
+                                <div className="short:flex short:items-center short:gap-4">
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 short:mb-0 short:w-32">Activation</label>
+                                    <input type="date" value={newPostDate} onChange={e => setNewPostDate(e.target.value)} className="w-full p-5 short:p-3 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black shadow-xl outline-none" />
                                 </div>
                                 <div>
-                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Activation Date</label>
-                                    <input type="date" value={newPostDate} onChange={e => setNewPostDate(e.target.value)} className="w-full p-5 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black shadow-xl outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Creative Asset</label>
-                                    <div className="border-4 border-dashed border-gray-200 rounded-[3rem] p-10 text-center relative bg-white/30">
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 short:mb-2">Creative Asset</label>
+                                    <div className="border-4 border-dashed border-gray-200 rounded-[3rem] short:rounded-[1.5rem] p-10 short:p-4 text-center relative bg-white/30">
                                         {newPostMediaUrl ? (
-                                            <div className="relative rounded-[2rem] overflow-hidden bg-gray-100 border flex justify-center items-center min-h-[250px] shadow-2xl">
-                                                {newPostMediaType === 'video' ? <video src={newPostMediaUrl} className="w-full h-auto max-h-[400px] object-contain" controls /> : <img src={newPostMediaUrl} alt="Preview" className="w-full h-auto max-h-[400px] object-contain" />}
-                                                <button type="button" onClick={() => setNewPostMediaUrl('')} className="absolute top-6 right-6 bg-red-500 text-white p-3 rounded-full active:scale-90"><X className="w-6 h-6" /></button>
+                                            <div className="relative rounded-[2rem] short:rounded-[1rem] overflow-hidden bg-gray-100 border flex justify-center items-center min-h-[250px] short:min-h-[150px] shadow-2xl">
+                                                {newPostMediaType === 'video' ? <video src={newPostMediaUrl} className="w-full h-auto max-h-[400px] short:max-h-[200px] object-contain" controls /> : <img src={newPostMediaUrl} alt="Preview" className="w-full h-auto max-h-[400px] short:max-h-[200px] object-contain" />}
+                                                <button type="button" onClick={() => setNewPostMediaUrl('')} className="absolute top-6 right-6 short:top-2 short:right-2 bg-red-500 text-white p-3 short:p-2 rounded-full active:scale-90"><X className="w-6 h-6 short:w-4 short:h-4" /></button>
                                             </div>
                                         ) : (
-                                            <div className="py-12 flex flex-col items-center justify-center text-gray-400">
-                                                {isUploading ? <Loader2 className="w-16 h-16 animate-spin text-swave-orange"/> : <UploadCloud className="w-16 h-16 mb-5 opacity-40" />}
-                                                <p className="text-sm font-black uppercase">Deploy Assets</p>
+                                            <div className="py-12 short:py-4 flex flex-col items-center justify-center text-gray-400">
+                                                {isUploading ? <Loader2 className="w-16 h-16 short:w-8 short:h-8 animate-spin text-swave-orange"/> : <UploadCloud className="w-16 h-16 short:w-8 short:h-8 mb-5 short:mb-2 opacity-40" />}
+                                                <p className="text-sm font-black uppercase tracking-widest">Deploy Assets</p>
                                                 <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*,video/*" />
                                             </div>
                                         )}
                                     </div>
                                 </div>
                             </div>
-                            <div className="lg:col-span-4 flex flex-col h-full space-y-10">
+                            <div className="lg:col-span-4 flex flex-col h-full space-y-10 short:space-y-4">
                                 <div className="flex-grow flex flex-col">
-                                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 flex justify-between items-center"><span>Post Copy / Caption</span><span className="font-black bg-swave-purple/10 text-swave-purple px-4 py-1.5 rounded-full text-[10px]">{newPostCaption.length} CHARS</span></label>
-                                <div className="relative flex-grow flex flex-col min-h-[400px]">
-                                    <textarea value={newPostCaption} onChange={e => setNewPostCaption(e.target.value)} className="w-full flex-grow p-8 rounded-[2.5rem] bg-white border-none text-[16px] font-medium outline-none resize-none shadow-2xl leading-relaxed transition-all" placeholder="Tell a story..." />
-                                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="absolute bottom-8 right-8 text-gray-400 hover:text-swave-orange bg-gray-50 p-4 rounded-3xl shadow-lg active:scale-90"><Smile className="w-7 h-7" /></button>
-                                    {showEmojiPicker && <div className="absolute bottom-24 right-8 z-20 shadow-2xl rounded-[2.5rem] overflow-hidden"><EmojiPicker onEmojiClick={(e) => { setNewPostCaption(prev => prev + e.emoji); setShowEmojiPicker(false); }} width={350} height={450} previewConfig={{ showPreview: false }} /></div>}
+                                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 short:mb-2 flex justify-between items-center"><span>Post Copy / Caption</span><span className="font-black bg-swave-purple/10 text-swave-purple px-4 py-1.5 rounded-full text-[10px]">{newPostCaption.length} CHARS</span></label>
+                                <div className="relative flex-grow flex flex-col min-h-[400px] short:min-h-[200px]">
+                                    <textarea value={newPostCaption} onChange={e => setNewPostCaption(e.target.value)} className="w-full flex-grow p-8 short:p-4 rounded-[2.5rem] short:rounded-[1.5rem] bg-white border-none text-[16px] short:text-sm font-medium outline-none resize-none shadow-2xl leading-relaxed transition-all" placeholder="Tell a story..." />
+                                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="absolute bottom-8 right-8 short:bottom-4 short:right-4 text-gray-400 hover:text-swave-orange bg-gray-50 p-4 short:p-2 rounded-3xl shadow-lg active:scale-90"><Smile className="w-7 h-7 short:w-5 short:h-5" /></button>
+                                    {showEmojiPicker && <div className="absolute bottom-24 right-8 short:bottom-16 short:right-4 z-20 shadow-2xl rounded-[2.5rem] overflow-hidden"><EmojiPicker onEmojiClick={(e) => { setNewPostCaption(prev => prev + e.emoji); setShowEmojiPicker(false); }} width={350} height={450} previewConfig={{ showPreview: false }} /></div>}
                                 </div>
                                 </div>
                             </div>
                     </div>
-                    <div className="p-10 border-t border-gray-100 bg-white flex flex-col sm:flex-row justify-between items-center gap-6">
-                        <button type="button" onClick={() => setIsFormOpen(false)} className="w-full sm:w-auto px-10 py-5 text-gray-400 hover:text-red-500 rounded-3xl text-sm font-black uppercase tracking-[0.2em] transition-colors">Discard</button>
-                        <div className="flex gap-5 w-full sm:w-auto">
-                            <button type="button" disabled={isSaving} onClick={() => handleSavePost('Draft')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 bg-gray-100 text-gray-900 rounded-[1.5rem] text-sm font-black active:scale-95 disabled:opacity-50"><Save className="w-5 h-5" /> Store Draft</button>
-                            <button type="button" disabled={isSaving} onClick={() => handleSavePost('In Review')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-12 py-5 bg-gradient-to-r from-swave-purple to-swave-orange text-white rounded-[1.5rem] text-sm font-black shadow-2xl active:scale-95 disabled:opacity-50 uppercase tracking-widest">Finalize & Review</button>
+                    <div className="p-10 short:p-4 border-t border-gray-100 bg-white flex flex-col sm:flex-row justify-between items-center gap-6 short:gap-2">
+                        <button type="button" onClick={() => setIsFormOpen(false)} className="w-full sm:w-auto px-10 py-5 short:py-2 text-gray-400 hover:text-red-500 rounded-3xl text-sm font-black uppercase tracking-[0.2em] transition-colors">Discard</button>
+                        <div className="flex gap-5 short:gap-2 w-full sm:w-auto">
+                            <button type="button" disabled={isSaving} onClick={() => handleSavePost('Draft')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 short:py-3 short:px-4 bg-gray-100 text-gray-900 rounded-[1.5rem] text-sm font-black active:scale-95 disabled:opacity-50"><Save className="w-5 h-5" /> Store Draft</button>
+                            <button type="button" disabled={isSaving} onClick={() => handleSavePost('In Review')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-12 py-5 short:py-3 short:px-6 bg-gradient-to-r from-swave-purple to-swave-orange text-white rounded-[1.5rem] text-sm font-black shadow-2xl active:scale-95 disabled:opacity-50 uppercase tracking-widest">Finalize & Review</button>
                         </div>
                     </div>
                 </div>
