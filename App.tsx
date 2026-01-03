@@ -4,7 +4,7 @@ import {
   LayoutGrid, Calendar as CalendarIcon, List, Settings as SettingsIcon, 
   LogOut, Plus, Search, Filter, Bell, Menu, X, UploadCloud, 
   Image as ImageIcon, Smile, Save, Loader2, ArrowRight,
-  Instagram, Linkedin, Twitter, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag, DollarSign, User as UserIcon, Shield, Sun, Coffee
+  Instagram, Linkedin, Twitter, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag, DollarSign, User as UserIcon, Shield, Sun, Coffee, BookOpen
 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -17,6 +17,7 @@ import { KanbanBoard } from './components/KanbanBoard';
 import { Settings } from './components/Settings';
 import { DailyBriefing } from './components/DailyBriefing';
 import { FinanceModule } from './components/FinanceModule';
+import { ServiceGuide } from './components/ServiceGuide';
 import { SwaveLogo } from './components/Logo';
 import { 
   Post, PostStatus, UserRole, User, Platform, MediaType, 
@@ -56,6 +57,7 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [showDailyBriefing, setShowDailyBriefing] = useState(false);
+  const [showServiceGuide, setShowServiceGuide] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -352,6 +354,7 @@ export default function App() {
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-swave-orange/10 rounded-full blur-[160px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
         <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-swave-purple/10 rounded-full blur-[160px] pointer-events-none translate-y-1/2 -translate-x-1/2"></div>
         {showDailyBriefing && <DailyBriefing posts={posts} onClose={() => setShowDailyBriefing(false)} />}
+        {showServiceGuide && <ServiceGuide onClose={() => setShowServiceGuide(false)} />}
 
         <aside className={`fixed inset-y-0 left-0 z-[60] w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl md:shadow-none`}>
             <div className="h-full flex flex-col">
@@ -387,16 +390,19 @@ export default function App() {
                             )}
                         </div>
                     </div>
-                    {PERMISSIONS.canViewFinance(currentUser.role) && (
-                        <div>
-                            <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Finance</p>
-                            <div className="space-y-1">
+                    <div>
+                        <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Resources</p>
+                        <div className="space-y-1">
+                             <button onClick={() => { setShowServiceGuide(true); setSidebarOpen(false); }} className="w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
+                                <BookOpen className="w-5 h-5 short:w-4 short:h-4" /> Service Guide
+                            </button>
+                             {PERMISSIONS.canViewFinance(currentUser.role) && (
                                 <button onClick={() => { setViewMode('finance'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'finance' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                     <DollarSign className="w-5 h-5 short:w-4 short:h-4" /> Invoicing
                                 </button>
-                            </div>
+                             )}
                         </div>
-                    )}
+                    </div>
                     {PERMISSIONS.canManageTeam(currentUser.role) && (
                         <div>
                              <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Administration</p>

@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../services/db';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../services/firebaseConfig';
-import { Template, Snippet, Platform, PLATFORMS, ClientProfile, User, UserRole, AppConfig, BrandKit } from '../types';
-import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2, BookOpen, Settings2 } from 'lucide-react';
+import { Template, Snippet, Platform, PLATFORMS, ClientProfile, User, UserRole, AppConfig, BrandKit, ServiceItem } from '../types';
+import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2, BookOpen, Settings2, Briefcase, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Heading1, Heading2, Quote, Code, Globe, Mail, Phone, MapPin, CreditCard } from 'lucide-react';
 import { OnboardingWizard } from './OnboardingWizard';
 import { BrandCard } from './BrandCard';
 import { OnboardingConfigurator } from './OnboardingConfigurator';
@@ -19,7 +19,7 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templates, snippets, onUpdate, onClose, currentUser }) => {
-  const [activeTab, setActiveTab] = useState<'clients' | 'team' | 'branding' | 'templates' | 'snippets' | 'security'>('clients');
+  const [activeTab, setActiveTab] = useState<'clients' | 'team' | 'branding' | 'services' | 'templates' | 'snippets' | 'security'>('clients');
 
   // Theme State
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -31,7 +31,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       secondaryColor: '#F27A21',
       primaryTextColor: '#FFFFFF',
       secondaryTextColor: '#FFFFFF',
-      buttonColor: '#F3F4F6', // Default update
+      buttonColor: '#F3F4F6',
       buttonTextColor: '#1F2937' 
   });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -41,6 +41,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   const [newClientName, setNewClientName] = useState('');
   const [editingClient, setEditingClient] = useState<ClientProfile | null>(null);
   const [originalClientName, setOriginalClientName] = useState('');
+  const [isSavingClient, setIsSavingClient] = useState(false);
   
   const [fullProfiles, setFullProfiles] = useState<ClientProfile[]>([]);
   const [teamMembers, setTeamMembers] = useState<User[]>([]);
@@ -49,7 +50,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   const [onboardingClient, setOnboardingClient] = useState<string | null>(null);
   const [onboardingKit, setOnboardingKit] = useState<BrandKit | undefined>(undefined);
   const [viewingBrandKit, setViewingBrandKit] = useState<BrandKit | null>(null);
-  const [configuringClient, setConfiguringClient] = useState<string | null>(null); // New: for configurator
+  const [configuringClient, setConfiguringClient] = useState<string | null>(null);
   
   // Team State
   const [showNewUserForm, setShowNewUserForm] = useState(false);
@@ -61,6 +62,12 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   // Password Visibility Toggle State
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
+  // Rate Card State
+  const [rateCardContent, setRateCardContent] = useState('');
+  const [isSavingRateCard, setIsSavingRateCard] = useState(false);
+  const [serviceList, setServiceList] = useState<ServiceItem[]>([]);
+  const editorRef = useRef<HTMLDivElement>(null);
+
   // Theme Toggle Effect
   useEffect(() => {
     if (document.documentElement.classList.contains('dark')) {
@@ -69,7 +76,15 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
     loadProfiles();
     loadBranding();
     if (activeTab === 'team') loadTeam();
+    if (activeTab === 'services') loadServicesAndRateCard();
   }, [clientNames, activeTab]);
+
+  // Sync content to editor ref when loaded
+  useEffect(() => {
+    if (activeTab === 'services' && editorRef.current && rateCardContent && editorRef.current.innerHTML === '') {
+        editorRef.current.innerHTML = rateCardContent;
+    }
+  }, [activeTab, rateCardContent]);
 
   const loadProfiles = async () => {
       const profiles = await db.getClients();
@@ -83,7 +98,20 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   
   const loadBranding = async () => {
       const config = await db.getAppConfig();
-      setBrandingConfig(prev => ({ ...prev, ...config })); // Merge in case of missing new fields
+      setBrandingConfig(prev => ({ ...prev, ...config }));
+  };
+
+  const loadServicesAndRateCard = async () => {
+      const [content, services] = await Promise.all([
+          db.getRateCard(),
+          db.getServices()
+      ]);
+      setRateCardContent(content);
+      // If the editor is already mounted, update it manually to avoid cursor jumps
+      if (editorRef.current) {
+          editorRef.current.innerHTML = content;
+      }
+      setServiceList(services);
   };
 
   const toggleTheme = () => {
@@ -121,7 +149,6 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       if (kit) {
           setViewingBrandKit(kit);
       } else {
-          // Launch wizard if no kit exists
           setOnboardingKit(undefined);
           setOnboardingClient(clientName);
       }
@@ -129,9 +156,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
 
   const handleConfigureQuestions = async (clientName: string) => {
       const kit = await db.getBrandKit(clientName);
-      // We pass the kit (or null) to the configurator
-      // The configurator will handle saving, possibly creating the kit row if needed
-      setViewingBrandKit(kit); // HACK: reusing state variable to pass data, better to fetch inside component or use separate state, but simplest is separate state for name
+      setViewingBrandKit(kit);
       setConfiguringClient(clientName);
   };
 
@@ -190,7 +215,6 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
           setIsDeletingUser(id);
           try {
               await db.deleteUser(id);
-              // Force delay to allow DB propagation if needed
               await new Promise(r => setTimeout(r, 500));
               await loadTeam();
           } catch (e: any) {
@@ -228,7 +252,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       setIsSavingBranding(true);
       try {
           await db.saveAppConfig(brandingConfig);
-          onUpdate(); // Trigger App reload to apply colors
+          onUpdate();
           alert("Branding saved successfully!");
       } catch (e: any) {
           console.error(e);
@@ -238,16 +262,39 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       }
   };
 
-  // ... (Existing Template/Snippet handlers remain same)
+  const handleSaveRateCard = async () => {
+      setIsSavingRateCard(true);
+      try {
+          // Get content directly from ref to ensure latest edits
+          const content = editorRef.current?.innerHTML || rateCardContent;
+          await db.saveRateCard(content);
+          alert("Service Guide updated successfully!");
+      } catch (e) {
+          alert("Failed to save content.");
+      } finally {
+          setIsSavingRateCard(false);
+      }
+  };
+
+  // Editor Toolbar Handler
+  const execCmd = (command: string, value: string | undefined = undefined) => {
+    document.execCommand(command, false, value);
+    if (editorRef.current) {
+        setRateCardContent(editorRef.current.innerHTML);
+    }
+  };
+
   const handleUpdateClient = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!editingClient) return;
+      setIsSavingClient(true);
       try {
           await db.updateClient(originalClientName, editingClient);
           setEditingClient(null);
           onUpdate();
           loadProfiles();
       } catch (err: any) { alert(err.message); }
+      finally { setIsSavingClient(false); }
   };
 
   const handleEditClick = (client: ClientProfile) => {
@@ -336,12 +383,13 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       </div>
 
       <div className="flex flex-col md:flex-row h-full overflow-hidden">
-        {/* SIDEBAR TABS - Updated Contrast */}
+        {/* SIDEBAR TABS */}
         <div className="w-full md:w-64 bg-gray-100 dark:bg-gray-900/50 border-r border-gray-100 dark:border-gray-700 p-4 flex flex-row md:flex-col gap-2 overflow-x-auto no-scrollbar md:overflow-visible flex-shrink-0">
             {[
                 { id: 'clients', label: 'Clients', icon: Building2 },
                 { id: 'team', label: 'Team & Roles', icon: Users },
                 { id: 'branding', label: 'Look & Feel', icon: Palette },
+                { id: 'services', label: 'Service Menu', icon: Briefcase },
                 { id: 'templates', label: 'Templates', icon: FileText },
                 { id: 'snippets', label: 'Snippets', icon: Hash },
                 { id: 'security', label: 'Data', icon: Database }
@@ -409,14 +457,134 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                         </div>
                     </>
                 ) : (
-                    // Edit Client Form (Simplified for brevity as per existing code)
-                    <div className="p-4"><button onClick={() => setEditingClient(null)}>Back</button> Edit form for {editingClient.name}</div>
+                    <form onSubmit={handleUpdateClient} className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden animate-in fade-in">
+                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
+                             <div>
+                                 <h3 className="text-xl font-black text-gray-900 dark:text-white">Edit Client Profile</h3>
+                                 <p className="text-sm text-gray-500">Manage details for {originalClientName}</p>
+                             </div>
+                             <button type="button" onClick={() => setEditingClient(null)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500"><X className="w-5 h-5"/></button>
+                        </div>
+                        
+                        <div className="p-8 space-y-8">
+                            {/* General Info */}
+                            <div>
+                                <h4 className="text-xs font-bold text-swave-purple uppercase tracking-wider mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">General Information</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Organization Name</label>
+                                        <input 
+                                            value={editingClient.name}
+                                            onChange={e => setEditingClient({...editingClient, name: e.target.value})}
+                                            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl font-bold"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Website</label>
+                                        <div className="relative">
+                                            <Globe className="absolute top-3.5 left-3 w-4 h-4 text-gray-400" />
+                                            <input 
+                                                value={editingClient.website || ''}
+                                                onChange={e => setEditingClient({...editingClient, website: e.target.value})}
+                                                className="w-full pl-10 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                                                placeholder="https://..."
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Contact Email</label>
+                                        <div className="relative">
+                                            <Mail className="absolute top-3.5 left-3 w-4 h-4 text-gray-400" />
+                                            <input 
+                                                value={editingClient.email || ''}
+                                                onChange={e => setEditingClient({...editingClient, email: e.target.value})}
+                                                className="w-full pl-10 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Phone</label>
+                                        <div className="relative">
+                                            <Phone className="absolute top-3.5 left-3 w-4 h-4 text-gray-400" />
+                                            <input 
+                                                value={editingClient.phone || ''}
+                                                onChange={e => setEditingClient({...editingClient, phone: e.target.value})}
+                                                className="w-full pl-10 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Billing */}
+                            <div>
+                                <h4 className="text-xs font-bold text-swave-orange uppercase tracking-wider mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Billing & Operations</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Billing Address</label>
+                                        <div className="relative">
+                                            <MapPin className="absolute top-3.5 left-3 w-4 h-4 text-gray-400" />
+                                            <textarea 
+                                                value={editingClient.billingAddress || ''}
+                                                onChange={e => setEditingClient({...editingClient, billingAddress: e.target.value})}
+                                                className="w-full pl-10 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                                                rows={2}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Tax ID / VAT</label>
+                                        <div className="relative">
+                                            <CreditCard className="absolute top-3.5 left-3 w-4 h-4 text-gray-400" />
+                                            <input 
+                                                value={editingClient.taxId || ''}
+                                                onChange={e => setEditingClient({...editingClient, taxId: e.target.value})}
+                                                className="w-full pl-10 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Currency</label>
+                                        <select 
+                                            value={editingClient.currency || 'USD'}
+                                            onChange={e => setEditingClient({...editingClient, currency: e.target.value as any})}
+                                            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                                        >
+                                            <option value="USD">USD ($)</option>
+                                            <option value="EUR">EUR (€)</option>
+                                            <option value="GBP">GBP (£)</option>
+                                            <option value="XCD">XCD ($)</option>
+                                        </select>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Internal Notes</label>
+                                        <textarea 
+                                            value={editingClient.notes || ''}
+                                            onChange={e => setEditingClient({...editingClient, notes: e.target.value})}
+                                            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                                            rows={3}
+                                            placeholder="Access codes, preferences, or important details..."
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-end gap-3">
+                            <button type="button" onClick={() => setEditingClient(null)} className="px-6 py-3 text-gray-500 font-bold hover:text-gray-900 dark:hover:text-white transition-colors">Cancel</button>
+                            <button type="submit" disabled={isSavingClient} className="px-8 py-3 bg-swave-purple text-white rounded-xl font-bold shadow-lg hover:bg-purple-700 transition-all flex items-center gap-2">
+                                {isSavingClient ? <Loader2 className="w-5 h-5 animate-spin"/> : <Save className="w-5 h-5"/>}
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
                 )}
             </div>
             )}
             
-            {/* --- TEAM TAB --- */}
+            {/* ... (Rest of Tabs remain unchanged) ... */}
             {activeTab === 'team' && (
+                // ... Existing Team content
                 <div className="space-y-8 animate-in slide-in-from-right-4 relative z-10">
                      <div className="flex justify-between items-center">
                          <h3 className="text-xl font-black text-gray-900 dark:text-white">User Management</h3>
@@ -513,9 +681,84 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                 </div>
             )}
             
-            {/* ... (Other tabs remain the same) */}
+            {/* --- SERVICES / RATE CARD TAB --- */}
+            {activeTab === 'services' && (
+                <div className="space-y-10 animate-in slide-in-from-right-4 relative z-10 max-w-4xl">
+                     {/* Rate Card Editor (Visual) */}
+                     <div className="bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden flex flex-col h-[600px]">
+                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
+                             <div>
+                                <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-3"><FileText className="w-6 h-6 text-swave-purple"/> Client Service Guide</h3>
+                                <p className="text-xs text-gray-500 mt-1">Design the document your clients see. Select text to format.</p>
+                             </div>
+                             <button onClick={handleSaveRateCard} disabled={isSavingRateCard} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:scale-105 active:scale-95 transition-all disabled:opacity-50">
+                                {isSavingRateCard ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>} Update Guide
+                            </button>
+                         </div>
+                         
+                         {/* Toolbar */}
+                         <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-wrap items-center gap-1">
+                            <button onClick={() => execCmd('bold')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Bold"><Bold className="w-4 h-4"/></button>
+                            <button onClick={() => execCmd('italic')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Italic"><Italic className="w-4 h-4"/></button>
+                            <button onClick={() => execCmd('underline')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Underline"><Underline className="w-4 h-4"/></button>
+                            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
+                            <button onClick={() => execCmd('formatBlock', 'H2')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Heading 1"><Heading1 className="w-4 h-4"/></button>
+                            <button onClick={() => execCmd('formatBlock', 'H3')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Heading 2"><Heading2 className="w-4 h-4"/></button>
+                            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
+                            <button onClick={() => execCmd('justifyLeft')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Align Left"><AlignLeft className="w-4 h-4"/></button>
+                            <button onClick={() => execCmd('justifyCenter')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Align Center"><AlignCenter className="w-4 h-4"/></button>
+                            <button onClick={() => execCmd('justifyRight')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Align Right"><AlignRight className="w-4 h-4"/></button>
+                            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
+                            <button onClick={() => execCmd('insertUnorderedList')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Bullet List"><List className="w-4 h-4"/></button>
+                            <button onClick={() => execCmd('insertOrderedList')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Numbered List"><ListOrdered className="w-4 h-4"/></button>
+                            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
+                            <button onClick={() => execCmd('formatBlock', 'BLOCKQUOTE')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Quote"><Quote className="w-4 h-4"/></button>
+                         </div>
+
+                         {/* Editor Area */}
+                         <div className="flex-grow overflow-y-auto bg-gray-50 dark:bg-gray-900 cursor-text p-8" onClick={() => editorRef.current?.focus()}>
+                            <div 
+                                ref={editorRef}
+                                contentEditable
+                                onInput={(e) => setRateCardContent(e.currentTarget.innerHTML)}
+                                className="bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 min-h-full max-w-3xl mx-auto p-12 outline-none prose dark:prose-invert max-w-none rounded-xl"
+                                style={{ minHeight: '100%' }}
+                            />
+                         </div>
+                     </div>
+
+                     {/* Linked Services List */}
+                     <div className="space-y-4">
+                         <h3 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2"><Receipt className="w-5 h-5 text-swave-orange"/> Linked Invoicing Items</h3>
+                         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                             <table className="w-full text-left text-sm">
+                                 <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
+                                     <tr>
+                                         <th className="p-4 font-bold text-gray-500">Service Name</th>
+                                         <th className="p-4 font-bold text-gray-500">Default Rate</th>
+                                         <th className="p-4 font-bold text-gray-500">Description</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                     {serviceList.map(s => (
+                                         <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                             <td className="p-4 font-bold text-gray-900 dark:text-white">{s.name}</td>
+                                             <td className="p-4 font-mono text-gray-600 dark:text-gray-300">${s.defaultRate}</td>
+                                             <td className="p-4 text-gray-500 dark:text-gray-400 text-xs">{s.description}</td>
+                                         </tr>
+                                     ))}
+                                 </tbody>
+                             </table>
+                             <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 text-center text-xs text-gray-500">
+                                 Manage these items fully in the Finance Module
+                             </div>
+                         </div>
+                     </div>
+                </div>
+            )}
+
+            {/* --- BRANDING TAB --- */}
             {activeTab === 'branding' && (
-                // ... (existing branding code)
                 <div className="space-y-10 animate-in slide-in-from-right-4 relative z-10 max-w-2xl mx-auto">
                     <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl space-y-6">
                         <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-3"><Palette className="w-6 h-6 text-swave-purple"/> Brand Identity</h3>
@@ -529,7 +772,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                     className="w-full p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-900 dark:text-white"
                                 />
                             </div>
-
+                            
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Primary Color</label>
@@ -609,7 +852,6 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
 
             {/* --- TEMPLATES TAB --- */}
             {activeTab === 'templates' && (
-                // ... (existing templates code)
                 <div className="space-y-6 animate-in slide-in-from-right-4 relative z-10">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xl font-black text-gray-900 dark:text-white">Content Templates</h3>
@@ -661,7 +903,6 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
 
             {/* --- SNIPPETS TAB --- */}
             {activeTab === 'snippets' && (
-                // ... (existing snippets code)
                 <div className="space-y-6 animate-in slide-in-from-right-4 relative z-10">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xl font-black text-gray-900 dark:text-white">Reusable Snippets</h3>

@@ -1,0 +1,14 @@
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow read/write if the request contains an ID (basic validation)
+    // For strict production, integrate Firebase Auth token verification
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null || true; 
+      // NOTE: The above '|| true' is for DEMO purposes to allow the app to work 
+      // without setting up Firebase Auth providers immediately. 
+      // FOR PRODUCTION: Change to 'if request.auth != null;'
+    }
+  }
+}

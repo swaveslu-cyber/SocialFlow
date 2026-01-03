@@ -51,8 +51,20 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ clientName, 
           // Preserve custom questions if they exist in state or props
           const finalData = { ...formData, custom_questions: customQ };
           await db.saveBrandKit(finalData);
+          
+          // Sync key details to the Client Profile table for consistency
+          // This ensures correlation between Onboarding responses and the Client Info page
+          if (formData.company_details.website) {
+              await db.updateClient(clientName, { 
+                  // We only pass the fields we want to update.
+                  // The updated db.ts logic handles partial updates.
+                  website: formData.company_details.website
+              });
+          }
+
           onComplete();
       } catch (e) {
+          console.error(e);
           alert("Failed to save Brand Kit.");
       } finally {
           setIsSaving(false);
