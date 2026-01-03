@@ -17,6 +17,8 @@ export interface AppConfig {
   logoUrl?: string;
   primaryColor: string; // Replaces 'swave-purple'
   secondaryColor: string; // Replaces 'swave-orange'
+  buttonColor?: string; // New: Custom background for secondary/icon buttons
+  buttonTextColor?: string; // New: Custom text color for secondary/icon buttons
 }
 
 export interface User {
@@ -27,6 +29,7 @@ export interface User {
   clientId?: string; // If null, they are Agency staff. If set, they are bound to that client.
   avatar?: string;
   lastLogin?: number;
+  password?: string; // Optional, usually only populated for admins viewing team list
 }
 
 export interface Comment {

@@ -4,7 +4,7 @@ import { db } from '../services/db';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../services/firebaseConfig';
 import { Template, Snippet, Platform, PLATFORMS, ClientProfile, User, UserRole, AppConfig } from '../types';
-import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2 } from 'lucide-react';
 
 interface SettingsProps {
   clients: string[]; 
@@ -22,7 +22,13 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Branding State
-  const [brandingConfig, setBrandingConfig] = useState<AppConfig>({ agencyName: 'SWAVE', primaryColor: '#8E3EBB', secondaryColor: '#F27A21' });
+  const [brandingConfig, setBrandingConfig] = useState<AppConfig>({ 
+      agencyName: 'SWAVE', 
+      primaryColor: '#8E3EBB', 
+      secondaryColor: '#F27A21',
+      buttonColor: '#FFFFFF',
+      buttonTextColor: '#4B5563' 
+  });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   // Client State
@@ -36,7 +42,12 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   // Team State
   const [showNewUserForm, setShowNewUserForm] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'agency_creator' as UserRole, clientId: '' });
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [isSavingUser, setIsSavingUser] = useState(false);
   
+  // Password Visibility Toggle State
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+
   // Theme Toggle Effect
   useEffect(() => {
     if (document.documentElement.classList.contains('dark')) {
@@ -59,7 +70,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   
   const loadBranding = async () => {
       const config = await db.getAppConfig();
-      setBrandingConfig(config);
+      setBrandingConfig(prev => ({ ...prev, ...config })); // Merge in case of missing new fields
   };
 
   const toggleTheme = () => {
@@ -80,9 +91,6 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
 
   // Snippet State
   const [editingSnippet, setEditingSnippet] = useState<Partial<Snippet> | null>(null);
-
-  // Security State (Legacy)
-  const [newAgencyPass, setNewAgencyPass] = useState('');
   
   // --- HANDLERS ---
   const handleAddClient = async (e: React.FormEvent) => {
@@ -95,31 +103,70 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
     }
   };
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const handleSaveUser = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!newUser.name || !newUser.email || !newUser.password) return;
       
+      setIsSavingUser(true);
       try {
-          await db.createUser({
-              name: newUser.name,
-              email: newUser.email,
-              password: newUser.password,
-              role: newUser.role,
-              clientId: (newUser.role === 'client_admin' || newUser.role === 'client_viewer') ? newUser.clientId : undefined
-          });
+          if (editingUserId) {
+              await db.updateUser(editingUserId, {
+                  name: newUser.name,
+                  email: newUser.email,
+                  password: newUser.password,
+                  role: newUser.role,
+                  clientId: (newUser.role === 'client_admin' || newUser.role === 'client_viewer') ? newUser.clientId : null
+              });
+          } else {
+              await db.createUser({
+                  name: newUser.name,
+                  email: newUser.email,
+                  password: newUser.password,
+                  role: newUser.role,
+                  clientId: (newUser.role === 'client_admin' || newUser.role === 'client_viewer') ? newUser.clientId : undefined
+              });
+          }
           setShowNewUserForm(false);
+          setEditingUserId(null);
           setNewUser({ name: '', email: '', password: '', role: 'agency_creator', clientId: '' });
           loadTeam();
-      } catch (e) {
-          alert("Failed to create user. Email may be taken.");
+      } catch (e: any) {
+          alert(`Failed to save user. Error: ${e.message}`);
+      } finally {
+          setIsSavingUser(false);
       }
   };
 
+  const handleEditUser = (user: User) => {
+      setEditingUserId(user.id);
+      setNewUser({
+          name: user.name,
+          email: user.email,
+          password: user.password || '', 
+          role: user.role,
+          clientId: user.clientId || ''
+      });
+      setShowNewUserForm(true);
+  };
+
   const handleDeleteUser = async (id: string) => {
-      if(confirm("Remove this user permanently?")) {
-          await db.deleteUser(id);
-          loadTeam();
+      if (id === currentUser.id) {
+          alert("You cannot delete your own account.");
+          return;
       }
+      if(confirm("Remove this user permanently? This cannot be undone.")) {
+          try {
+              await db.deleteUser(id);
+              await loadTeam();
+          } catch (e: any) {
+              console.error(e);
+              alert(`Failed to delete user.\n\nPossible Reason: Database permissions denied or the user no longer exists.\n\nTechnical Error: ${e.message}`);
+          }
+      }
+  };
+
+  const togglePasswordVisibility = (id: string) => {
+      setVisiblePasswords(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   // Branding Handlers
@@ -317,17 +364,18 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                 <div className="space-y-8 animate-in slide-in-from-right-4 relative z-10">
                      <div className="flex justify-between items-center">
                          <h3 className="text-xl font-black text-gray-900 dark:text-white">User Management</h3>
-                         <button onClick={() => setShowNewUserForm(!showNewUserForm)} className="flex items-center gap-2 bg-swave-purple text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-purple-700 transition-all">
-                             <UserPlus className="w-4 h-4" /> Add User
+                         <button onClick={() => { setShowNewUserForm(!showNewUserForm); setEditingUserId(null); setNewUser({ name: '', email: '', password: '', role: 'agency_creator', clientId: '' }); }} className="flex items-center gap-2 bg-swave-purple text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-purple-700 transition-all">
+                             <UserPlus className="w-4 h-4" /> {showNewUserForm ? 'Close Form' : 'Add User'}
                          </button>
                      </div>
 
                      {showNewUserForm && (
-                         <form onSubmit={handleCreateUser} className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-4">
+                         <form onSubmit={handleSaveUser} className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-4 animate-in fade-in slide-in-from-top-2">
+                             <h4 className="font-bold text-gray-700 dark:text-gray-200 mb-2">{editingUserId ? 'Edit User' : 'Create New User'}</h4>
                              <div className="grid grid-cols-2 gap-4">
                                  <input required value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} placeholder="Full Name" className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" />
                                  <input required type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} placeholder="Email Address" className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" />
-                                 <input required type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} placeholder="Password" className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" />
+                                 <input required type="text" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} placeholder="Password (Visible)" className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" />
                                  <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value as UserRole})} className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                                      <option value="agency_admin">Agency Admin (Super)</option>
                                      <option value="agency_creator">Agency Creator (Standard)</option>
@@ -342,18 +390,22 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                  </select>
                              )}
                              <div className="flex justify-end gap-2">
-                                 <button type="button" onClick={() => setShowNewUserForm(false)} className="px-4 py-2 text-gray-500 font-bold">Cancel</button>
-                                 <button type="submit" className="px-4 py-2 bg-swave-purple text-white rounded-lg font-bold">Create User</button>
+                                 <button type="button" onClick={() => { setShowNewUserForm(false); setEditingUserId(null); }} className="px-4 py-2 text-gray-500 font-bold">Cancel</button>
+                                 <button type="submit" disabled={isSavingUser} className="px-4 py-2 bg-swave-purple text-white rounded-lg font-bold flex items-center gap-2">
+                                     {isSavingUser && <Loader2 className="w-4 h-4 animate-spin"/>}
+                                     {editingUserId ? 'Save Changes' : 'Create User'}
+                                 </button>
                              </div>
                          </form>
                      )}
 
-                     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden overflow-x-auto">
                          <table className="w-full text-left text-sm">
                              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
                                  <tr>
                                      <th className="p-4 text-gray-500 font-bold">Name</th>
                                      <th className="p-4 text-gray-500 font-bold">Role</th>
+                                     {currentUser.role === 'agency_admin' && <th className="p-4 text-gray-500 font-bold">Password</th>}
                                      <th className="p-4 text-gray-500 font-bold">Scope</th>
                                      <th className="p-4 text-gray-500 font-bold text-right">Actions</th>
                                  </tr>
@@ -372,15 +424,30 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                                  {u.role.replace('_', ' ')}
                                              </span>
                                          </td>
+                                         {currentUser.role === 'agency_admin' && (
+                                            <td className="p-4 font-mono text-gray-500">
+                                                <div className="flex items-center gap-2">
+                                                    <span>{visiblePasswords[u.id] ? u.password : '••••••••'}</span>
+                                                    <button onClick={() => togglePasswordVisibility(u.id)} className="text-gray-400 hover:text-swave-purple">
+                                                        {visiblePasswords[u.id] ? <EyeOff className="w-3 h-3"/> : <Eye className="w-3 h-3"/>}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                         )}
                                          <td className="p-4 text-gray-600 dark:text-gray-300 font-medium">
                                              {u.clientId || 'Agency (Internal)'}
                                          </td>
                                          <td className="p-4 text-right">
-                                             {u.id !== currentUser.id && (
-                                                 <button onClick={() => handleDeleteUser(u.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
-                                                     <Trash2 className="w-4 h-4"/>
+                                              <div className="flex items-center justify-end gap-1">
+                                                <button onClick={() => handleEditUser(u)} className="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Edit User">
+                                                     <Edit2 className="w-4 h-4"/>
                                                  </button>
-                                             )}
+                                                 {u.id !== currentUser.id && (
+                                                     <button type="button" onClick={() => handleDeleteUser(u.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Delete User">
+                                                         <Trash2 className="w-4 h-4"/>
+                                                     </button>
+                                                 )}
+                                              </div>
                                          </td>
                                      </tr>
                                  ))}
@@ -419,6 +486,20 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                     <div className="flex gap-2 items-center p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                                         <input type="color" value={brandingConfig.secondaryColor} onChange={e => setBrandingConfig({...brandingConfig, secondaryColor: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-none"/>
                                         <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{brandingConfig.secondaryColor}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Button Color</label>
+                                    <div className="flex gap-2 items-center p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                                        <input type="color" value={brandingConfig.buttonColor || '#FFFFFF'} onChange={e => setBrandingConfig({...brandingConfig, buttonColor: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-none"/>
+                                        <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{brandingConfig.buttonColor || '#FFFFFF'}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Button Text Color</label>
+                                    <div className="flex gap-2 items-center p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                                        <input type="color" value={brandingConfig.buttonTextColor || '#4B5563'} onChange={e => setBrandingConfig({...brandingConfig, buttonTextColor: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-none"/>
+                                        <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{brandingConfig.buttonTextColor || '#4B5563'}</span>
                                     </div>
                                 </div>
                             </div>

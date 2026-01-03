@@ -40,6 +40,8 @@ export const db = {
           agencyName: "SWAVE",
           primaryColor: "#8E3EBB", // swave-purple
           secondaryColor: "#F27A21", // swave-orange
+          buttonColor: "#FFFFFF", // Default button bg
+          buttonTextColor: "#4B5563" // Default button text (gray-600)
       };
   },
 
@@ -90,10 +92,11 @@ export const db = {
       return null;
   },
 
-  getUsers: async (): Promise<any[]> => {
-      const { data, error } = await supabase.from('users').select('id, email, name, role, clientId, lastLogin');
+  getUsers: async (): Promise<User[]> => {
+      // Fetching * to include password field for the admin panel requirement
+      const { data, error } = await supabase.from('users').select('*').order('name');
       if (error) return [];
-      return data;
+      return data as User[];
   },
 
   createUser: async (userData: { email: string, password: string, name: string, role: UserRole, clientId?: string }): Promise<void> => {
@@ -110,8 +113,22 @@ export const db = {
       if (error) throw error;
   },
 
+  updateUser: async (id: string, updates: Partial<User>): Promise<void> => {
+      // We use .select() to verify the update actually happened (handling silent RLS failures)
+      const { data, error } = await supabase.from('users').update(updates).eq('id', id).select();
+      if (error) throw error;
+      if (!data || data.length === 0) {
+          throw new Error("Update failed. The user may not exist or you lack permissions.");
+      }
+  },
+
   deleteUser: async (id: string): Promise<void> => {
-      await supabase.from('users').delete().eq('id', id);
+      // We use .select() to verify the delete actually happened
+      const { data, error } = await supabase.from('users').delete().eq('id', id).select();
+      if (error) throw error;
+      if (!data || data.length === 0) {
+          throw new Error("Delete failed. The user may not exist or you lack permissions.");
+      }
   },
 
   // --- LEGACY RECOVERY (Kept for fallback) ---
