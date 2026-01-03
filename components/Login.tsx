@@ -1,19 +1,36 @@
 
-import React, { useState } from 'react';
-import { User } from '../types';
+import React, { useState, useEffect } from 'react';
+import { User, AppConfig } from '../types';
 import { db } from '../services/db';
 import { SwaveLogo } from './Logo';
 import { Lock, ChevronRight, Loader2, Mail } from 'lucide-react';
 
 interface LoginProps {
   onLogin: (user: User) => void;
+  branding?: AppConfig;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, branding }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [localBranding, setLocalBranding] = useState<AppConfig>({ agencyName: 'SWAVE', primaryColor: '#8E3EBB', secondaryColor: '#F27A21' });
+
+  // Load branding independently if not passed (e.g. first load)
+  useEffect(() => {
+      if (branding) {
+          setLocalBranding(branding);
+      } else {
+          db.getAppConfig().then(setLocalBranding);
+      }
+  }, [branding]);
+
+  // Apply colors to root for login screen styling
+  useEffect(() => {
+      document.documentElement.style.setProperty('--color-primary', localBranding.primaryColor);
+      document.documentElement.style.setProperty('--color-secondary', localBranding.secondaryColor);
+  }, [localBranding]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,10 +59,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden transition-all animate-in fade-in slide-in-from-bottom-4 relative z-10 border border-gray-100 dark:border-gray-700">
         <div className="bg-gradient-to-br from-swave-purple via-swave-purple to-swave-orange p-10 text-center transition-colors relative overflow-hidden">
-           <div className="bg-white p-4 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6 z-10 relative shadow-2xl transform hover:scale-105 transition-transform">
-            <SwaveLogo className="w-16 h-16" />
+           <div className="bg-white p-4 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6 z-10 relative shadow-2xl transform hover:scale-105 transition-transform overflow-hidden">
+            <SwaveLogo className="w-16 h-16" customLogoUrl={localBranding.logoUrl} />
           </div>
-          <h2 className="text-3xl font-bold text-white relative z-10 tracking-tight">Swave Social</h2>
+          <h2 className="text-3xl font-bold text-white relative z-10 tracking-tight">{localBranding.agencyName}</h2>
           <p className="text-white/80 mt-2 relative z-10 font-semibold uppercase tracking-[0.2em] text-[10px]">Unified Workspace Access</p>
           
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
@@ -108,7 +125,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </form>
             
             <p className="mt-8 text-center text-[10px] text-gray-400 font-medium">
-                Protected by Swave Guard&trade; 2.0 Security
+                Protected by {localBranding.agencyName} Guard&trade; 2.0 Security
             </p>
         </div>
       </div>

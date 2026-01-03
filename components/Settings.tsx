@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
-import { Template, Snippet, Platform, PLATFORMS, ClientProfile, User, UserRole } from '../types';
-import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus } from 'lucide-react';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../services/firebaseConfig';
+import { Template, Snippet, Platform, PLATFORMS, ClientProfile, User, UserRole, AppConfig } from '../types';
+import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon } from 'lucide-react';
 
 interface SettingsProps {
   clients: string[]; 
@@ -14,10 +16,14 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templates, snippets, onUpdate, onClose, currentUser }) => {
-  const [activeTab, setActiveTab] = useState<'clients' | 'team' | 'templates' | 'snippets' | 'security'>('clients');
+  const [activeTab, setActiveTab] = useState<'clients' | 'team' | 'branding' | 'templates' | 'snippets' | 'security'>('clients');
 
   // Theme State
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Branding State
+  const [brandingConfig, setBrandingConfig] = useState<AppConfig>({ agencyName: 'SWAVE', primaryColor: '#8E3EBB', secondaryColor: '#F27A21' });
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   // Client State
   const [newClientName, setNewClientName] = useState('');
@@ -37,6 +43,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       setIsDarkMode(true);
     }
     loadProfiles();
+    loadBranding();
     if (activeTab === 'team') loadTeam();
   }, [clientNames, activeTab]);
 
@@ -48,6 +55,11 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   const loadTeam = async () => {
       const users = await db.getUsers();
       setTeamMembers(users);
+  };
+  
+  const loadBranding = async () => {
+      const config = await db.getAppConfig();
+      setBrandingConfig(config);
   };
 
   const toggleTheme = () => {
@@ -108,6 +120,30 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
           await db.deleteUser(id);
           loadTeam();
       }
+  };
+
+  // Branding Handlers
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          setIsUploadingLogo(true);
+          try {
+              const file = e.target.files[0];
+              const storageRef = ref(storage, `logos/${Date.now()}_${file.name}`);
+              await uploadBytes(storageRef, file);
+              const url = await getDownloadURL(storageRef);
+              setBrandingConfig(prev => ({ ...prev, logoUrl: url }));
+          } catch (e) {
+              alert("Logo upload failed");
+          } finally {
+              setIsUploadingLogo(false);
+          }
+      }
+  };
+
+  const saveBranding = async () => {
+      await db.saveAppConfig(brandingConfig);
+      onUpdate(); // Trigger App reload to apply colors
+      alert("Branding saved!");
   };
 
   // ... (Existing Template/Snippet handlers remain same)
@@ -186,15 +222,6 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
     document.body.removeChild(link);
   };
 
-  const copyToClipboard = (text: string) => {
-      navigator.clipboard.writeText(text);
-  }
-
-  const PlatformIcon = ({ platform }: { platform: string }) => {
-      // (Implementation same as before)
-      return null;
-  };
-
   return (
     <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-in fade-in zoom-in-95 w-[95vw] max-w-[1920px] mx-auto flex flex-col h-[92vh]">
       {/* HEADER */}
@@ -221,6 +248,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
             {[
                 { id: 'clients', label: 'Clients', icon: Building2 },
                 { id: 'team', label: 'Team & Roles', icon: Users },
+                { id: 'branding', label: 'Look & Feel', icon: Palette },
                 { id: 'templates', label: 'Templates', icon: FileText },
                 { id: 'snippets', label: 'Snippets', icon: Hash },
                 { id: 'security', label: 'Data', icon: Database }
@@ -284,7 +312,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
             </div>
             )}
             
-            {/* --- TEAM TAB (NEW RBAC) --- */}
+            {/* --- TEAM TAB --- */}
             {activeTab === 'team' && (
                 <div className="space-y-8 animate-in slide-in-from-right-4 relative z-10">
                      <div className="flex justify-between items-center">
@@ -359,6 +387,67 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                              </tbody>
                          </table>
                      </div>
+                </div>
+            )}
+
+            {/* --- BRANDING TAB --- */}
+            {activeTab === 'branding' && (
+                <div className="space-y-10 animate-in slide-in-from-right-4 relative z-10 max-w-2xl mx-auto">
+                    <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl space-y-6">
+                        <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-3"><Palette className="w-6 h-6 text-swave-purple"/> Brand Identity</h3>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Agency Name</label>
+                                <input 
+                                    value={brandingConfig.agencyName}
+                                    onChange={e => setBrandingConfig({...brandingConfig, agencyName: e.target.value})}
+                                    className="w-full p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-900 dark:text-white"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Primary Color</label>
+                                    <div className="flex gap-2 items-center p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                                        <input type="color" value={brandingConfig.primaryColor} onChange={e => setBrandingConfig({...brandingConfig, primaryColor: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-none"/>
+                                        <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{brandingConfig.primaryColor}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Secondary Color</label>
+                                    <div className="flex gap-2 items-center p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                                        <input type="color" value={brandingConfig.secondaryColor} onChange={e => setBrandingConfig({...brandingConfig, secondaryColor: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-none"/>
+                                        <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{brandingConfig.secondaryColor}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Agency Logo</label>
+                                <div className="flex items-center gap-6">
+                                    <div className="w-24 h-24 rounded-2xl bg-gray-100 dark:bg-gray-900 border border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center relative overflow-hidden group">
+                                        {brandingConfig.logoUrl ? (
+                                            <img src={brandingConfig.logoUrl} className="w-full h-full object-contain p-2" alt="Logo Preview" />
+                                        ) : (
+                                            <ImageIcon className="text-gray-400" />
+                                        )}
+                                        {isUploadingLogo && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold">Uploading...</div>}
+                                    </div>
+                                    <div className="flex-grow">
+                                        <input type="file" onChange={handleLogoUpload} accept="image/*" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-swave-purple file:text-white hover:file:bg-purple-700 transition-all"/>
+                                        <p className="text-xs text-gray-400 mt-2">Recommended: 200x200px PNG transparent</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 flex justify-end">
+                            <button onClick={saveBranding} className="bg-swave-purple text-white px-8 py-3 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl">
+                                <Save className="w-4 h-4 inline mr-2"/> Save Changes
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 

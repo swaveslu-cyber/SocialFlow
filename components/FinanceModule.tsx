@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Invoice, ServiceItem, ClientProfile, InvoiceItem } from '../types';
 import { db } from '../services/db';
 import { SwaveLogo } from './Logo';
-import { Plus, ArrowLeft, Download, Eye, Edit2, Trash2, Save, Printer, Copy, CheckCircle, AlertCircle, Calendar, DollarSign, List, Briefcase, FileText, X } from 'lucide-react';
+import { Plus, ArrowLeft, Download, Eye, Edit2, Trash2, Save, Printer, Copy, CheckCircle, AlertCircle, Calendar, DollarSign, List, Briefcase, FileText, X, Loader2 } from 'lucide-react';
 
 const formatCurrency = (amount: number, currency: string = 'USD') => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
@@ -15,6 +15,7 @@ export const FinanceModule: React.FC = () => {
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [clients, setClients] = useState<ClientProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Invoice Editor State
   const [editingInvoice, setEditingInvoice] = useState<Partial<Invoice>>({});
@@ -112,20 +113,28 @@ export const FinanceModule: React.FC = () => {
           return;
       }
       
-      const { subtotal, taxAmount, grandTotal } = calculateTotals(editingInvoice);
-      const finalInvoice = {
-          ...editingInvoice,
-          id: editingInvoice.id || crypto.randomUUID(),
-          subtotal,
-          taxAmount,
-          grandTotal,
-          updatedAt: Date.now(),
-          createdAt: editingInvoice.createdAt || Date.now()
-      } as Invoice;
+      setIsSaving(true);
+      try {
+          const { subtotal, taxAmount, grandTotal } = calculateTotals(editingInvoice);
+          const finalInvoice = {
+              ...editingInvoice,
+              id: editingInvoice.id || crypto.randomUUID(),
+              subtotal,
+              taxAmount,
+              grandTotal,
+              updatedAt: Date.now(),
+              createdAt: editingInvoice.createdAt || Date.now()
+          } as Invoice;
 
-      await db.saveInvoice(finalInvoice);
-      await loadData(true);
-      setView('dashboard');
+          await db.saveInvoice(finalInvoice);
+          await loadData(true);
+          setView('dashboard');
+      } catch (error: any) {
+          console.error("Save failed:", error);
+          alert(`Failed to save invoice. Error: ${error.message || 'Unknown database error'}`);
+      } finally {
+          setIsSaving(false);
+      }
   };
 
   const updateItem = (index: number, field: keyof InvoiceItem, value: any) => {
@@ -519,8 +528,13 @@ export const FinanceModule: React.FC = () => {
                               <option value="Void">Void</option>
                           </select>
                       </div>
-                      <button onClick={saveInvoice} className="px-6 py-3 bg-swave-orange text-white rounded-xl shadow-lg hover:bg-orange-600 font-bold flex items-center gap-2">
-                          <Save className="w-5 h-5"/> Save Invoice
+                      <button 
+                        onClick={saveInvoice} 
+                        disabled={isSaving}
+                        className="px-6 py-3 bg-swave-orange text-white rounded-xl shadow-lg hover:bg-orange-600 font-bold flex items-center gap-2 disabled:opacity-50"
+                      >
+                          {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5"/>} 
+                          {isSaving ? "Saving..." : "Save Invoice"}
                       </button>
                   </div>
               </div>

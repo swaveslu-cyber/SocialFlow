@@ -4,7 +4,7 @@ import {
   LayoutGrid, Calendar as CalendarIcon, List, Settings as SettingsIcon, 
   LogOut, Plus, Search, Filter, Bell, Menu, X, UploadCloud, 
   Image as ImageIcon, Smile, Save, Loader2, ArrowRight,
-  Instagram, Linkedin, Twitter, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag, DollarSign, User as UserIcon, Shield
+  Instagram, Linkedin, Twitter, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag, DollarSign, User as UserIcon, Shield, Sun, Coffee
 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -20,7 +20,7 @@ import { FinanceModule } from './components/FinanceModule';
 import { SwaveLogo } from './components/Logo';
 import { 
   Post, PostStatus, UserRole, User, Platform, MediaType, 
-  Template, Snippet, PLATFORMS, Campaign, PERMISSIONS
+  Template, Snippet, PLATFORMS, Campaign, PERMISSIONS, AppConfig
 } from './types';
 
 export interface GroupedPost extends Omit<Post, 'platform' | 'id'> {
@@ -38,6 +38,7 @@ export default function App() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [snippets, setSnippets] = useState<Snippet[]>([]);
+  const [branding, setBranding] = useState<AppConfig>({ agencyName: 'SWAVE', primaryColor: '#8E3EBB', secondaryColor: '#F27A21' });
   const [loading, setLoading] = useState(true);
 
   // UI State
@@ -106,17 +107,20 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-      if (!currentUser) return;
-      
-      // Auto-filter for client users
-      if (currentUser.clientId) {
-          setFilterClient(currentUser.clientId);
-      }
-
-      loadData();
+      // Load and apply branding every time user loads or updates occur
+      loadData(true);
       const subscription = db.subscribeToPosts(() => loadData(true));
       return () => { subscription.unsubscribe(); };
-  }, [currentUser]);
+  }, [currentUser]); // Trigger load on user change too
+
+  // Dynamic CSS Variable Injection for Branding
+  useEffect(() => {
+      if (branding) {
+          document.documentElement.style.setProperty('--color-primary', branding.primaryColor);
+          document.documentElement.style.setProperty('--color-secondary', branding.secondaryColor);
+          document.title = `${branding.agencyName} - Operations`;
+      }
+  }, [branding]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -128,14 +132,15 @@ export default function App() {
 
   const loadData = async (silent: boolean = false) => {
     if (!silent) setLoading(true);
-    const [fetchedPosts, fetchedClients, fetchedCampaigns, fetchedTemplates, fetchedSnippets] = await Promise.all([
-      db.getAllPosts(), db.getClientNames(), db.getCampaigns(), db.getTemplates(), db.getSnippets()
+    const [fetchedPosts, fetchedClients, fetchedCampaigns, fetchedTemplates, fetchedSnippets, fetchedBranding] = await Promise.all([
+      db.getAllPosts(), db.getClientNames(), db.getCampaigns(), db.getTemplates(), db.getSnippets(), db.getAppConfig()
     ]);
     setPosts(fetchedPosts);
     setClients(fetchedClients);
     setCampaigns(fetchedCampaigns);
     setTemplates(fetchedTemplates);
     setSnippets(fetchedSnippets);
+    setBranding(fetchedBranding);
     
     // Set default client selection for Agency Admins/Creators
     if (!isFormOpen && !currentUser?.clientId && fetchedClients.length > 0) {
@@ -322,7 +327,7 @@ export default function App() {
   ];
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950"><Loader2 className="w-10 h-10 animate-spin text-swave-orange" /></div>;
-  if (!currentUser) return <Login onLogin={handleLogin} />;
+  if (!currentUser) return <Login onLogin={handleLogin} branding={branding} />;
   
   if (isSettingsOpen) return <Settings clients={clients} templates={templates} snippets={snippets} onUpdate={() => loadData(true)} onClose={() => setIsSettingsOpen(false)} currentUser={currentUser} />;
 
@@ -336,10 +341,10 @@ export default function App() {
             <div className="h-full flex flex-col">
                 <div className="p-8 short:p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 short:w-8 short:h-8 rounded-2xl bg-white dark:bg-gray-800 flex items-center justify-center p-1.5 shadow-xl shadow-gray-200 dark:shadow-none border border-gray-100 dark:border-gray-700 transition-transform hover:scale-110 active:scale-95 cursor-pointer">
-                            <SwaveLogo className="w-full h-full" />
+                        <div className="w-10 h-10 short:w-8 short:h-8 rounded-2xl bg-white dark:bg-gray-800 flex items-center justify-center p-1.5 shadow-xl shadow-gray-200 dark:shadow-none border border-gray-100 dark:border-gray-700 transition-transform hover:scale-110 active:scale-95 cursor-pointer overflow-hidden">
+                            <SwaveLogo className="w-full h-full" customLogoUrl={branding.logoUrl} />
                         </div>
-                        <h1 className="text-2xl short:text-xl font-black text-gray-900 dark:text-white tracking-tighter leading-none uppercase">SWAVE</h1>
+                        <h1 className="text-xl short:text-lg font-black text-gray-900 dark:text-white tracking-tighter leading-none uppercase truncate max-w-[140px]">{branding.agencyName}</h1>
                     </div>
                     <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                         <X className="w-6 h-6" />
@@ -441,30 +446,51 @@ export default function App() {
                                 </div>
                             </div>
                         )}
+                        
+                        {/* SEARCH BAR */}
+                        {viewMode !== 'trash' && (
+                             <div className="relative hidden xl:block group">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Search className="h-4 w-4 text-gray-400 group-focus-within:text-swave-orange transition-colors" />
+                                </div>
+                                <input
+                                    type="text"
+                                    className="block w-64 pl-10 pr-3 py-3.5 border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-swave-orange focus:border-swave-orange transition-all outline-none"
+                                    placeholder="Search content..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                             </div>
+                        )}
                     </div>
                     <div className="flex items-center gap-3 short:gap-1.5">
                          {PERMISSIONS.canEdit(currentUser.role) && viewMode !== 'trash' && (
                              <button onClick={openNewPostForm} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white p-3.5 md:px-6 md:py-4 short:py-2 rounded-2xl text-sm font-black flex items-center gap-2.5 shadow-2xl shadow-orange-300/40 dark:shadow-none hover:scale-[1.02] transition-all active:scale-95"><Plus className="w-6 h-6 md:w-5 md:h-5" /> <span className="hidden md:inline">Produce Post</span></button>
                          )}
-                         <div className="relative" ref={notificationRef}>
-                            <button onClick={() => setShowNotifications(!showNotifications)} className="p-3.5 short:p-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 text-gray-500 hover:text-swave-orange transition-all active:scale-90">
-                                <Bell className="w-6 h-6 short:w-5 short:h-5" />
-                                {notifications.length > 0 && <span className="absolute top-3.5 right-3.5 w-3.5 h-3.5 short:w-2.5 short:h-2.5 bg-red-500 rounded-full border-4 border-white dark:border-gray-800"></span>}
-                            </button>
-                            {showNotifications && (
-                                <div className="absolute right-0 top-full mt-5 w-80 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-in slide-in-from-top-2">
-                                     <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900">
-                                         <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Inbox</span>
-                                         <span className="text-[10px] bg-swave-orange text-white px-3 py-1 rounded-full font-black tracking-widest ml-2">{notifications.length} NEW</span>
-                                     </div>
-                                     <div className="max-h-[400px] overflow-y-auto no-scrollbar pb-2">
-                                         {notifications.length === 0 ? <div className="p-12 text-center text-gray-400 text-sm font-bold italic opacity-40">Your inbox is clear. ✨</div> : notifications.map(n => <div key={n.id} onClick={() => { const p = posts.find(post => post.id === n.postId); if(p) { /* handle scroll to or open */ setShowNotifications(false); } }} className="p-5 border-b border-gray-50 dark:border-gray-800 hover:bg-orange-50/40 dark:hover:bg-orange-900/10 cursor-pointer flex gap-4 transition-colors">
-                                             <div className="mt-2 flex-shrink-0 w-3 h-3 rounded-full bg-swave-orange" />
-                                             <div className="flex-grow"><p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 leading-snug">{n.text}</p><p className="text-xs text-gray-400 font-black mt-2 uppercase tracking-widest">{new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div>
-                                         </div>)}
-                                     </div>
-                                </div>
-                            )}
+                         <div className="flex gap-2">
+                             <button onClick={() => setShowDailyBriefing(true)} className="p-3.5 short:p-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 text-gray-500 hover:text-swave-purple transition-all active:scale-90" title="Daily Briefing">
+                                <Sun className="w-6 h-6 short:w-5 short:h-5" />
+                             </button>
+                             <div className="relative" ref={notificationRef}>
+                                <button onClick={() => setShowNotifications(!showNotifications)} className="p-3.5 short:p-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 text-gray-500 hover:text-swave-orange transition-all active:scale-90">
+                                    <Bell className="w-6 h-6 short:w-5 short:h-5" />
+                                    {notifications.length > 0 && <span className="absolute top-3.5 right-3.5 w-3.5 h-3.5 short:w-2.5 short:h-2.5 bg-red-500 rounded-full border-4 border-white dark:border-gray-800"></span>}
+                                </button>
+                                {showNotifications && (
+                                    <div className="absolute right-0 top-full mt-5 w-80 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-in slide-in-from-top-2">
+                                         <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900">
+                                             <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Inbox</span>
+                                             <span className="text-[10px] bg-swave-orange text-white px-3 py-1 rounded-full font-black tracking-widest ml-2">{notifications.length} NEW</span>
+                                         </div>
+                                         <div className="max-h-[400px] overflow-y-auto no-scrollbar pb-2">
+                                             {notifications.length === 0 ? <div className="p-12 text-center text-gray-400 text-sm font-bold italic opacity-40">Your inbox is clear. ✨</div> : notifications.map(n => <div key={n.id} onClick={() => { const p = posts.find(post => post.id === n.postId); if(p) { /* handle scroll to or open */ setShowNotifications(false); } }} className="p-5 border-b border-gray-50 dark:border-gray-800 hover:bg-orange-50/40 dark:hover:bg-orange-900/10 cursor-pointer flex gap-4 transition-colors">
+                                                 <div className="mt-2 flex-shrink-0 w-3 h-3 rounded-full bg-swave-orange" />
+                                                 <div className="flex-grow"><p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 leading-snug">{n.text}</p><p className="text-xs text-gray-400 font-black mt-2 uppercase tracking-widest">{new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div>
+                                             </div>)}
+                                         </div>
+                                    </div>
+                                )}
+                             </div>
                          </div>
                     </div>
                 </div>
@@ -479,9 +505,18 @@ export default function App() {
 
             <div className="flex-grow overflow-auto p-6 md:p-8 pb-20 no-scrollbar short:p-4 short:pb-24">
                 {(viewMode === 'list' || viewMode === 'trash') && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 short:gap-4">
-                        {filteredGroupedPosts.map(post => <PostCard key={post.ids[0]} post={post as any} user={currentUser} onDelete={handleDeletePost} onRestore={handleRestorePost} onStatusChange={handleStatusChange} onEdit={openEditPostForm} onUpdate={() => loadData(true)} />)}
-                    </div>
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 short:gap-4">
+                            {filteredGroupedPosts.map(post => <PostCard key={post.ids[0]} post={post as any} user={currentUser} onDelete={handleDeletePost} onRestore={handleRestorePost} onStatusChange={handleStatusChange} onEdit={openEditPostForm} onUpdate={() => loadData(true)} />)}
+                        </div>
+                        {filteredGroupedPosts.length === 0 && (
+                            <div className="h-96 flex flex-col items-center justify-center text-center opacity-40">
+                                <Coffee className="w-16 h-16 text-gray-400 mb-4" />
+                                <h3 className="text-xl font-black text-gray-400">All caught up!</h3>
+                                <p className="text-sm font-bold text-gray-300 mt-2">No posts match your filters.</p>
+                            </div>
+                        )}
+                    </>
                 )}
                 {viewMode === 'calendar' && <div className="h-full bg-white dark:bg-gray-900 rounded-[3.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden"><CalendarView posts={filteredGroupedPosts as any} onPostClick={openEditPostForm} /></div>}
                 {viewMode === 'kanban' && <KanbanBoard posts={filteredGroupedPosts as any} user={currentUser} onPostClick={openEditPostForm} onStatusChange={handleStatusChange} onDelete={handleDeletePost} />}

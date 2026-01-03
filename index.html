@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Swave Social - Online Growth Agency</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --color-primary: #8E3EBB;
+        --color-secondary: #F27A21;
+      }
+    </style>
     <script>
       tailwind.config = {
         darkMode: 'class',
@@ -17,8 +23,8 @@
             },
             colors: {
               swave: {
-                orange: '#F27A21',
-                purple: '#8E3EBB',
+                orange: 'var(--color-secondary)',
+                purple: 'var(--color-primary)',
               },
               gray: {
                 750: '#2d3748',

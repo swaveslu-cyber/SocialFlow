@@ -1,6 +1,6 @@
 
 import { supabase } from './supabaseClient';
-import { Post, PostStatus, Template, Snippet, ClientProfile, Comment, Campaign, Invoice, ServiceItem, User, UserRole } from '../types';
+import { Post, PostStatus, Template, Snippet, ClientProfile, Comment, Campaign, Invoice, ServiceItem, User, UserRole, AppConfig } from '../types';
 
 export const db = {
   init: async (): Promise<void> => {
@@ -26,6 +26,31 @@ export const db = {
     } catch (e) {
         console.error("Initialization Error:", e);
     }
+  },
+
+  // --- BRANDING / APP CONFIG ---
+  getAppConfig: async (): Promise<AppConfig> => {
+      // Try to get from Supabase 'app_config' table, using key 'branding'
+      const { data } = await supabase.from('app_config').select('value').eq('key', 'branding').maybeSingle();
+      if (data && data.value) {
+          return data.value; // Supabase returns JSONB as object directly
+      }
+      // Default / Fallback
+      return {
+          agencyName: "SWAVE",
+          primaryColor: "#8E3EBB", // swave-purple
+          secondaryColor: "#F27A21", // swave-orange
+      };
+  },
+
+  saveAppConfig: async (config: AppConfig): Promise<void> => {
+      // Upsert into app_config table
+      const { error } = await supabase.from('app_config').upsert({
+          key: 'branding',
+          value: config
+      }, { onConflict: 'key' });
+      
+      if (error) throw error;
   },
 
   // --- REALTIME SUBSCRIPTIONS ---

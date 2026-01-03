@@ -12,6 +12,13 @@ export type UserRole =
   | 'client_admin'    // Can approve, view finance (if enabled)
   | 'client_viewer';  // Read-only
 
+export interface AppConfig {
+  agencyName: string;
+  logoUrl?: string;
+  primaryColor: string; // Replaces 'swave-purple'
+  secondaryColor: string; // Replaces 'swave-orange'
+}
+
 export interface User {
   id: string;
   email: string;
