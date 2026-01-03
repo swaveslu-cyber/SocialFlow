@@ -4,9 +4,10 @@ import { db } from '../services/db';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../services/firebaseConfig';
 import { Template, Snippet, Platform, PLATFORMS, ClientProfile, User, UserRole, AppConfig, BrandKit } from '../types';
-import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2, BookOpen } from 'lucide-react';
+import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2, BookOpen, Settings2 } from 'lucide-react';
 import { OnboardingWizard } from './OnboardingWizard';
 import { BrandCard } from './BrandCard';
+import { OnboardingConfigurator } from './OnboardingConfigurator';
 
 interface SettingsProps {
   clients: string[]; 
@@ -46,7 +47,9 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   
   // Onboarding State
   const [onboardingClient, setOnboardingClient] = useState<string | null>(null);
+  const [onboardingKit, setOnboardingKit] = useState<BrandKit | undefined>(undefined);
   const [viewingBrandKit, setViewingBrandKit] = useState<BrandKit | null>(null);
+  const [configuringClient, setConfiguringClient] = useState<string | null>(null); // New: for configurator
   
   // Team State
   const [showNewUserForm, setShowNewUserForm] = useState(false);
@@ -119,8 +122,17 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
           setViewingBrandKit(kit);
       } else {
           // Launch wizard if no kit exists
+          setOnboardingKit(undefined);
           setOnboardingClient(clientName);
       }
+  };
+
+  const handleConfigureQuestions = async (clientName: string) => {
+      const kit = await db.getBrandKit(clientName);
+      // We pass the kit (or null) to the configurator
+      // The configurator will handle saving, possibly creating the kit row if needed
+      setViewingBrandKit(kit); // HACK: reusing state variable to pass data, better to fetch inside component or use separate state, but simplest is separate state for name
+      setConfiguringClient(clientName);
   };
 
   const handleSaveUser = async (e: React.FormEvent) => {
@@ -383,6 +395,9 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                         </div>
                                     </div>
                                     <div className="flex gap-2 justify-end relative z-10 border-t border-gray-50 dark:border-gray-700/50 pt-3">
+                                        <button onClick={() => handleConfigureQuestions(client.name)} className="p-2 text-gray-400 hover:text-swave-orange hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-xl transition-colors" title="Customize Questions">
+                                            <Settings2 className="w-4 h-4" />
+                                        </button>
                                         <button onClick={() => handleOpenBrandKit(client.name)} className="px-4 py-2 text-xs font-bold text-white bg-gray-900 dark:bg-white dark:text-gray-900 hover:scale-105 rounded-xl transition-all shadow-md flex items-center gap-2">
                                             <BookOpen className="w-3 h-3" /> Brand Kit
                                         </button>
@@ -399,8 +414,6 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                 )}
             </div>
             )}
-            
-            {/* ... (Other tabs remain the same) ... */}
             
             {/* --- TEAM TAB --- */}
             {activeTab === 'team' && (
@@ -500,8 +513,9 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                 </div>
             )}
             
-            {/* --- BRANDING TAB --- */}
+            {/* ... (Other tabs remain the same) */}
             {activeTab === 'branding' && (
+                // ... (existing branding code)
                 <div className="space-y-10 animate-in slide-in-from-right-4 relative z-10 max-w-2xl mx-auto">
                     <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl space-y-6">
                         <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-3"><Palette className="w-6 h-6 text-swave-purple"/> Brand Identity</h3>
@@ -595,6 +609,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
 
             {/* --- TEMPLATES TAB --- */}
             {activeTab === 'templates' && (
+                // ... (existing templates code)
                 <div className="space-y-6 animate-in slide-in-from-right-4 relative z-10">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xl font-black text-gray-900 dark:text-white">Content Templates</h3>
@@ -646,6 +661,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
 
             {/* --- SNIPPETS TAB --- */}
             {activeTab === 'snippets' && (
+                // ... (existing snippets code)
                 <div className="space-y-6 animate-in slide-in-from-right-4 relative z-10">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xl font-black text-gray-900 dark:text-white">Reusable Snippets</h3>
@@ -706,26 +722,46 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       </div>
     </div>
     
-    {/* Modals for Onboarding / Brand Card */}
+    {/* Modals for Onboarding / Brand Card / Configuration */}
     {onboardingClient && (
         <OnboardingWizard 
             clientName={onboardingClient} 
+            existingKit={onboardingKit}
             onComplete={() => {
                 const name = onboardingClient;
                 setOnboardingClient(null);
+                setOnboardingKit(undefined);
                 handleOpenBrandKit(name);
             }}
-            onCancel={() => setOnboardingClient(null)} 
+            onCancel={() => {
+                setOnboardingClient(null);
+                setOnboardingKit(undefined);
+            }} 
         />
     )}
     
-    {viewingBrandKit && (
+    {viewingBrandKit && !configuringClient && (
         <BrandCard 
             kit={viewingBrandKit} 
             onClose={() => setViewingBrandKit(null)} 
             onEdit={() => {
+                setOnboardingKit(viewingBrandKit);
                 setOnboardingClient(viewingBrandKit.client_name);
                 setViewingBrandKit(null);
+            }}
+        />
+    )}
+
+    {configuringClient && (
+        <OnboardingConfigurator 
+            clientName={configuringClient}
+            existingKit={viewingBrandKit} // Passed from handleConfigureQuestions
+            onClose={() => {
+                setConfiguringClient(null);
+                setViewingBrandKit(null);
+            }}
+            onSave={() => {
+                // Refresh logic if needed
             }}
         />
     )}

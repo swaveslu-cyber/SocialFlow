@@ -117,9 +117,23 @@ export interface ClientProfile {
 }
 
 // --- NEW ONBOARDING TYPES ---
+
+export interface OnboardingConfig {
+  one_liner_label?: string;
+  one_liner_placeholder?: string;
+  pain_point_label?: string;
+  pain_point_placeholder?: string;
+  motivation_label?: string;
+  voice_slider_1_left?: string; // Formal
+  voice_slider_1_right?: string; // Casual
+  voice_slider_2_left?: string; // Exclusive
+  voice_slider_2_right?: string; // Inclusive
+}
+
 export interface BrandKit {
   id?: string;
   client_name: string;
+  custom_questions?: OnboardingConfig; // New: Custom overrides
   company_details: {
     name: string;
     website: string;

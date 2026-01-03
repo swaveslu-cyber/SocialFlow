@@ -94,8 +94,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
   };
 
   const renderContent = () => (
-    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-        <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-4 overflow-y-auto no-scrollbar pb-2 animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1">
+        <div className="flex flex-wrap gap-2 shrink-0">
             {post.campaign && (
                 <span className="bg-swave-purple/10 text-swave-purple text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest border border-swave-purple/20 flex items-center gap-1">
                    <Flag className="w-2.5 h-2.5" /> {post.campaign}
@@ -120,11 +120,11 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
           </div>
         )}
 
-        <div className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap font-medium leading-relaxed overflow-y-auto max-h-32 short:max-h-20 scrollbar-thin px-1">
+        <div className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap font-medium leading-relaxed px-1">
           {post.caption}
         </div>
         
-        <div className="flex items-center text-[11px] font-bold text-gray-400 dark:text-gray-500 gap-2 mt-auto pt-2 uppercase tracking-wide">
+        <div className="flex items-center text-[11px] font-bold text-gray-400 dark:text-gray-500 gap-2 mt-auto pt-2 uppercase tracking-wide shrink-0">
           <Calendar className="w-3.5 h-3.5" />
           <span>Launch: {post.date}</span>
         </div>
@@ -132,9 +132,9 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
   );
 
   const renderComments = () => (
-    <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-2 duration-300 overflow-hidden">
-      <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4">Collaboration Hub</h4>
-      <div className="flex-grow overflow-y-auto space-y-4 pr-1 max-h-[250px] short:max-h-[150px] scrollbar-thin min-h-[140px] pb-4 px-1">
+    <div className="flex flex-col flex-1 animate-in fade-in slide-in-from-right-2 duration-300 overflow-hidden">
+      <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4 shrink-0">Collaboration Hub</h4>
+      <div className="flex-grow overflow-y-auto space-y-4 pr-1 scrollbar-thin pb-4 px-1">
         {visibleComments.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-300 dark:text-gray-600 space-y-3 py-10 opacity-60">
               <MessageSquare className="w-12 h-12 stroke-[1.5]"/>
@@ -154,7 +154,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
           ))
         )}
       </div>
-      <form onSubmit={handleAddComment} className="mt-2 flex flex-col gap-2 pt-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 sticky bottom-0 z-20">
+      <form onSubmit={handleAddComment} className="mt-2 flex flex-col gap-2 pt-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
          <div className="flex gap-2">
             <input 
               value={newComment}
@@ -176,27 +176,29 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
   );
 
   const renderHistory = () => (
-    <div className="flex-grow overflow-y-auto max-h-80 short:max-h-40 scrollbar-thin min-h-[200px] animate-in fade-in slide-in-from-right-2 duration-300">
-      <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4">Audit Journal</h4>
-      <ul className="space-y-6 relative ml-2 border-l-2 border-gray-100 dark:border-gray-700 pl-6 py-2">
-        {(post.history || []).map((h) => (
-          <li key={h.id} className="relative">
-             <div className="absolute -left-[31px] top-1.5 w-3.5 h-3.5 rounded-full bg-white dark:bg-gray-800 border-2 border-swave-purple shadow-sm"></div>
-             <p className="text-sm font-black text-gray-800 dark:text-gray-200">{h.action}</p>
-             <div className="flex flex-col mt-1.5">
-                 <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{h.by}</span>
-                 <span className="text-[9px] text-gray-400 font-medium">{new Date(h.timestamp).toLocaleString()}</span>
-             </div>
-          </li>
-        ))}
-      </ul>
+    <div className="flex flex-col flex-1 animate-in fade-in slide-in-from-right-2 duration-300 overflow-hidden">
+      <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4 shrink-0">Audit Journal</h4>
+      <div className="flex-grow overflow-y-auto scrollbar-thin">
+        <ul className="space-y-6 relative ml-2 border-l-2 border-gray-100 dark:border-gray-700 pl-6 py-2">
+            {(post.history || []).map((h) => (
+            <li key={h.id} className="relative">
+                <div className="absolute -left-[31px] top-1.5 w-3.5 h-3.5 rounded-full bg-white dark:bg-gray-800 border-2 border-swave-purple shadow-sm"></div>
+                <p className="text-sm font-black text-gray-800 dark:text-gray-200">{h.action}</p>
+                <div className="flex flex-col mt-1.5">
+                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{h.by}</span>
+                    <span className="text-[9px] text-gray-400 font-medium">{new Date(h.timestamp).toLocaleString()}</span>
+                </div>
+            </li>
+            ))}
+        </ul>
+      </div>
     </div>
   );
 
   return (
     <>
-        <div className={`bg-white dark:bg-gray-800 rounded-3xl short:rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 dark:border-gray-700/50 overflow-hidden flex flex-col transition-all duration-300 ${compact ? '' : 'min-h-[280px] md:h-full'} relative group`}>
-        <div className="p-5 pb-3 short:p-3 flex justify-between items-center bg-white dark:bg-gray-800 z-10 relative">
+        <div className={`bg-white dark:bg-gray-800 rounded-3xl short:rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 dark:border-gray-700/50 overflow-hidden flex flex-col transition-all duration-300 ${compact ? '' : 'max-h-[60vh]'} relative group`}>
+        <div className="p-5 pb-3 short:p-3 flex justify-between items-center bg-white dark:bg-gray-800 z-10 relative shrink-0">
             <div className="flex items-center gap-3">
                 <div className="flex flex-wrap gap-1 max-w-[80px]">
                     {platforms.map(p => (
@@ -211,13 +213,13 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
             </div>
             <StatusBadge status={post.status} />
         </div>
-        <div className="px-5 pb-4 short:px-3 flex-grow bg-white dark:bg-gray-800">
+        <div className="px-5 pb-4 short:px-3 flex-1 overflow-hidden bg-white dark:bg-gray-800 relative flex flex-col min-h-0">
             {viewMode === 'content' && renderContent()}
             {viewMode === 'comments' && renderComments()}
             {viewMode === 'history' && renderHistory()}
         </div>
         {!compact && (
-            <div className={`p-2 mx-2 mb-2 short:mx-2 short:mb-2 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-md rounded-2xl flex items-center justify-between gap-2 relative transition-all ${viewMode !== 'content' ? 'opacity-0 h-0 p-0 m-0 overflow-hidden' : 'opacity-100'}`}>
+            <div className={`p-2 mx-2 mb-2 short:mx-2 short:mb-2 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-md rounded-2xl flex items-center justify-between gap-2 relative transition-all shrink-0 ${viewMode !== 'content' ? 'opacity-0 h-0 p-0 m-0 overflow-hidden' : 'opacity-100'}`}>
                 <div className="flex items-center gap-1 shrink-0">
                     <button onClick={() => setViewMode('content')} className={`p-2.5 short:p-2 rounded-xl transition-all ${viewMode === 'content' ? 'bg-white dark:bg-gray-700 text-swave-orange shadow-md scale-105' : 'text-gray-400 hover:text-gray-600'}`}><Eye className="w-4 h-4 short:w-3.5 short:h-3.5" /></button>
                     <button onClick={() => setViewMode('comments')} className={`p-2.5 short:p-2 rounded-xl transition-all relative ${viewMode === 'comments' ? 'bg-white dark:bg-gray-700 text-swave-purple shadow-md scale-105' : 'text-gray-400 hover:text-gray-600'}`}>
@@ -225,14 +227,12 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
                         {visibleComments.length > 0 && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-swave-orange rounded-full border-2 border-gray-50 dark:border-gray-900"></span>}
                     </button>
                 </div>
-                {/* COMPACT FOOTER ACTIONS TO PREVENT OVERLAP */}
                 <div className="flex items-center justify-end gap-1 flex-grow min-w-0">
                     <div className="flex items-center gap-1">
                         {post.status === 'Trashed' ? (
                             <button onClick={() => onRestore?.(ids)} className="text-[10px] bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-2 py-2 rounded-xl hover:scale-105 font-black flex items-center gap-1 transition-all active:scale-95"><RotateCcw className="w-3.5 h-3.5"/> Restore</button>
                         ) : (
                             <>
-                                {/* RBAC BUTTON LOGIC - Compact Layout & Improved Contrast */}
                                 {PERMISSIONS.isInternal(user.role) && post.status === 'Draft' && (
                                     <button onClick={() => onStatusChange?.(ids, 'In Review')} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white px-2 py-2 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md hover:scale-[1.03] transition-all active:scale-95 whitespace-nowrap">Review <ArrowRight className="w-3 h-3"/></button>
                                 )}

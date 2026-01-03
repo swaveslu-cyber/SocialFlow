@@ -17,6 +17,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ clientName, 
   const [step, setStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Load Config
+  const customQ = existingKit?.custom_questions || {};
+
   const [formData, setFormData] = useState<BrandKit>(existingKit || {
     client_name: clientName,
     company_details: { name: clientName, website: '', industry: 'SaaS', one_liner: '' },
@@ -45,7 +48,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ clientName, 
   const handleSave = async () => {
       setIsSaving(true);
       try {
-          await db.saveBrandKit(formData);
+          // Preserve custom questions if they exist in state or props
+          const finalData = { ...formData, custom_questions: customQ };
+          await db.saveBrandKit(finalData);
           onComplete();
       } catch (e) {
           alert("Failed to save Brand Kit.");
@@ -63,15 +68,21 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ clientName, 
               <input value={formData.company_details.website} onChange={e => setFormData({...formData, company_details: {...formData.company_details, website: e.target.value}})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl" placeholder="https://..." />
           </div>
           <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">The "One-Liner"</label>
-              <textarea value={formData.company_details.one_liner} onChange={e => setFormData({...formData, company_details: {...formData.company_details, one_liner: e.target.value}})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl" placeholder="Describe exactly what you sell and to whom, in one sentence." rows={3} />
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{customQ.one_liner_label || 'The "One-Liner"'}</label>
+              <textarea 
+                value={formData.company_details.one_liner} 
+                onChange={e => setFormData({...formData, company_details: {...formData.company_details, one_liner: e.target.value}})} 
+                className="w-full p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl" 
+                placeholder={customQ.one_liner_placeholder || "Describe exactly what you sell and to whom, in one sentence."} 
+                rows={3} 
+              />
           </div>
           
           <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
               <h4 className="font-bold text-gray-900 dark:text-white mb-4">Voice Parameters</h4>
               {[
-                  { k: 'formal_casual', l: 'Formal', r: 'Casual' },
-                  { k: 'exclusive_inclusive', l: 'Exclusive', r: 'Inclusive' },
+                  { k: 'formal_casual', l: customQ.voice_slider_1_left || 'Formal', r: customQ.voice_slider_1_right || 'Casual' },
+                  { k: 'exclusive_inclusive', l: customQ.voice_slider_2_left || 'Exclusive', r: customQ.voice_slider_2_right || 'Inclusive' },
                   { k: 'informative_entertaining', l: 'Informative', r: 'Entertaining' },
                   { k: 'soft_bold', l: 'Soft-Spoken', r: 'Bold/Loud' },
               ].map((s) => (
@@ -178,11 +189,17 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ clientName, 
 
           <div className="grid grid-cols-2 gap-4">
               <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Pain Point</label>
-                  <textarea value={formData.target_audience.pain_point} onChange={e => setFormData({...formData, target_audience: {...formData.target_audience, pain_point: e.target.value}})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm" rows={4} placeholder="What keeps them up at night?" />
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{customQ.pain_point_label || "Pain Point"}</label>
+                  <textarea 
+                    value={formData.target_audience.pain_point} 
+                    onChange={e => setFormData({...formData, target_audience: {...formData.target_audience, pain_point: e.target.value}})} 
+                    className="w-full p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm" 
+                    rows={4} 
+                    placeholder={customQ.pain_point_placeholder || "What keeps them up at night?"} 
+                  />
               </div>
               <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Motivation</label>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{customQ.motivation_label || "Motivation"}</label>
                   <select value={formData.target_audience.motivation} onChange={e => setFormData({...formData, target_audience: {...formData.target_audience, motivation: e.target.value}})} className="w-full p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm">
                       <option>To save time</option>
                       <option>To save money</option>

@@ -28,6 +28,16 @@ export interface GroupedPost extends Omit<Post, 'platform' | 'id'> {
   platforms: Platform[];
 }
 
+const DEFAULT_BRANDING: AppConfig = { 
+    agencyName: 'SWAVE', 
+    primaryColor: '#8E3EBB', 
+    secondaryColor: '#F27A21',
+    primaryTextColor: '#FFFFFF',
+    secondaryTextColor: '#FFFFFF',
+    buttonColor: '#F3F4F6',
+    buttonTextColor: '#1F2937'
+};
+
 export default function App() {
   // Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -38,13 +48,7 @@ export default function App() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [snippets, setSnippets] = useState<Snippet[]>([]);
-  const [branding, setBranding] = useState<AppConfig>({ 
-      agencyName: 'SWAVE', 
-      primaryColor: '#8E3EBB', 
-      secondaryColor: '#F27A21',
-      buttonColor: '#F3F4F6', // Updated default
-      buttonTextColor: '#1F2937'
-  });
+  const [branding, setBranding] = useState<AppConfig>(DEFAULT_BRANDING);
   const [loading, setLoading] = useState(true);
 
   // UI State
@@ -122,12 +126,12 @@ export default function App() {
   // Dynamic CSS Variable Injection for Branding
   useEffect(() => {
       if (branding) {
-          document.documentElement.style.setProperty('--color-primary', branding.primaryColor);
-          document.documentElement.style.setProperty('--color-secondary', branding.secondaryColor);
-          document.documentElement.style.setProperty('--color-primary-text', branding.primaryTextColor || '#FFFFFF');
-          document.documentElement.style.setProperty('--color-secondary-text', branding.secondaryTextColor || '#FFFFFF');
-          document.documentElement.style.setProperty('--color-button', branding.buttonColor || '#F3F4F6');
-          document.documentElement.style.setProperty('--color-button-text', branding.buttonTextColor || '#1F2937');
+          document.documentElement.style.setProperty('--color-primary', branding.primaryColor || DEFAULT_BRANDING.primaryColor);
+          document.documentElement.style.setProperty('--color-secondary', branding.secondaryColor || DEFAULT_BRANDING.secondaryColor);
+          document.documentElement.style.setProperty('--color-primary-text', branding.primaryTextColor || DEFAULT_BRANDING.primaryTextColor!);
+          document.documentElement.style.setProperty('--color-secondary-text', branding.secondaryTextColor || DEFAULT_BRANDING.secondaryTextColor!);
+          document.documentElement.style.setProperty('--color-button', branding.buttonColor || DEFAULT_BRANDING.buttonColor!);
+          document.documentElement.style.setProperty('--color-button-text', branding.buttonTextColor || DEFAULT_BRANDING.buttonTextColor!);
           document.title = `${branding.agencyName} - Operations`;
       }
   }, [branding]);
@@ -150,7 +154,9 @@ export default function App() {
     setCampaigns(fetchedCampaigns);
     setTemplates(fetchedTemplates);
     setSnippets(fetchedSnippets);
-    setBranding(fetchedBranding);
+    
+    // Merge fetched branding with defaults to ensure no missing keys causing white/broken UI
+    setBranding({ ...DEFAULT_BRANDING, ...fetchedBranding });
     
     // Set default client selection for Agency Admins/Creators
     if (!isFormOpen && !currentUser?.clientId && fetchedClients.length > 0) {
