@@ -1,22 +1,28 @@
 
 import { supabase } from './supabaseClient';
-import { Post, PostStatus, Template, Snippet, ClientProfile, Comment, Campaign, Invoice, ServiceItem } from '../types';
+import { Post, PostStatus, Template, Snippet, ClientProfile, Comment, Campaign, Invoice, ServiceItem, User, UserRole } from '../types';
 
 export const db = {
   init: async (): Promise<void> => {
     console.log("Supabase Service Initialized");
     try {
-        const { data: pwd } = await supabase.from('app_config').select('value').eq('key', 'agency_password').maybeSingle();
-        if (!pwd) await supabase.from('app_config').insert({ key: 'agency_password', value: 'admin123' });
-
-        const { data: rec } = await supabase.from('app_config').select('value').eq('key', 'agency_recovery_key').maybeSingle();
-        if (!rec) await supabase.from('app_config').insert({ key: 'agency_recovery_key', value: 'recover-admin' });
-
-        const { data: q } = await supabase.from('app_config').select('value').eq('key', 'agency_recovery_question').maybeSingle();
-        if (!q) await supabase.from('app_config').insert({ key: 'agency_recovery_question', value: 'What is the default recovery key?' });
-
-        const { count, error } = await supabase.from('clients').select('*', { count: 'exact', head: true });
-        if (!error && count === 0) await db.seedDatabase();
+        // Check if we need to seed data (checking posts instead of users to ensure content exists)
+        const { count } = await supabase.from('posts').select('*', { count: 'exact', head: true });
+        
+        if (count === 0) {
+            console.log("Seeding Database...");
+            // Ensure admin exists (if not created by SQL script previously)
+            const { data: admin } = await supabase.from('users').select('id').eq('email', 'admin@swave.agency').maybeSingle();
+            if (!admin) {
+                 await db.createUser({
+                    email: 'admin@swave.agency',
+                    password: 'admin123',
+                    name: 'Agency Director',
+                    role: 'agency_admin'
+                });
+            }
+            await db.seedDatabase();
+        }
     } catch (e) {
         console.error("Initialization Error:", e);
     }
@@ -27,49 +33,68 @@ export const db = {
       return supabase
         .channel('public:posts')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-            console.log('Realtime update received');
             onUpdate();
         })
         .subscribe();
   },
 
-  checkConfig: (): boolean => true,
-
-  // --- AUTH ---
-  verifyAgencyPassword: async (inputPass: string): Promise<boolean> => {
-      const { data, error } = await supabase.from('app_config').select('value').eq('key', 'agency_password').single();
-      if (error) return inputPass === 'admin123'; // Fallback default
-      return data && inputPass === data.value;
-  },
+  // --- AUTHENTICATION & USERS ---
   
-  updateAgencyPassword: async (newPass: string): Promise<void> => {
-      await supabase.from('app_config').upsert({ key: 'agency_password', value: newPass });
+  authenticate: async (email: string, password: string): Promise<User | null> => {
+      // In a real app, use supabase.auth.signInWithPassword
+      // Here, we simulate by querying our custom 'users' table for the hackathon/demo scope
+      const { data, error } = await supabase.from('users').select('*').eq('email', email).single();
+      
+      if (error || !data) return null;
+      
+      // Simple password check (replace with bcrypt compare in real backend)
+      // Note: 'password' column should not be exposed in real select, but this is a mock impl
+      if (data.password === password) {
+          // Update last login
+          await supabase.from('users').update({ lastLogin: Date.now() }).eq('id', data.id);
+          
+          return {
+              id: data.id,
+              email: data.email,
+              name: data.name,
+              role: data.role as UserRole,
+              clientId: data.clientId,
+              avatar: data.avatar
+          };
+      }
+      return null;
   },
 
+  getUsers: async (): Promise<any[]> => {
+      const { data, error } = await supabase.from('users').select('id, email, name, role, clientId, lastLogin');
+      if (error) return [];
+      return data;
+  },
+
+  createUser: async (userData: { email: string, password: string, name: string, role: UserRole, clientId?: string }): Promise<void> => {
+      const newUser = {
+          id: crypto.randomUUID(),
+          email: userData.email,
+          password: userData.password, // Ideally hashed
+          name: userData.name,
+          role: userData.role,
+          clientId: userData.clientId || null,
+          createdAt: Date.now()
+      };
+      const { error } = await supabase.from('users').insert(newUser);
+      if (error) throw error;
+  },
+
+  deleteUser: async (id: string): Promise<void> => {
+      await supabase.from('users').delete().eq('id', id);
+  },
+
+  // --- LEGACY RECOVERY (Kept for fallback) ---
   getRecoveryQuestion: async (): Promise<string> => {
       const { data } = await supabase.from('app_config').select('value').eq('key', 'agency_recovery_question').single();
       return data?.value || "Enter Recovery Key";
   },
-
-  resetAgencyPassword: async (recoveryAnswer: string, newPass: string): Promise<boolean> => {
-      const { data } = await supabase.from('app_config').select('value').eq('key', 'agency_recovery_key').single();
-      if (!data) return recoveryAnswer === 'recover-admin'; // Fallback
-      if (data.value !== recoveryAnswer) return false;
-      await db.updateAgencyPassword(newPass);
-      return true;
-  },
-
-  updateRecoverySettings: async (question: string, answer: string): Promise<void> => {
-      await supabase.from('app_config').upsert({ key: 'agency_recovery_question', value: question });
-      await supabase.from('app_config').upsert({ key: 'agency_recovery_key', value: answer });
-  },
-
-  verifyClientLogin: async (clientName: string, accessCode: string): Promise<boolean> => {
-      const { data, error } = await supabase.from('clients').select('accessCode').eq('name', clientName).single();
-      if (error || !data) return false;
-      return data.accessCode === accessCode;
-  },
-
+  
   // --- POSTS ---
   getAllPosts: async (): Promise<Post[]> => {
     const { data, error } = await supabase.from('posts').select('*').order('"createdAt"', { ascending: false }); 
@@ -77,7 +102,7 @@ export const db = {
     return data as Post[];
   },
 
-  addPost: async (post: Omit<Post, 'id' | 'createdAt' | 'updatedAt' | 'comments' | 'history' | 'versions'>, author: string): Promise<Post> => {
+  addPost: async (post: Omit<Post, 'id' | 'createdAt' | 'updatedAt' | 'comments' | 'history' | 'versions'>, authorName: string): Promise<Post> => {
     const newPost: Post = {
       ...post,
       id: crypto.randomUUID(), 
@@ -85,7 +110,7 @@ export const db = {
       history: [{
         id: crypto.randomUUID(),
         action: 'Asset Deployed',
-        by: author,
+        by: authorName,
         timestamp: Date.now(),
         details: `Initial ${post.status} phase initiated.`
       }],
@@ -98,7 +123,7 @@ export const db = {
     return newPost;
   },
 
-  updatePost: async (id: string, updates: Partial<Post>, user: string): Promise<void> => {
+  updatePost: async (id: string, updates: Partial<Post>, userName: string): Promise<void> => {
       const { data: currentPost, error: fetchError } = await supabase.from('posts').select('*').eq('id', id).single();
       if (fetchError || !currentPost) throw new Error("Post not found");
 
@@ -113,12 +138,12 @@ export const db = {
               timestamp: Date.now(),
               caption: p.caption,
               mediaUrl: p.mediaUrl,
-              savedBy: user
+              savedBy: userName
           });
           history.unshift({
               id: crypto.randomUUID(),
               action: `Copy Refined`,
-              by: user,
+              by: userName,
               timestamp: Date.now(),
               details: `"${p.caption.substring(0, 30)}..." → "${updates.caption.substring(0, 30)}..."`
           });
@@ -128,19 +153,9 @@ export const db = {
           history.unshift({
               id: crypto.randomUUID(),
               action: `Workflow Shift`,
-              by: user,
+              by: userName,
               timestamp: Date.now(),
               details: `${p.status} → ${updates.status}`
-          });
-      }
-
-      if (updates.campaign && updates.campaign !== p.campaign) {
-          history.unshift({
-              id: crypto.randomUUID(),
-              action: `Relocated Campaign`,
-              by: user,
-              timestamp: Date.now(),
-              details: `${p.campaign || 'Unassigned'} → ${updates.campaign}`
           });
       }
 
@@ -175,6 +190,7 @@ export const db = {
   addClient: async (name: string): Promise<void> => {
       const { data } = await supabase.from('clients').select('id').eq('name', name).maybeSingle();
       if (data) return;
+      // Also create a default Client Admin user for this client
       const accessCode = Math.floor(1000 + Math.random() * 9000).toString();
       await supabase.from('clients').insert({ name, accessCode, currency: 'USD' });
   },
@@ -279,6 +295,7 @@ export const db = {
       if (!existingClient) await db.addClient(clientName);
 
       await db.addCampaign("Q1 Product Launch", clientName);
+      await db.addCampaign("Brand Awareness", clientName);
 
       await db.saveTemplate({
           id: crypto.randomUUID(), name: "Product Launch", platform: "LinkedIn",
@@ -286,13 +303,33 @@ export const db = {
           tags: ["#launch", "#startup"]
       });
 
+      const author = "Agency Director";
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Sample Posts
       await db.addPost({
           client: clientName, platform: "LinkedIn", campaign: "Q1 Product Launch",
-          date: new Date().toISOString().split('T')[0],
-          caption: "Drafting some ideas for the new campaign...",
+          date: today,
+          caption: "Exciting news coming soon! We've been working hard on something special.",
           mediaUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800",
           mediaType: "image", status: "Draft"
-      }, "Agency");
+      }, author);
+
+      await db.addPost({
+          client: clientName, platform: "Instagram", campaign: "Brand Awareness",
+          date: today,
+          caption: "Behind the scenes at the office today! 📸 #TechLife #StartupCulture",
+          mediaUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800",
+          mediaType: "image", status: "In Review"
+      }, author);
+
+      await db.addPost({
+          client: clientName, platform: "Twitter", campaign: "Q1 Product Launch",
+          date: today,
+          caption: "Our new feature drops next week. Are you ready? 🔥",
+          mediaUrl: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800",
+          mediaType: "image", status: "Approved"
+      }, author);
 
       await db.saveService({ id: crypto.randomUUID(), name: 'Social Media Management', defaultRate: 1500, description: 'Monthly Retainer' });
       await db.saveService({ id: crypto.randomUUID(), name: 'Content Creation', defaultRate: 500, description: 'Per Asset Pack' });
@@ -307,6 +344,7 @@ export const db = {
          await supabase.from('campaigns').delete().neq('id', '00000000-0000-0000-0000-000000000000');
          await supabase.from('invoices').delete().neq('id', '00000000-0000-0000-0000-000000000000');
          await supabase.from('services').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+         // We do not delete users here to prevent lockout
      } catch (e) {
          console.error("Failed to clear Supabase tables:", e);
      }

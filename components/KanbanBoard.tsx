@@ -1,23 +1,24 @@
 
 import React, { useState } from 'react';
-import { Post, PostStatus, STATUS_FLOW, UserRole } from '../types';
+import { Post, PostStatus, STATUS_FLOW, User } from '../types';
 import { PostCard } from './PostCard';
 import { MoreHorizontal } from 'lucide-react';
 
 interface KanbanBoardProps {
-  posts: Post[];
-  role: UserRole;
-  onPostClick: (post: Post) => void;
-  onStatusChange: (id: string, status: PostStatus, feedback?: string) => void;
-  onDelete: (id: string) => void;
+  posts: any[];
+  user: User;
+  onPostClick: (post: any) => void;
+  onStatusChange: (ids: string[], status: PostStatus, feedback?: string) => void;
+  onDelete: (ids: string[]) => void;
 }
 
-export const KanbanBoard: React.FC<KanbanBoardProps> = ({ posts, role, onPostClick, onStatusChange, onDelete }) => {
-  const [draggedPostId, setDraggedPostId] = useState<string | null>(null);
+export const KanbanBoard: React.FC<KanbanBoardProps> = ({ posts, user, onPostClick, onStatusChange, onDelete }) => {
+  const [draggedPostIds, setDraggedPostIds] = useState<string[] | null>(null);
 
-  const handleDragStart = (e: React.DragEvent, postId: string) => {
-    setDraggedPostId(postId);
-    e.dataTransfer.setData('postId', postId);
+  const handleDragStart = (e: React.DragEvent, post: any) => {
+    setDraggedPostIds(post.ids);
+    e.dataTransfer.setData('postIds', JSON.stringify(post.ids));
+    e.dataTransfer.setData('currentStatus', post.status);
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -28,47 +29,39 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ posts, role, onPostCli
 
   const handleDrop = (e: React.DragEvent, targetStatus: PostStatus) => {
     e.preventDefault();
-    const postId = e.dataTransfer.getData('postId');
-    if (!postId) return;
+    const idsJson = e.dataTransfer.getData('postIds');
+    const currentStatus = e.dataTransfer.getData('currentStatus');
+    if (!idsJson) return;
 
-    const post = posts.find(p => p.id === postId);
-    if (!post) {
-        setDraggedPostId(null);
-        return;
-    }
+    const ids = JSON.parse(idsJson);
 
     // --- Client Workflow Restrictions ---
-    if (role === 'client') {
-        // 1. Prevent moving to Scheduled, Published or Draft
+    // Fix: Check if role starts with 'client' instead of checking equality to 'client' string which doesn't exist in UserRole type
+    if (user.role.startsWith('client')) {
         if (targetStatus === 'Scheduled' || targetStatus === 'Published') {
             alert("Only your agency can schedule or publish posts.");
-            setDraggedPostId(null);
+            setDraggedPostIds(null);
             return;
         }
         if (targetStatus === 'Draft') {
              alert("You cannot move posts back to Draft. Please request changes instead.");
-             setDraggedPostId(null);
+             setDraggedPostIds(null);
              return;
         }
-
-        // 2. Enforce "No change to post = no change in status"
-        // If moving FROM Approved TO In Review (Rejection), require feedback
-        if (targetStatus === 'In Review' && post.status === 'Approved') {
+        if (targetStatus === 'In Review' && currentStatus === 'Approved') {
             const feedback = prompt("Please describe the changes needed to move this back to review:");
             if (!feedback || feedback.trim() === "") {
-                // User cancelled or entered nothing - abort status change
-                setDraggedPostId(null);
+                setDraggedPostIds(null);
                 return; 
             }
-            // Proceed with status change AND feedback
-            onStatusChange(postId, targetStatus, feedback);
-            setDraggedPostId(null);
+            onStatusChange(ids, targetStatus, feedback);
+            setDraggedPostIds(null);
             return;
         }
     }
 
-    onStatusChange(postId, targetStatus);
-    setDraggedPostId(null);
+    onStatusChange(ids, targetStatus);
+    setDraggedPostIds(null);
   };
 
   const getStatusColor = (status: PostStatus) => {
@@ -83,7 +76,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ posts, role, onPostCli
   };
 
   return (
-    <div className="flex overflow-x-auto pb-4 gap-3 md:gap-4 h-[calc(100vh-180px)] min-w-full snap-x snap-mandatory px-4 md:px-0 no-scrollbar">
+    <div className="flex overflow-x-auto pb-4 gap-3 md:gap-4 h-[calc(100vh-180px)] short:h-[calc(100vh-100px)] min-w-full snap-x snap-mandatory px-4 md:px-0 no-scrollbar">
       {STATUS_FLOW.map((status) => {
         const columnPosts = posts.filter(p => p.status === status);
         
@@ -94,8 +87,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ posts, role, onPostCli
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, status)}
           >
-            {/* Column Header */}
-            <div className="p-3 font-semibold text-sm flex justify-between items-center text-gray-700 dark:text-gray-200 bg-white/60 dark:bg-gray-800/60 rounded-t-xl border-b border-gray-100 dark:border-gray-700 backdrop-blur-sm sticky top-0 z-10">
+            <div className="p-3 short:p-2 font-semibold text-sm flex justify-between items-center text-gray-700 dark:text-gray-200 bg-white/60 dark:bg-gray-800/60 rounded-t-xl border-b border-gray-100 dark:border-gray-700 backdrop-blur-sm sticky top-0 z-10">
               <span className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${
                     status === 'Draft' ? 'bg-gray-400' :
@@ -110,20 +102,19 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ posts, role, onPostCli
               </span>
             </div>
 
-            {/* Drop Zone / List */}
-            <div className="flex-grow overflow-y-auto p-2 space-y-3 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+            <div className="flex-grow overflow-y-auto p-2 space-y-3 scrollbar-thin">
                {columnPosts.map(post => (
                  <div
-                    key={post.id}
+                    key={post.ids[0]}
                     draggable
-                    onDragStart={(e) => handleDragStart(e, post.id)}
+                    onDragStart={(e) => handleDragStart(e, post)}
                     className="cursor-pointer active:scale-[0.98] transition-transform touch-manipulation animate-slide-in relative group"
                     onClick={() => onPostClick(post)}
                  >
                     <div className="pointer-events-none">
                         <PostCard 
                             post={post} 
-                            role={role} 
+                            user={user} 
                             compact 
                             onStatusChange={onStatusChange} 
                         />

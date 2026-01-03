@@ -5,6 +5,23 @@ export type Platform = 'Instagram' | 'LinkedIn' | 'Twitter' | 'Facebook' | 'TikT
 
 export type MediaType = 'image' | 'video';
 
+// RBAC Roles
+export type UserRole = 
+  | 'agency_admin'    // Full Access
+  | 'agency_creator'  // Can create/edit, cannot delete/approve final
+  | 'client_admin'    // Can approve, view finance (if enabled)
+  | 'client_viewer';  // Read-only
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  clientId?: string; // If null, they are Agency staff. If set, they are bound to that client.
+  avatar?: string;
+  lastLogin?: number;
+}
+
 export interface Comment {
   id: string;
   author: string;
@@ -17,7 +34,7 @@ export interface Comment {
 export interface HistoryEntry {
   id: string;
   action: string;
-  by: string;
+  by: string; // Name of the user
   timestamp: number;
   details?: string;
 }
@@ -69,7 +86,7 @@ export interface Campaign {
 
 export interface ClientProfile {
   name: string;
-  accessCode: string;
+  accessCode: string; // Legacy / API access
   email?: string;
   phone?: string;
   website?: string;
@@ -127,8 +144,17 @@ export interface Invoice {
   updatedAt: number;
 }
 
-export type UserRole = 'agency' | 'client' | null;
-
 export const PLATFORMS: Platform[] = ['Instagram', 'LinkedIn', 'Twitter', 'Facebook', 'TikTok'];
 
 export const STATUS_FLOW: PostStatus[] = ['Draft', 'In Review', 'Approved', 'Scheduled', 'Published'];
+
+// --- PERMISSIONS HELPER ---
+export const PERMISSIONS = {
+  canDelete: (role: UserRole) => role === 'agency_admin',
+  canManageTeam: (role: UserRole) => role === 'agency_admin',
+  canViewFinance: (role: UserRole) => role === 'agency_admin',
+  canApprove: (role: UserRole) => ['agency_admin', 'client_admin'].includes(role),
+  canEdit: (role: UserRole) => ['agency_admin', 'agency_creator'].includes(role),
+  canPublish: (role: UserRole) => ['agency_admin'].includes(role),
+  isInternal: (role: UserRole) => ['agency_admin', 'agency_creator'].includes(role),
+};

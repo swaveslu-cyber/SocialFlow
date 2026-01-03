@@ -8,50 +8,31 @@ interface LogoProps {
 export const SwaveLogo: React.FC<LogoProps> = ({ className = "w-full h-full" }) => (
   <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-        <feGaussianBlur stdDeviation="2" result="blur" />
-        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+      <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#9D4EDD" />
+        <stop offset="100%" stopColor="#7B2CBF" />
+      </linearGradient>
+      <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#FF9100" />
+        <stop offset="100%" stopColor="#FF6D00" />
+      </linearGradient>
+      <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="4" stdDeviation="3" floodOpacity="0.15"/>
       </filter>
     </defs>
 
-    {/* Bottom Part - Orange (Rotated 180) */}
-    {/* Side/Depth (Darker) - Shifted Up-Left (-2, -2) due to rotation logic */}
-    <polygon 
-        points="83,73 63,88 13,78 13,62 63,72 83,57" 
-        fill="#B44600" 
-    />
-    {/* Face (Brighter) */}
-    <polygon 
-        points="85,75 65,90 15,80 15,64 65,74 85,59" 
-        fill="#F27A21" 
-    />
-    {/* Highlight Line */}
-    <polyline 
-        points="85,75 65,90 15,80" 
-        fill="none" 
-        stroke="white" 
-        strokeOpacity="0.3" 
-        strokeWidth="1" 
-    />
-
-    {/* Top Part - Purple */}
-    {/* Side/Depth (Darker) - Shifted Down-Right (+2, +2) */}
-    <polygon 
-        points="17,27 37,12 87,22 87,38 37,28 17,43" 
-        fill="#5a2775" 
-    />
-    {/* Face (Brighter) */}
-    <polygon 
-        points="15,25 35,10 85,20 85,36 35,26 15,41" 
-        fill="#8E3EBB" 
-    />
-    {/* Highlight Line */}
-    <polyline 
-        points="15,25 35,10 85,20" 
-        fill="none" 
-        stroke="white" 
-        strokeOpacity="0.3" 
-        strokeWidth="1" 
-    />
+    <g filter="url(#shadow)">
+        {/* Orange Shape (Bottom) */}
+        {/* Depth / Side Face */}
+        <path d="M5,70 L15,85 L60,85 L85,65 L85,72 L60,92 L15,92 L5,77 Z" fill="#B44600" />
+        {/* Main Face */}
+        <path d="M85,65 L60,85 L15,85 L5,70 L15,55 L40,55 L65,30 L85,30 Z" fill="url(#orangeGrad)" />
+        
+        {/* Purple Shape (Top) */}
+        {/* Depth / Side Face */}
+        <path d="M15,70 L35,70 L60,45 L85,45 L95,30 L95,37 L85,52 L60,52 L35,77 L15,77 Z" fill="#5a2775" />
+        {/* Main Face */}
+        <path d="M15,35 L40,15 L85,15 L95,30 L85,45 L60,45 L35,70 L15,70 Z" fill="url(#purpleGrad)" />
+    </g>
   </svg>
 );
