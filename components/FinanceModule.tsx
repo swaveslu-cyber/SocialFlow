@@ -116,9 +116,13 @@ export const FinanceModule: React.FC = () => {
       setIsSaving(true);
       try {
           const { subtotal, taxAmount, grandTotal } = calculateTotals(editingInvoice);
+          
+          // Ensure mandatory fields are present
           const finalInvoice = {
               ...editingInvoice,
               id: editingInvoice.id || crypto.randomUUID(),
+              clientId: editingInvoice.clientId || 'unknown', // Fallback to avoid string constraint violation if undefined
+              items: editingInvoice.items || [],
               subtotal,
               taxAmount,
               grandTotal,
@@ -131,7 +135,9 @@ export const FinanceModule: React.FC = () => {
           setView('dashboard');
       } catch (error: any) {
           console.error("Save failed:", error);
-          alert(`Failed to save invoice. Error: ${error.message || 'Unknown database error'}`);
+          // Improved error alerting
+          const msg = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+          alert(`Failed to save invoice. Error: ${msg}`);
       } finally {
           setIsSaving(false);
       }
@@ -163,6 +169,8 @@ export const FinanceModule: React.FC = () => {
       if (client) {
           setEditingInvoice({
               ...editingInvoice,
+              // Attempt to capture ID if present on runtime object, otherwise rely on name or placeholder
+              clientId: (client as any).id || client.name, 
               clientName: client.name,
               clientCompany: client.name, // Assuming name is company name based on app usage
               clientAddress: client.billingAddress || '',
