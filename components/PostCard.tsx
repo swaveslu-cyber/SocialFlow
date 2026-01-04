@@ -219,15 +219,28 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
             {viewMode === 'history' && renderHistory()}
         </div>
         {!compact && (
-            <div className={`p-2 mx-2 mb-2 short:mx-2 short:mb-2 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-md rounded-2xl flex items-center justify-between gap-2 relative transition-all shrink-0 ${viewMode !== 'content' ? 'opacity-0 h-0 p-0 m-0 overflow-hidden' : 'opacity-100'}`}>
+            <div className="p-2 mx-2 mb-2 short:mx-2 short:mb-2 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-md rounded-2xl flex items-center justify-between gap-2 relative transition-all shrink-0 min-h-[56px]">
+                {/* PERSISTENT VIEW MODE SWITCHER */}
                 <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => setViewMode('content')} className={`p-2.5 short:p-2 rounded-xl transition-all ${viewMode === 'content' ? 'bg-white dark:bg-gray-700 text-swave-orange shadow-md scale-105' : 'text-gray-400 hover:text-gray-600'}`}><Eye className="w-4 h-4 short:w-3.5 short:h-3.5" /></button>
-                    <button onClick={() => setViewMode('comments')} className={`p-2.5 short:p-2 rounded-xl transition-all relative ${viewMode === 'comments' ? 'bg-white dark:bg-gray-700 text-swave-purple shadow-md scale-105' : 'text-gray-400 hover:text-gray-600'}`}>
+                    <button 
+                        onClick={() => setViewMode('content')} 
+                        className={`p-2.5 short:p-2 rounded-xl transition-all ${viewMode === 'content' ? 'bg-white dark:bg-gray-700 text-swave-orange shadow-md scale-105' : 'text-gray-400 hover:text-gray-600'}`}
+                        title="View Content"
+                    >
+                        <Eye className="w-4 h-4 short:w-3.5 short:h-3.5" />
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('comments')} 
+                        className={`p-2.5 short:p-2 rounded-xl transition-all relative ${viewMode === 'comments' ? 'bg-white dark:bg-gray-700 text-swave-purple shadow-md scale-105' : 'text-gray-400 hover:text-gray-600'}`}
+                        title="View Comments"
+                    >
                         <MessageSquare className="w-4 h-4 short:w-3.5 short:h-3.5" />
                         {visibleComments.length > 0 && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-swave-orange rounded-full border-2 border-gray-50 dark:border-gray-900"></span>}
                     </button>
                 </div>
-                <div className="flex items-center justify-end gap-1 flex-grow min-w-0">
+
+                {/* CONDITIONAL ACTION BUTTONS - Only shown in content mode */}
+                <div className={`flex items-center justify-end gap-1 flex-grow min-w-0 transition-opacity duration-300 ${viewMode !== 'content' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                     <div className="flex items-center gap-1">
                         {post.status === 'Trashed' ? (
                             <button onClick={() => onRestore?.(ids)} className="text-[10px] bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-2 py-2 rounded-xl hover:scale-105 font-black flex items-center gap-1 transition-all active:scale-95"><RotateCcw className="w-3.5 h-3.5"/> Restore</button>
