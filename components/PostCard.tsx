@@ -94,7 +94,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
   };
 
   const renderContent = () => (
-    <div className="flex flex-col gap-4 overflow-y-auto no-scrollbar pb-2 animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1">
+    <div className="flex flex-col gap-4 overflow-y-auto pb-2 animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1">
         <div className="flex flex-wrap gap-2 shrink-0">
             {post.campaign && (
                 <span className="bg-swave-purple/10 text-swave-purple text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest border border-swave-purple/20 flex items-center gap-1">
@@ -134,7 +134,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
   const renderComments = () => (
     <div className="flex flex-col flex-1 animate-in fade-in slide-in-from-right-2 duration-300 overflow-hidden">
       <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4 shrink-0">Collaboration Hub</h4>
-      <div className="flex-grow overflow-y-auto space-y-4 pr-1 scrollbar-thin pb-4 px-1">
+      <div className="flex-grow overflow-y-auto space-y-4 pr-1 pb-4 px-1">
         {visibleComments.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-300 dark:text-gray-600 space-y-3 py-10 opacity-60">
               <MessageSquare className="w-12 h-12 stroke-[1.5]"/>
@@ -178,7 +178,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
   const renderHistory = () => (
     <div className="flex flex-col flex-1 animate-in fade-in slide-in-from-right-2 duration-300 overflow-hidden">
       <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4 shrink-0">Audit Journal</h4>
-      <div className="flex-grow overflow-y-auto scrollbar-thin">
+      <div className="flex-grow overflow-y-auto">
         <ul className="space-y-6 relative ml-2 border-l-2 border-gray-100 dark:border-gray-700 pl-6 py-2">
             {(post.history || []).map((h) => (
             <li key={h.id} className="relative">

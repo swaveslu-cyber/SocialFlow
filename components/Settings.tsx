@@ -4,7 +4,7 @@ import { db } from '../services/db';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../services/firebaseConfig';
 import { Template, Snippet, Platform, PLATFORMS, ClientProfile, User, UserRole, AppConfig, BrandKit, ServiceItem } from '../types';
-import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2, BookOpen, Settings2, Briefcase, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Heading1, Heading2, Quote, Code, Globe, Mail, Phone, MapPin, CreditCard } from 'lucide-react';
+import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2, BookOpen, Settings2, Briefcase, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Heading1, Heading2, Quote, Code, Globe, Mail, Phone, MapPin, CreditCard, Copy, Key } from 'lucide-react';
 import { OnboardingWizard } from './OnboardingWizard';
 import { BrandCard } from './BrandCard';
 import { OnboardingConfigurator } from './OnboardingConfigurator';
@@ -440,6 +440,16 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                         </div>
                                         <div className="min-w-0">
                                             <p className="font-black text-gray-900 dark:text-white text-base truncate">{client.name}</p>
+                                            {/* Access Code Display in Card */}
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 dark:bg-gray-700/50 rounded-lg">
+                                                    <Key className="w-3 h-3 text-gray-400"/>
+                                                    <span className="text-[10px] font-mono font-bold text-gray-500 dark:text-gray-400">{client.accessCode}</span>
+                                                </div>
+                                                <button onClick={() => { navigator.clipboard.writeText(client.accessCode || ''); alert("Code Copied!"); }} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md text-gray-400 hover:text-swave-purple transition-colors" title="Copy Code">
+                                                    <Copy className="w-3 h-3"/>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex gap-2 justify-end relative z-10 border-t border-gray-50 dark:border-gray-700/50 pt-3">
@@ -478,6 +488,25 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                             onChange={e => setEditingClient({...editingClient, name: e.target.value})}
                                             className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl font-bold"
                                         />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Access Code</label>
+                                        <div className="relative flex items-center">
+                                            <input 
+                                                value={editingClient.accessCode || 'N/A'}
+                                                readOnly
+                                                className="w-full pl-10 p-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-mono font-bold text-center tracking-widest cursor-text"
+                                            />
+                                            <Key className="absolute left-3 w-4 h-4 text-gray-400" />
+                                            <button 
+                                                type="button"
+                                                onClick={() => { navigator.clipboard.writeText(editingClient.accessCode || ''); alert("Access Code Copied!"); }}
+                                                className="absolute right-2 p-1.5 hover:bg-white dark:hover:bg-gray-700 rounded-lg text-gray-400 hover:text-swave-purple transition-all"
+                                                title="Copy Code"
+                                            >
+                                                <Copy className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Website</label>

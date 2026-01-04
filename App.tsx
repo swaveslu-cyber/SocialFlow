@@ -370,7 +370,7 @@ export default function App() {
                     </button>
                 </div>
 
-                <div className="flex-grow px-4 short:px-2 space-y-8 short:space-y-4 overflow-y-auto no-scrollbar">
+                <div className="flex-grow px-4 short:px-2 space-y-8 short:space-y-4 overflow-y-auto">
                     <div>
                         <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Operations</p>
                         <div className="space-y-1">
@@ -460,7 +460,7 @@ export default function App() {
                                     {showClientSelector && (
                                         <div className="absolute top-full left-0 mt-4 w-72 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl z-20 overflow-hidden animate-in slide-in-from-top-2">
                                             <button onClick={() => { setFilterClient('All'); setShowClientSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-black uppercase tracking-widest border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${filterClient === 'All' ? 'text-swave-orange' : 'text-gray-600'}`}>Show All</button>
-                                            <div className="max-h-80 overflow-y-auto no-scrollbar">
+                                            <div className="max-h-80 overflow-y-auto">
                                                 {clients.map(c => <button key={c} onClick={() => { setFilterClient(c); setShowClientSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-bold border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${filterClient === c ? 'text-swave-purple' : 'text-gray-700 dark:text-gray-200'}`}>{c}</button>)}
                                             </div>
                                         </div>
@@ -504,7 +504,7 @@ export default function App() {
                                              <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Inbox</span>
                                              <span className="text-[10px] bg-swave-orange text-swave-orange-text px-3 py-1 rounded-full font-black tracking-widest ml-2">{notifications.length} NEW</span>
                                          </div>
-                                         <div className="max-h-[400px] overflow-y-auto no-scrollbar pb-2">
+                                         <div className="max-h-[400px] overflow-y-auto pb-2">
                                              {notifications.length === 0 ? <div className="p-12 text-center text-gray-400 text-sm font-bold italic opacity-40">Your inbox is clear. ✨</div> : notifications.map(n => <div key={n.id} onClick={() => { const p = posts.find(post => post.id === n.postId); if(p) { /* handle scroll to or open */ setShowNotifications(false); } }} className="p-5 border-b border-gray-50 dark:border-gray-800 hover:bg-orange-50/40 dark:hover:bg-orange-900/10 cursor-pointer flex gap-4 transition-colors">
                                                  <div className="mt-2 flex-shrink-0 w-3 h-3 rounded-full bg-swave-orange" />
                                                  <div className="flex-grow"><p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 leading-snug">{n.text}</p><p className="text-xs text-gray-400 font-black mt-2 uppercase tracking-widest">{new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div>
@@ -516,7 +516,7 @@ export default function App() {
                          </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2 pt-1 short:pb-1">
+                <div className="flex items-center gap-4 overflow-x-auto pb-2 pt-1 short:pb-1">
                     <div className="flex items-center gap-2.5 p-2 short:p-1 bg-gray-100/50 dark:bg-gray-800/50 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-inner w-full md:w-auto">
                         <div className="flex gap-2.5 short:gap-1.5 min-w-full md:min-w-0">
                             {STATUS_PILLS.map((pill) => <button key={pill.label} onClick={() => setFilterStatus(pill.value)} className={`px-6 py-2.5 short:py-1.5 short:px-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterStatus === pill.value ? pill.color + ' shadow-xl scale-105 ring-4 ring-white dark:ring-gray-900 z-10' : 'bg-[var(--color-button)] text-[var(--color-button-text)] border border-gray-200 dark:border-gray-700 hover:opacity-80 dark:bg-gray-800 dark:text-gray-400'}`}>{pill.label}</button>)}
@@ -525,7 +525,7 @@ export default function App() {
                 </div>
             </header>
 
-            <div className="flex-grow overflow-auto p-6 md:p-8 pb-20 no-scrollbar short:p-4 short:pb-24">
+            <div className="flex-grow overflow-auto p-6 md:p-8 pb-20 short:p-4 short:pb-24">
                 {(viewMode === 'list' || viewMode === 'trash') && (
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 short:gap-4">
@@ -555,7 +555,7 @@ export default function App() {
                         <button type="button" onClick={closeForm} className="p-4 short:p-2 hover:bg-gray-100 rounded-3xl transition-all text-gray-500 hover:rotate-180 duration-500"><X className="w-8 h-8 short:w-6 short:h-6" /></button>
                     </div>
                     {/* Simplified Layout Reuse */}
-                    <div className="flex-grow overflow-y-auto p-10 lg:p-12 short:p-4 grid grid-cols-1 lg:grid-cols-7 gap-12 short:gap-6 no-scrollbar">
+                    <div className="flex-grow overflow-y-auto p-10 lg:p-12 short:p-4 grid grid-cols-1 lg:grid-cols-7 gap-12 short:gap-6">
                            <div className="lg:col-span-3 space-y-10 short:space-y-4">
                                 {!currentUser.clientId && (
                                 <div className="short:flex short:items-center short:gap-4">

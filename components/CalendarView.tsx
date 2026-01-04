@@ -25,7 +25,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ posts, onPostClick }
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
   
-  // Calculate exact number of rows needed (5 or 6) to distribute height evenly
+  // Calculate exact number of rows needed (5 or 6)
   const totalSlots = firstDayOfMonth + daysInMonth;
   const totalRows = Math.ceil(totalSlots / 7);
 
@@ -65,7 +65,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ posts, onPostClick }
   return (
     <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in flex flex-col h-full">
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0">
+        <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0 relative z-30">
              <div className="flex items-center gap-4">
                 <div className="bg-swave-orange/10 p-3 rounded-2xl text-swave-orange hidden sm:block">
                     <CalendarIcon className="w-6 h-6" />
@@ -85,9 +85,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ posts, onPostClick }
              </div>
         </div>
 
-        {/* Grid Container */}
-        <div className="flex-grow flex flex-col min-h-0 relative bg-white dark:bg-gray-900">
-            <div className="h-full flex flex-col min-w-[800px] lg:min-w-0">
+        {/* Grid Container with Scroll Support */}
+        <div className="flex-grow flex flex-col min-h-0 relative bg-white dark:bg-gray-900 overflow-y-auto">
+            <div className="min-h-full flex flex-col min-w-[800px] lg:min-w-0">
                 {/* Day Headers */}
                 <div className="grid grid-cols-7 border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-900/90 backdrop-blur-md sticky top-0 z-20 shrink-0">
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
@@ -97,10 +97,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ posts, onPostClick }
                     ))}
                 </div>
 
-                {/* Days Grid - Uses dynamic rows to fill height exactly */}
+                {/* Days Grid - Optimized Rows */}
                 <div 
                     className="grid grid-cols-7 bg-gray-100 dark:bg-gray-800 gap-px border-b border-gray-100 dark:border-gray-800 flex-grow"
-                    style={{ gridTemplateRows: `repeat(${totalRows}, minmax(0, 1fr))` }}
+                    style={{ gridTemplateRows: `repeat(${totalRows}, minmax(120px, 1fr))` }}
                 >
                     {/* Empty cells for previous month */}
                     {[...Array(firstDayOfMonth)].map((_, i) => (
@@ -127,8 +127,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ posts, onPostClick }
                                     )}
                                 </div>
 
-                                {/* Posts List - Scrollbar Hidden */}
-                                <div className="flex flex-col gap-1 overflow-y-auto flex-1 no-scrollbar pr-0.5">
+                                {/* Posts List */}
+                                <div className="flex flex-col gap-1 overflow-y-auto flex-1 pr-0.5">
                                     {dayPosts.map(post => (
                                         <div 
                                             key={post.ids[0]}
