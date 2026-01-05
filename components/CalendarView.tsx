@@ -85,27 +85,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ posts, onPostClick, 
   return (
     <div className={`bg-white dark:bg-gray-900 rounded-[2rem] shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in flex flex-col h-full transition-all duration-300 ${isFocused ? 'fixed inset-0 z-[100] rounded-none border-0' : ''}`}>
         {/* Header - Compact */}
-        <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0 z-20">
-             <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0 z-20">
+             <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
+                <div className="flex items-center gap-2 min-w-0">
+                    <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none truncate">
                         {monthNames[currentDate.getMonth()]} 
-                        <span className="text-gray-400 font-medium ml-2">{currentDate.getFullYear()}</span>
+                        <span className="text-gray-400 font-medium ml-1.5 sm:ml-2">{currentDate.getFullYear()}</span>
                     </h2>
-                    <div className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md text-[10px] font-bold text-gray-500 uppercase tracking-wider hidden sm:block">
+                    <div className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md text-[10px] font-bold text-gray-500 uppercase tracking-wider hidden sm:block shrink-0">
                         Monthly View
                     </div>
                 </div>
              </div>
-             <div className="flex items-center gap-3">
-                <div className="flex gap-1 bg-gray-50 dark:bg-gray-800 p-1 rounded-xl border border-gray-100 dark:border-gray-700">
-                    <button onClick={prevMonth} className="p-1.5 hover:bg-white dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-all"><ChevronLeft className="w-4 h-4"/></button>
-                    <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1 text-xs font-bold hover:bg-white dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-all">Today</button>
-                    <button onClick={nextMonth} className="p-1.5 hover:bg-white dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-all"><ChevronRight className="w-4 h-4"/></button>
+             <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center bg-gray-50 dark:bg-gray-800 p-0.5 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <button onClick={prevMonth} className="p-1 hover:bg-white dark:hover:bg-gray-700 rounded-md text-gray-600 dark:text-gray-300 transition-all"><ChevronLeft className="w-3.5 h-3.5"/></button>
+                    <button onClick={() => setCurrentDate(new Date())} className="px-2 py-0.5 text-[10px] font-bold hover:bg-white dark:hover:bg-gray-700 rounded-md text-gray-600 dark:text-gray-300 transition-all">Today</button>
+                    <button onClick={nextMonth} className="p-1 hover:bg-white dark:hover:bg-gray-700 rounded-md text-gray-600 dark:text-gray-300 transition-all"><ChevronRight className="w-3.5 h-3.5"/></button>
                 </div>
                 {onToggleFocus && (
-                    <button onClick={toggleFocus} className="p-2.5 bg-swave-orange/10 text-swave-orange hover:bg-swave-orange hover:text-white rounded-xl transition-all" title={isFocused ? "Exit Full Screen" : "Full Screen"}>
-                        {isFocused ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                    <button onClick={toggleFocus} className="p-1.5 bg-swave-orange/10 text-swave-orange hover:bg-swave-orange hover:text-white rounded-lg transition-all" title={isFocused ? "Exit Full Screen" : "Full Screen"}>
+                        {isFocused ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                     </button>
                 )}
              </div>

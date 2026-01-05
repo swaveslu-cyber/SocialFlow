@@ -29,8 +29,8 @@ export const DailyBriefing: React.FC<DailyBriefingProps> = ({ posts, onClose }) 
   const drafts = posts.filter(p => p.status === 'Draft');
 
   return (
-    <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-orange-100 dark:border-gray-700 animate-in slide-in-from-bottom-8 duration-300">
+    <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-orange-100 dark:border-gray-700 animate-in slide-in-from-bottom-8 duration-300" onClick={e => e.stopPropagation()}>
         
         <div className="bg-gradient-to-r from-swave-orange to-swave-purple p-6 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10">

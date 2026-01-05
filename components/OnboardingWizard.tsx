@@ -259,7 +259,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ clientName, 
   );
 
   return (
-    <div className="fixed inset-0 z-[120] bg-white dark:bg-gray-950 flex flex-col animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[120] bg-white dark:bg-gray-950 flex flex-col animate-in fade-in duration-300" onClick={onCancel}>
+        <div onClick={e => e.stopPropagation()} className="w-full h-full flex flex-col bg-white dark:bg-gray-950">
         {/* Header */}
         <div className="h-20 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-8 bg-white dark:bg-gray-950 sticky top-0 z-20">
             <div className="flex items-center gap-4">
@@ -313,6 +314,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ clientName, 
                 {!isSaving && step < 4 && <ArrowRight className="w-6 h-6"/>}
                 {!isSaving && step === 4 && <Check className="w-6 h-6"/>}
             </button>
+        </div>
         </div>
     </div>
   );

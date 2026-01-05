@@ -65,7 +65,10 @@ export default function App() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  
   const [showClientSelector, setShowClientSelector] = useState(false);
+  const clientSelectorRef = useRef<HTMLDivElement>(null);
+
   const [showCampaignSelector, setShowCampaignSelector] = useState(false);
   
   // New: Calendar specific UI state
@@ -146,7 +149,12 @@ export default function App() {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) setShowNotifications(false);
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+          setShowNotifications(false);
+      }
+      if (clientSelectorRef.current && !clientSelectorRef.current.contains(event.target as Node)) {
+          setShowClientSelector(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -381,14 +389,34 @@ export default function App() {
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950"><Loader2 className="w-10 h-10 animate-spin text-swave-orange" /></div>;
   if (!currentUser) return <Login onLogin={handleLogin} branding={branding} />;
   
-  if (isSettingsOpen) return <Settings clients={clients} templates={templates} snippets={snippets} onUpdate={() => loadData(true)} onClose={() => setIsSettingsOpen(false)} currentUser={currentUser} />;
-
   return (
     <div className="flex h-screen bg-[#F5F7FA] dark:bg-gray-950 overflow-hidden relative">
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-swave-orange/10 rounded-full blur-[160px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
         <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-swave-purple/10 rounded-full blur-[160px] pointer-events-none translate-y-1/2 -translate-x-1/2"></div>
+        
+        {/* Modals & Overlays - Click outside behavior implemented on wrapper divs */}
         {showDailyBriefing && <DailyBriefing posts={posts} onClose={() => setShowDailyBriefing(false)} />}
         {showServiceGuide && <ServiceGuide onClose={() => setShowServiceGuide(false)} branding={branding} />}
+        
+        {isSettingsOpen && (
+            <div className="fixed inset-0 z-[90] bg-black/80 backdrop-blur-sm flex items-center justify-center p-0 md:p-4 animate-in fade-in" onClick={() => setIsSettingsOpen(false)}>
+                <div onClick={e => e.stopPropagation()} className="w-full max-w-[1920px]">
+                    <Settings 
+                        clients={clients} 
+                        templates={templates} 
+                        snippets={snippets} 
+                        onUpdate={() => loadData(true)} 
+                        onClose={() => setIsSettingsOpen(false)} 
+                        currentUser={currentUser} 
+                    />
+                </div>
+            </div>
+        )}
+
+        {/* Mobile Sidebar Backdrop */}
+        {sidebarOpen && (
+            <div className="fixed inset-0 z-[55] bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)}></div>
+        )}
 
         {/* Hide Sidebar in Calendar Focus Mode */}
         <aside className={`fixed inset-y-0 left-0 z-[60] w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCalendarFocused ? 'md:-translate-x-full md:w-0' : 'md:w-72'} shadow-2xl md:shadow-none`}>
@@ -504,7 +532,7 @@ export default function App() {
 
                         {!currentUser.clientId && viewMode !== 'trash' && (
                              <div className="flex gap-3 short:gap-1.5">
-                                <div className="relative">
+                                <div className="relative" ref={clientSelectorRef}>
                                     <button onClick={() => { setShowClientSelector(!showClientSelector); setShowCampaignSelector(false); }} className="flex items-center gap-3 px-6 py-3.5 short:py-2 short:px-4 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-gray-200 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm transition-all active:scale-95">
                                         <Building2 className="w-4 h-4 text-swave-purple" />
                                         <span className="text-sm font-black hidden sm:inline">{filterClient === 'All' ? 'All Portfolios' : filterClient}</span>
@@ -608,10 +636,10 @@ export default function App() {
             </>
             )}
         </main>
-        {/* Form Logic */}
+        {/* Form Logic - Modal with click outside to close */}
         {isFormOpen && (
-            <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-0 md:p-4 animate-in fade-in">
-                 <div className="bg-white dark:bg-gray-800 rounded-none md:rounded-[4rem] shadow-2xl w-full md:max-w-[95vw] h-full md:h-[95vh] overflow-hidden flex flex-col scale-100 animate-in zoom-in-90">
+            <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-0 md:p-4 animate-in fade-in" onClick={closeForm}>
+                 <div className="bg-white dark:bg-gray-800 rounded-none md:rounded-[4rem] shadow-2xl w-full md:max-w-[95vw] h-full md:h-[95vh] overflow-hidden flex flex-col scale-100 animate-in zoom-in-90" onClick={(e) => e.stopPropagation()}>
                     <div className="p-4 md:p-10 border-b border-gray-100 flex justify-between items-center bg-white dark:bg-gray-800 shrink-0">
                         <h2 className="text-xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tighter">Studio Workspace</h2>
                         <button type="button" onClick={closeForm} className="p-2 md:p-4 hover:bg-gray-100 rounded-2xl md:rounded-3xl transition-all text-gray-500 hover:rotate-180 duration-500"><X className="w-6 h-6 md:w-8 md:h-8" /></button>
