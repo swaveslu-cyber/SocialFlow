@@ -67,6 +67,9 @@ export default function App() {
   const notificationRef = useRef<HTMLDivElement>(null);
   const [showClientSelector, setShowClientSelector] = useState(false);
   const [showCampaignSelector, setShowCampaignSelector] = useState(false);
+  
+  // New: Calendar specific UI state
+  const [isCalendarFocused, setIsCalendarFocused] = useState(false);
 
   // Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -387,7 +390,8 @@ export default function App() {
         {showDailyBriefing && <DailyBriefing posts={posts} onClose={() => setShowDailyBriefing(false)} />}
         {showServiceGuide && <ServiceGuide onClose={() => setShowServiceGuide(false)} branding={branding} />}
 
-        <aside className={`fixed inset-y-0 left-0 z-[60] w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl md:shadow-none`}>
+        {/* Hide Sidebar in Calendar Focus Mode */}
+        <aside className={`fixed inset-y-0 left-0 z-[60] w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCalendarFocused ? 'md:-translate-x-full md:w-0' : 'md:w-72'} shadow-2xl md:shadow-none`}>
             <div className="h-full flex flex-col">
                 <div className="p-8 short:p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -405,33 +409,34 @@ export default function App() {
                     <div>
                         <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Operations</p>
                         <div className="space-y-1">
-                            <button onClick={() => { setViewMode('list'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'list' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                            <button onClick={() => { setViewMode('list'); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'list' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <List className="w-5 h-5 short:w-4 short:h-4" /> Master Feed
                             </button>
                             <button onClick={() => { setViewMode('calendar'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'calendar' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <CalendarIcon className="w-5 h-5 short:w-4 short:h-4" /> Schedule Plan
                             </button>
-                            <button onClick={() => { setViewMode('kanban'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'kanban' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                            <button onClick={() => { setViewMode('kanban'); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'kanban' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <LayoutGrid className="w-5 h-5 short:w-4 short:h-4" /> Workflow Board
                             </button>
                             {PERMISSIONS.canDelete(currentUser.role) && (
-                                <button onClick={() => { setViewMode('trash'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all mt-4 short:mt-2 ${viewMode === 'trash' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-gray-600 hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400'}`}>
+                                <button onClick={() => { setViewMode('trash'); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all mt-4 short:mt-2 ${viewMode === 'trash' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-gray-600 hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400'}`}>
                                     <Trash2 className="w-5 h-5 short:w-4 short:h-4" /> Archive
                                 </button>
                             )}
                         </div>
                     </div>
+                    {/* ... other nav items ... */}
                     <div>
                         <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Resources</p>
                         <div className="space-y-1">
-                             <button onClick={() => { setViewMode('reports'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'reports' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                             <button onClick={() => { setViewMode('reports'); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'reports' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <BarChart3 className="w-5 h-5 short:w-4 short:h-4" /> Reports & Stats
                             </button>
                              <button onClick={() => { setShowServiceGuide(true); setSidebarOpen(false); }} className="w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
                                 <BookOpen className="w-5 h-5 short:w-4 short:h-4" /> Service Guide
                             </button>
                              {PERMISSIONS.canViewFinance(currentUser.role) && (
-                                <button onClick={() => { setViewMode('finance'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'finance' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                                <button onClick={() => { setViewMode('finance'); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'finance' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                     <DollarSign className="w-5 h-5 short:w-4 short:h-4" /> Invoicing
                                 </button>
                              )}
@@ -441,7 +446,7 @@ export default function App() {
                         <div>
                              <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Administration</p>
                              <div className="space-y-1">
-                                 <button onClick={() => { setIsSettingsOpen(true); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${isSettingsOpen ? 'bg-swave-purple text-swave-purple-text shadow-lg shadow-purple-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                                 <button onClick={() => { setIsSettingsOpen(true); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${isSettingsOpen ? 'bg-swave-purple text-swave-purple-text shadow-lg shadow-purple-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                     <SettingsIcon className="w-5 h-5 short:w-4 short:h-4" /> Settings & Team
                                 </button>
                              </div>
@@ -484,8 +489,9 @@ export default function App() {
             
             {(viewMode === 'list' || viewMode === 'calendar' || viewMode === 'kanban' || viewMode === 'trash') && (
             <>
-            {/* ... Existing header logic for other views ... */}
-            <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-3xl sticky top-0 z-40 border-b border-gray-100 dark:border-gray-800 px-6 py-4 md:px-8 short:py-2">
+            {/* Header - Hidden when Calendar Focus is Active */}
+            {!isCalendarFocused && (
+            <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-3xl sticky top-0 z-40 border-b border-gray-100 dark:border-gray-800 px-6 py-4 md:px-8 short:py-2 animate-in slide-in-from-top-2">
                 <div className="flex flex-wrap items-center justify-between gap-6 mb-6 short:mb-2">
                     <div className="flex items-center gap-4">
                         <button onClick={() => setSidebarOpen(true)} className="md:hidden p-3 short:p-2 bg-white dark:bg-gray-800 rounded-[1.25rem] shadow-sm border border-gray-100 dark:border-gray-700 transition-transform active:scale-90"><Menu className="w-6 h-6 short:w-5 short:h-5" /></button>
@@ -571,8 +577,9 @@ export default function App() {
                     </div>
                 </div>
             </header>
+            )}
 
-            <div className="flex-grow overflow-auto p-6 md:p-8 pb-20 short:p-4 short:pb-24">
+            <div className={`flex-grow overflow-auto ${isCalendarFocused ? 'p-0' : 'p-6 md:p-8 pb-20 short:p-4 short:pb-24'}`}>
                 {(viewMode === 'list' || viewMode === 'trash') && (
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 short:gap-4">
@@ -587,7 +594,15 @@ export default function App() {
                         )}
                     </>
                 )}
-                {viewMode === 'calendar' && <div className="h-full bg-white dark:bg-gray-900 rounded-[3.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden"><CalendarView posts={filteredGroupedPosts as any} onPostClick={openEditPostForm} /></div>}
+                {viewMode === 'calendar' && (
+                    <div className="h-full bg-white dark:bg-gray-900 rounded-[3.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                        <CalendarView 
+                            posts={filteredGroupedPosts as any} 
+                            onPostClick={openEditPostForm} 
+                            onToggleFocus={setIsCalendarFocused}
+                        />
+                    </div>
+                )}
                 {viewMode === 'kanban' && <KanbanBoard posts={filteredGroupedPosts as any} user={currentUser} onPostClick={openEditPostForm} onStatusChange={handleStatusChange} onDelete={handleDeletePost} />}
             </div>
             </>
