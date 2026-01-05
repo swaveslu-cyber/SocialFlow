@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Post, PostStatus } from '../types';
 import { 
   ChevronLeft, ChevronRight, Maximize2, Minimize2, 
-  Instagram, Linkedin, Twitter, Facebook, Video 
+  Instagram, Linkedin, Facebook, Video, X 
 } from 'lucide-react';
 
 interface CalendarViewProps {
@@ -62,7 +62,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ posts, onPostClick, 
     switch (platform) {
         case 'Instagram': return <Instagram className={cn} />;
         case 'LinkedIn': return <Linkedin className={cn} />;
-        case 'Twitter': return <Twitter className={cn} />;
+        case 'X': return <X className={cn} />;
+        case 'Twitter': return <X className={cn} />; // Legacy
         case 'Facebook': return <Facebook className={cn} />;
         case 'TikTok': return <Video className={cn} />;
         default: return null;

@@ -9,7 +9,20 @@ interface BrandCardProps {
   onEdit: () => void;
 }
 
+const getSafeUrlInfo = (urlStr: string) => {
+    if (!urlStr) return { href: '#', label: 'No Website Configured' };
+    try {
+        const safeUrl = urlStr.startsWith('http') ? urlStr : `https://${urlStr}`;
+        const url = new URL(safeUrl);
+        return { href: safeUrl, label: url.hostname };
+    } catch (e) {
+        return { href: '#', label: urlStr || 'Invalid URL' };
+    }
+};
+
 export const BrandCard: React.FC<BrandCardProps> = ({ kit, onClose, onEdit }) => {
+  const websiteInfo = getSafeUrlInfo(kit.company_details.website);
+
   return (
     <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose}>
       <div className="bg-white dark:bg-gray-900 w-full max-w-4xl h-[90vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row relative" onClick={e => e.stopPropagation()}>
@@ -27,8 +40,8 @@ export const BrandCard: React.FC<BrandCardProps> = ({ kit, onClose, onEdit }) =>
                     ) : (
                         <h2 className="text-3xl font-black tracking-tighter uppercase mb-4">{kit.company_details.name}</h2>
                     )}
-                    <a href={kit.company_details.website} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
-                        <Globe className="w-4 h-4" /> {new URL(kit.company_details.website).hostname}
+                    <a href={websiteInfo.href} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors group">
+                        <Globe className="w-4 h-4 group-hover:text-swave-orange transition-colors" /> {websiteInfo.label}
                     </a>
                 </div>
 

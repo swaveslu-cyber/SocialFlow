@@ -2,9 +2,9 @@
 import React, { useState } from 'react';
 import { Post, PostStatus, User, PERMISSIONS } from '../types';
 import { 
-  Calendar, Instagram, Linkedin, Twitter, Facebook, Video, 
+  Calendar, Instagram, Linkedin, Facebook, Video, 
   Trash2, Send, CheckCircle, XCircle, MessageSquare, 
-  Building2, History, Copy, ArrowRight, Edit2, Check, Loader2, RotateCcw, MoreHorizontal, Eye, Lock, Globe, Flag, Share2
+  Building2, History, Copy, ArrowRight, Edit2, Check, Loader2, RotateCcw, MoreHorizontal, Eye, Lock, Globe, Flag, Share2, X
 } from 'lucide-react';
 import { db } from '../services/db';
 
@@ -23,7 +23,8 @@ const PlatformIcon = ({ platform }: { platform: string }) => {
   switch (platform) {
     case 'Instagram': return <Instagram className="w-3.5 h-3.5 text-pink-600" />;
     case 'LinkedIn': return <Linkedin className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />;
-    case 'Twitter': return <Twitter className="w-3.5 h-3.5 text-blue-400" />;
+    case 'X': return <X className="w-3.5 h-3.5 text-black dark:text-white" />;
+    case 'Twitter': return <X className="w-3.5 h-3.5 text-black dark:text-white" />; // Legacy support
     case 'Facebook': return <Facebook className="w-3.5 h-3.5 text-blue-600 dark:text-blue-500" />;
     case 'TikTok': return <Video className="w-3.5 h-3.5 text-black dark:text-white" />;
     default: return null;

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Post, Platform } from '../types';
 import { SwaveLogo } from './Logo';
-import { X, Calendar, AlertCircle, CheckCircle2, ArrowRight, Instagram, Linkedin, Twitter, Facebook, Video, Briefcase } from 'lucide-react';
+import { X as XIcon, Calendar, AlertCircle, CheckCircle2, ArrowRight, Instagram, Linkedin, Facebook, Video, Briefcase, X } from 'lucide-react';
 
 interface DailyBriefingProps {
   posts: Post[];
@@ -13,7 +13,8 @@ const PlatformIcon = ({ platform }: { platform: string }) => {
   switch (platform) {
     case 'Instagram': return <Instagram className="w-3.5 h-3.5 text-pink-600" />;
     case 'LinkedIn': return <Linkedin className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />;
-    case 'Twitter': return <Twitter className="w-3.5 h-3.5 text-blue-400" />;
+    case 'X': return <X className="w-3.5 h-3.5 text-black dark:text-white" />;
+    case 'Twitter': return <X className="w-3.5 h-3.5 text-black dark:text-white" />;
     case 'Facebook': return <Facebook className="w-3.5 h-3.5 text-blue-600 dark:text-blue-500" />;
     case 'TikTok': return <Video className="w-3.5 h-3.5 text-black dark:text-white" />;
     default: return null;

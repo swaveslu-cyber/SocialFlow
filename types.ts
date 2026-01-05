@@ -1,7 +1,7 @@
 
 export type PostStatus = 'Draft' | 'In Review' | 'Approved' | 'Scheduled' | 'Published' | 'Trashed';
 
-export type Platform = 'Instagram' | 'LinkedIn' | 'Twitter' | 'Facebook' | 'TikTok';
+export type Platform = 'Instagram' | 'LinkedIn' | 'X' | 'Facebook' | 'TikTok';
 
 export type MediaType = 'image' | 'video';
 
@@ -224,7 +224,7 @@ export interface Invoice {
   updatedAt: number;
 }
 
-export const PLATFORMS: Platform[] = ['Instagram', 'LinkedIn', 'Twitter', 'Facebook', 'TikTok'];
+export const PLATFORMS: Platform[] = ['Instagram', 'LinkedIn', 'X', 'Facebook', 'TikTok'];
 
 export const STATUS_FLOW: PostStatus[] = ['Draft', 'In Review', 'Approved', 'Scheduled', 'Published'];
 

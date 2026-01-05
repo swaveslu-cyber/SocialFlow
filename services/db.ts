@@ -526,7 +526,7 @@ export const db = {
               tags: ["#Partnership", "#BusinessGrowth"]
           },
           {
-              id: crypto.randomUUID(), name: "Hype Launch", platform: "Twitter",
+              id: crypto.randomUUID(), name: "Hype Launch", platform: "X",
               captionSkeleton: "🚨 IT IS FINALLY HERE! 🚨\n\n[Product Name] is live. You asked, we delivered. \n\nGrab yours before they are gone: [Link] 🔥",
               tags: ["#LaunchDay", "#Hype"]
           },
@@ -596,7 +596,7 @@ export const db = {
       }, author);
 
       await db.addPost({
-          client: clientName, platform: "Twitter", campaign: "Q1 Product Launch",
+          client: clientName, platform: "X", campaign: "Q1 Product Launch",
           date: today,
           caption: "Our new feature drops next week. Are you ready? 🔥",
           mediaUrl: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800",

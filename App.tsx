@@ -4,7 +4,7 @@ import {
   LayoutGrid, Calendar as CalendarIcon, List, Settings as SettingsIcon, 
   LogOut, Plus, Search, Filter, Bell, Menu, X, UploadCloud, 
   Image as ImageIcon, Smile, Save, Loader2, ArrowRight,
-  Instagram, Linkedin, Twitter, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag, DollarSign, User as UserIcon, Shield, Sun, Coffee, BookOpen, BarChart3
+  Instagram, Linkedin, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag, DollarSign, User as UserIcon, Shield, Sun, Coffee, BookOpen, BarChart3
 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';

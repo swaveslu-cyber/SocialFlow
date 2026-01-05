@@ -109,7 +109,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ posts, invoices, u
   const platformStats = PLATFORMS.map(p => ({
     name: p,
     count: filteredPosts.filter(post => post.platform === p).length,
-    color: p === 'Instagram' ? 'bg-pink-500' : p === 'LinkedIn' ? 'bg-blue-700' : p === 'Twitter' ? 'bg-blue-400' : p === 'Facebook' ? 'bg-blue-600' : 'bg-black'
+    color: p === 'Instagram' ? 'bg-pink-500' : p === 'LinkedIn' ? 'bg-blue-700' : p === 'X' ? 'bg-black' : p === 'Facebook' ? 'bg-blue-600' : 'bg-black'
   })).sort((a, b) => b.count - a.count);
 
   const campaignStats = useMemo(() => {
