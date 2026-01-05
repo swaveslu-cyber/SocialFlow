@@ -247,8 +247,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
                 </div>
 
                 {/* ACTION BUTTONS (WORKFLOW LOGIC) */}
-                <div className={`flex items-center justify-end gap-1 flex-grow min-w-0 transition-opacity duration-300 ${viewMode !== 'content' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                    <div className="flex items-center gap-1">
+                <div className={`flex flex-wrap items-center justify-end gap-1 flex-grow min-w-0 transition-opacity duration-300 ${viewMode !== 'content' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                    <div className="flex flex-wrap items-center gap-1 justify-end">
                         {post.status === 'Trashed' ? (
                             <button onClick={() => onRestore?.(ids)} className="text-[10px] bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-2 py-2 rounded-xl hover:scale-105 font-black flex items-center gap-1 transition-all active:scale-95"><RotateCcw className="w-3.5 h-3.5"/> Restore</button>
                         ) : (

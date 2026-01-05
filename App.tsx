@@ -336,6 +336,10 @@ export default function App() {
     const rawFiltered = posts.filter(p => {
        if (viewMode === 'trash') return p.status === 'Trashed';
        if (p.status === 'Trashed') return false;
+       
+       // SECURITY: Hide Drafts from Clients
+       if (currentUser?.role.startsWith('client') && p.status === 'Draft') return false;
+
        const matchesSearch = p.caption.toLowerCase().includes(searchTerm.toLowerCase()) || p.client.toLowerCase().includes(searchTerm.toLowerCase());
        const matchesStatus = filterStatus === 'All' || p.status === filterStatus;
        // Logic: If user has a clientId, strictly filter by it. Else allow 'All' filter selection.
