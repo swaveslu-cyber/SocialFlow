@@ -4,7 +4,7 @@ import {
   LayoutGrid, Calendar as CalendarIcon, List, Settings as SettingsIcon, 
   LogOut, Plus, Search, Filter, Bell, Menu, X, UploadCloud, 
   Image as ImageIcon, Smile, Save, Loader2, ArrowRight,
-  Instagram, Linkedin, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag, DollarSign, User as UserIcon, Shield, Sun, Coffee, BookOpen, BarChart3, ChevronUp
+  Instagram, Linkedin, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag, DollarSign, User as UserIcon, Shield, Sun, Coffee, BookOpen, BarChart3, ChevronUp, Inbox, CheckCheck
 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -74,9 +74,24 @@ export default function App() {
   // New: Calendar specific UI state
   const [isCalendarFocused, setIsCalendarFocused] = useState(false);
 
+  // New: Invoice Deep Linking from Notifications
+  const [notificationInvoiceId, setNotificationInvoiceId] = useState<string | null>(null);
+
   // Save Menu State
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const saveMenuRef = useRef<HTMLDivElement>(null);
+
+  // Notification State
+  const [dismissedIds, setDismissedIds] = useState<string[]>(() => {
+      try {
+          const saved = localStorage.getItem('swave_read_notifications');
+          return saved ? JSON.parse(saved) : [];
+      } catch { return []; }
+  });
+
+  useEffect(() => {
+      localStorage.setItem('swave_read_notifications', JSON.stringify(dismissedIds));
+  }, [dismissedIds]);
 
   // Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -180,8 +195,25 @@ export default function App() {
     setInvoices(fetchedInvoices);
     setAllUsers(fetchedUsers);
     
-    // Merge fetched branding with defaults to ensure no missing keys causing white/broken UI
-    setBranding({ ...DEFAULT_BRANDING, ...fetchedBranding });
+    // START: Branding Logic
+    let appliedBranding = { ...DEFAULT_BRANDING, ...fetchedBranding };
+
+    // Apply Client-Specific Branding if logged in as client
+    if (currentUser?.clientId) {
+        const clientKit = await db.getBrandKit(currentUser.clientId);
+        if (clientKit) {
+            appliedBranding = {
+                ...appliedBranding,
+                agencyName: clientKit.company_details.name || appliedBranding.agencyName,
+                logoUrl: clientKit.visual_identity.logo_dark || clientKit.visual_identity.logo_light || appliedBranding.logoUrl,
+                primaryColor: clientKit.visual_identity.colors.primary || appliedBranding.primaryColor,
+                secondaryColor: clientKit.visual_identity.colors.secondary || appliedBranding.secondaryColor,
+            };
+        }
+    }
+    
+    setBranding(appliedBranding);
+    // END: Branding Logic
     
     // Set default client selection for Agency Admins/Creators
     if (!isFormOpen && !currentUser?.clientId && fetchedClients.length > 0) {
@@ -366,27 +398,118 @@ export default function App() {
         }
     });
 
-    return Object.values(groups).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    return Object.values(groups).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   }, [posts, searchTerm, filterStatus, filterClient, filterCampaign, currentUser, viewMode]);
 
   const notifications = useMemo(() => {
     if (!currentUser) return [];
     const list: any[] = [];
     const now = Date.now();
+    const NOTIFICATION_WINDOW = 172800000; // 48 hours
+
+    // 1. POST NOTIFICATIONS (Comments, History, Creation)
     posts.forEach(p => {
         if (p.status === 'Trashed') return;
         if (currentUser.clientId && p.client !== currentUser.clientId) return;
         
-        // Notification Logic
+        // A. Comments
         p.comments.forEach(c => {
-             if (now - c.timestamp < 172800000 && c.author !== currentUser.name) {
+             if (now - c.timestamp < NOTIFICATION_WINDOW && c.author !== currentUser.name) {
                  if (c.isInternal && !PERMISSIONS.isInternal(currentUser.role)) return;
-                 list.push({ id: c.id, postId: p.id, text: `${c.author} commented`, time: c.timestamp });
+                 if (dismissedIds.includes(c.id)) return;
+                 list.push({ 
+                     id: c.id, 
+                     type: 'post', 
+                     data: p,
+                     text: `${c.author} commented on ${p.client}`, 
+                     time: c.timestamp 
+                 });
              }
         });
+
+        // B. History (Creation, Status Changes, Edits)
+        p.history.forEach(h => {
+            if (now - h.timestamp < NOTIFICATION_WINDOW && h.by !== currentUser.name) {
+                if (dismissedIds.includes(h.id)) return;
+                
+                let msg = `${h.by}: ${h.action}`;
+                if (h.action === 'Asset Deployed') msg = `${h.by} created a new post`;
+                else if (h.action === 'Workflow Shift') msg = `${h.by} updated status: ${h.details}`;
+                else if (h.action === 'Copy Refined') msg = `${h.by} edited caption`;
+
+                list.push({
+                    id: h.id,
+                    type: 'post',
+                    data: p,
+                    text: msg,
+                    time: h.timestamp
+                });
+            }
+        });
     });
+
+    // 2. INVOICE NOTIFICATIONS
+    if (PERMISSIONS.canViewFinance(currentUser.role)) {
+        invoices.forEach(inv => {
+            if (currentUser.clientId && inv.clientName !== currentUser.clientId) return;
+
+            // A. New Invoice (Checking creation time)
+            if (now - inv.createdAt < NOTIFICATION_WINDOW) {
+                const notifId = `inv-create-${inv.id}`;
+                if (!dismissedIds.includes(notifId)) {
+                    // Only show if we didn't just create it ourselves (rough check via timestamp usually fine, but strictly everyone gets notified of new finance docs)
+                    // If user is client, definitely show. If user is agency, still useful to know a draft started by someone else.
+                    list.push({
+                        id: notifId,
+                        type: 'invoice',
+                        itemId: inv.id, // Store ID directly for deep linking
+                        text: `New Invoice #${inv.invoiceNumber} created for ${inv.clientName}`,
+                        time: inv.createdAt
+                    });
+                }
+            }
+
+            // B. Invoice Comments
+            if (inv.comments) {
+                inv.comments.forEach(c => {
+                    if (now - c.timestamp < NOTIFICATION_WINDOW && c.author !== currentUser.name) {
+                        if (dismissedIds.includes(c.id)) return;
+                        list.push({
+                            id: c.id,
+                            type: 'invoice',
+                            itemId: inv.id,
+                            text: `${c.author} on Invoice #${inv.invoiceNumber}: ${c.text}`,
+                            time: c.timestamp
+                        });
+                    }
+                });
+            }
+        });
+    }
+
     return list.sort((a, b) => b.time - a.time);
-  }, [posts, currentUser]);
+  }, [posts, invoices, currentUser, dismissedIds]);
+
+  const handleNotificationClick = (n: any) => {
+      setDismissedIds(prev => [...prev, n.id]);
+      setShowNotifications(false);
+      
+      if (n.type === 'post') {
+          // Construct grouped post structure for editor
+          const p = n.data;
+          const grouped: any = { ...p, ids: [p.id], platforms: [p.platform] };
+          openEditPostForm(grouped);
+      } else if (n.type === 'invoice') {
+          setNotificationInvoiceId(n.itemId);
+          setViewMode('finance');
+      }
+  };
+
+  const handleMarkAllRead = () => {
+      const ids = notifications.map(n => n.id);
+      setDismissedIds(prev => [...prev, ...ids]);
+      setShowNotifications(false);
+  };
 
   const STATUS_PILLS: { label: string, value: PostStatus | 'All', color: string }[] = [
     { label: 'All', value: 'All', color: 'bg-gray-100 text-gray-800' },
@@ -429,10 +552,10 @@ export default function App() {
             <div className="fixed inset-0 z-[55] bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)}></div>
         )}
 
-        {/* Hide Sidebar in Calendar Focus Mode */}
-        <aside className={`fixed inset-y-0 left-0 z-[60] w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCalendarFocused ? 'md:-translate-x-full md:w-0' : 'md:w-72'} shadow-2xl md:shadow-none`}>
+        {/* Hide Sidebar in Calendar Focus Mode. Added overflow-hidden to prevent content bleeding when w-0 */}
+        <aside className={`fixed inset-y-0 left-0 z-[60] w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transform transition-all duration-300 ease-in-out overflow-hidden md:translate-x-0 md:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCalendarFocused ? 'md:-translate-x-full md:w-0 md:opacity-0' : 'md:w-72 md:opacity-100'} shadow-2xl md:shadow-none`}>
             {/* Sidebar Content Omitted for brevity as it hasn't changed... */}
-            <div className="h-full flex flex-col">
+            <div className="h-full flex flex-col min-w-[18rem]">
                 <div className="p-8 short:p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 short:w-8 short:h-8 rounded-2xl bg-white dark:bg-gray-800 flex items-center justify-center p-1.5 shadow-xl shadow-gray-200 dark:shadow-none border border-gray-100 dark:border-gray-700 transition-transform hover:scale-110 active:scale-95 cursor-pointer overflow-hidden">
@@ -514,8 +637,9 @@ export default function App() {
             </div>
         </aside>
 
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10 bg-transparent dark:bg-gray-950">
-            {viewMode === 'finance' && <FinanceModule onOpenSidebar={() => setSidebarOpen(true)} currentUser={currentUser} />}
+        {/* Updated Main with Z-Index fix for Full Screen Calendar */}
+        <main className={`flex-1 flex flex-col min-w-0 overflow-hidden relative bg-transparent dark:bg-gray-950 transition-all ${isCalendarFocused ? 'z-[70]' : 'z-10'}`}>
+            {viewMode === 'finance' && <FinanceModule onOpenSidebar={() => setSidebarOpen(true)} currentUser={currentUser} initialInvoiceId={notificationInvoiceId} />}
             {viewMode === 'reports' && (
                 <ReportsModule 
                     posts={posts} 
@@ -584,7 +708,7 @@ export default function App() {
                          )}
                          <div className="flex gap-2">
                              <button onClick={() => setShowDailyBriefing(true)} className="p-3.5 short:p-2 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-gray-400 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:text-swave-purple transition-all active:scale-90" title="Daily Briefing">
-                                <Sun className="w-6 h-6 short:w-5 short:h-5" />
+                                <Coffee className="w-6 h-6 short:w-5 short:h-5" />
                              </button>
                              <div className="relative" ref={notificationRef}>
                                 <button onClick={() => setShowNotifications(!showNotifications)} className="p-3.5 short:p-2 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-gray-400 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:text-swave-orange transition-all active:scale-90">
@@ -593,12 +717,19 @@ export default function App() {
                                 </button>
                                 {showNotifications && (
                                     <div className="absolute right-0 top-full mt-5 w-80 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-in slide-in-from-top-2">
-                                         <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900">
-                                             <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Inbox</span>
-                                             <span className="text-[10px] bg-swave-orange text-swave-orange-text px-3 py-1 rounded-full font-black tracking-widest ml-2">{notifications.length} NEW</span>
+                                         <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900 flex justify-between items-center">
+                                             <div className="flex items-center gap-2">
+                                                <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Inbox</span>
+                                                <span className="text-[10px] bg-swave-orange text-swave-orange-text px-3 py-1 rounded-full font-black tracking-widest">{notifications.length} NEW</span>
+                                             </div>
+                                             {notifications.length > 0 && (
+                                                 <button onClick={handleMarkAllRead} className="text-gray-400 hover:text-swave-purple p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Mark all as read">
+                                                     <CheckCheck className="w-4 h-4"/>
+                                                 </button>
+                                             )}
                                          </div>
                                          <div className="max-h-[400px] overflow-y-auto pb-2">
-                                             {notifications.length === 0 ? <div className="p-12 text-center text-gray-400 text-sm font-bold italic opacity-40">Your inbox is clear. ✨</div> : notifications.map(n => <div key={n.id} onClick={() => { const p = posts.find(post => post.id === n.postId); if(p) { openEditPostForm({ ...p, ids: [p.id], platforms: [p.platform] } as any); setShowNotifications(false); } }} className="p-5 border-b border-gray-50 dark:border-gray-800 hover:bg-orange-50/40 dark:hover:bg-orange-900/10 cursor-pointer flex gap-4 transition-colors">
+                                             {notifications.length === 0 ? <div className="p-12 text-center text-gray-400 text-sm font-bold italic opacity-40">Your inbox is clear. ✨</div> : notifications.map(n => <div key={n.id} onClick={() => handleNotificationClick(n)} className="p-5 border-b border-gray-50 dark:border-gray-800 hover:bg-orange-50/40 dark:hover:bg-orange-900/10 cursor-pointer flex gap-4 transition-colors">
                                                  <div className="mt-2 flex-shrink-0 w-3 h-3 rounded-full bg-swave-orange" />
                                                  <div className="flex-grow"><p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 leading-snug">{n.text}</p><p className="text-xs text-gray-400 font-black mt-2 uppercase tracking-widest">{new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div>
                                              </div>)}
@@ -628,7 +759,7 @@ export default function App() {
                         </div>
                         {filteredGroupedPosts.length === 0 && (
                             <div className="h-96 flex flex-col items-center justify-center text-center opacity-40">
-                                <Coffee className="w-16 h-16 text-gray-400 mb-4" />
+                                <Inbox className="w-16 h-16 text-gray-400 mb-4" />
                                 <h3 className="text-xl font-black text-gray-400">All caught up!</h3>
                                 <p className="text-sm font-bold text-gray-300 mt-2">No posts match your filters.</p>
                             </div>

@@ -317,7 +317,8 @@ export const db = {
   
   // --- POSTS ---
   getAllPosts: async (): Promise<Post[]> => {
-    const { data, error } = await supabase.from('posts').select('*').order('"createdAt"', { ascending: false }); 
+    // Sort by updatedAt descending to show latest activity first
+    const { data, error } = await supabase.from('posts').select('*').order('"updatedAt"', { ascending: false }); 
     if (error) return [];
     return data as Post[];
   },

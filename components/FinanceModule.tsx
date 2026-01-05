@@ -12,9 +12,10 @@ const formatCurrency = (amount: number, currency: string = 'USD') => {
 interface FinanceModuleProps {
     onOpenSidebar: () => void;
     currentUser: User | null;
+    initialInvoiceId?: string | null;
 }
 
-export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, currentUser }) => {
+export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, currentUser, initialInvoiceId }) => {
   const [view, setView] = useState<'dashboard' | 'editor' | 'preview' | 'services'>('dashboard');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
@@ -33,6 +34,15 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (initialInvoiceId && invoices.length > 0) {
+        const target = invoices.find(i => i.id === initialInvoiceId);
+        if (target) {
+            handleEditInvoice(target);
+        }
+    }
+  }, [initialInvoiceId, invoices]);
 
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
