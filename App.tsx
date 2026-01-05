@@ -196,22 +196,9 @@ export default function App() {
     setAllUsers(fetchedUsers);
     
     // START: Branding Logic
+    // STRICT MODE: Enforce Default/Global branding (Extension of Website)
+    // Client-specific override logic removed to maintain consistent App ID
     let appliedBranding = { ...DEFAULT_BRANDING, ...fetchedBranding };
-
-    // Apply Client-Specific Branding if logged in as client
-    if (currentUser?.clientId) {
-        const clientKit = await db.getBrandKit(currentUser.clientId);
-        if (clientKit) {
-            appliedBranding = {
-                ...appliedBranding,
-                agencyName: clientKit.company_details.name || appliedBranding.agencyName,
-                logoUrl: clientKit.visual_identity.logo_dark || clientKit.visual_identity.logo_light || appliedBranding.logoUrl,
-                primaryColor: clientKit.visual_identity.colors.primary || appliedBranding.primaryColor,
-                secondaryColor: clientKit.visual_identity.colors.secondary || appliedBranding.secondaryColor,
-            };
-        }
-    }
-    
     setBranding(appliedBranding);
     // END: Branding Logic
     
@@ -520,14 +507,32 @@ export default function App() {
     { label: 'Published', value: 'Published', color: 'bg-indigo-600 text-white' }, // Good
   ];
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950"><Loader2 className="w-10 h-10 animate-spin text-swave-orange" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#050508]"><Loader2 className="w-10 h-10 animate-spin text-swave-orange" /></div>;
   if (!currentUser) return <Login onLogin={handleLogin} branding={branding} />;
   
   return (
-    <div className="flex h-screen bg-[#F5F7FA] dark:bg-gray-950 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-swave-orange/10 rounded-full blur-[160px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-swave-purple/10 rounded-full blur-[160px] pointer-events-none translate-y-1/2 -translate-x-1/2"></div>
+    <div className="flex h-screen bg-gray-50 dark:bg-[#050508] overflow-hidden relative transition-colors duration-500">
+        {/* Background Gradients matching the Website Image */}
+        <div className="absolute top-[-20%] right-[-10%] w-[1000px] h-[1000px] bg-[#8E3EBB]/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen opacity-60 animate-pulse duration-[10000ms]"></div>
+        <div className="absolute bottom-[-20%] left-[-10%] w-[1000px] h-[1000px] bg-[#F27A21]/15 rounded-full blur-[120px] pointer-events-none mix-blend-screen opacity-50 animate-pulse duration-[7000ms]"></div>
         
+        {/* Logo Pattern Overlay (Updated to Colored Hexagons) */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+            <svg className="w-full h-full opacity-30 dark:opacity-40" width="100%" height="100%">
+                <defs>
+                    <pattern id="hex-pattern" x="0" y="0" width="600" height="600" patternUnits="userSpaceOnUse">
+                        {/* Large Purple - Top/Left */}
+                        <path d="M50 0L93.3 25V75L50 100L6.7 75V25L50 0Z" fill="#8E3EBB" opacity="0.6" transform="translate(50, 0) scale(4)"/>
+                        {/* Large Orange - Bottom/Center overlap */}
+                        <path d="M50 0L93.3 25V75L50 100L6.7 75V25L50 0Z" fill="#F27A21" opacity="0.6" transform="translate(250, 200) scale(3.5)"/>
+                        {/* Purple Outline - Top Right */}
+                        <path d="M50 0L93.3 25V75L50 100L6.7 75V25L50 0Z" stroke="#8E3EBB" strokeWidth="3" fill="none" opacity="0.7" transform="translate(400, 50) scale(3)"/>
+                    </pattern>
+                </defs>
+                <rect x="0" y="0" width="100%" height="100%" fill="url(#hex-pattern)" />
+            </svg>
+        </div>
+
         {/* Modals & Overlays - Click outside behavior implemented on wrapper divs */}
         {showDailyBriefing && <DailyBriefing posts={posts} onClose={() => setShowDailyBriefing(false)} />}
         {showServiceGuide && <ServiceGuide onClose={() => setShowServiceGuide(false)} branding={branding} />}
@@ -553,12 +558,12 @@ export default function App() {
         )}
 
         {/* Hide Sidebar in Calendar Focus Mode. Added overflow-hidden to prevent content bleeding when w-0 */}
-        <aside className={`fixed inset-y-0 left-0 z-[60] w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transform transition-all duration-300 ease-in-out overflow-hidden md:translate-x-0 md:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCalendarFocused ? 'md:-translate-x-full md:w-0 md:opacity-0' : 'md:w-72 md:opacity-100'} shadow-2xl md:shadow-none`}>
+        <aside className={`fixed inset-y-0 left-0 z-[60] w-72 bg-white dark:bg-[#09090b] border-r border-gray-100 dark:border-white/10 transform transition-all duration-300 ease-in-out overflow-hidden md:translate-x-0 md:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCalendarFocused ? 'md:-translate-x-full md:w-0 md:opacity-0' : 'md:w-72 md:opacity-100'} shadow-2xl md:shadow-none`}>
             {/* Sidebar Content Omitted for brevity as it hasn't changed... */}
             <div className="h-full flex flex-col min-w-[18rem]">
                 <div className="p-8 short:p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 short:w-8 short:h-8 rounded-2xl bg-white dark:bg-gray-800 flex items-center justify-center p-1.5 shadow-xl shadow-gray-200 dark:shadow-none border border-gray-100 dark:border-gray-700 transition-transform hover:scale-110 active:scale-95 cursor-pointer overflow-hidden">
+                        <div className="w-10 h-10 short:w-8 short:h-8 rounded-2xl bg-white dark:bg-white/5 flex items-center justify-center p-1.5 shadow-xl shadow-gray-200 dark:shadow-none border border-gray-100 dark:border-white/10 transition-transform hover:scale-110 active:scale-95 cursor-pointer overflow-hidden">
                             <SwaveLogo className="w-full h-full" customLogoUrl={branding.logoUrl} />
                         </div>
                         <h1 className="text-xl short:text-lg font-black text-gray-900 dark:text-white tracking-tighter leading-none uppercase truncate max-w-[140px]">{branding.agencyName}</h1>
@@ -572,13 +577,13 @@ export default function App() {
                     <div>
                         <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Operations</p>
                         <div className="space-y-1">
-                            <button onClick={() => { setViewMode('list'); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'list' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                            <button onClick={() => { setViewMode('list'); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'list' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10'}`}>
                                 <List className="w-5 h-5 short:w-4 short:h-4" /> Master Feed
                             </button>
-                            <button onClick={() => { setViewMode('calendar'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'calendar' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                            <button onClick={() => { setViewMode('calendar'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'calendar' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10'}`}>
                                 <CalendarIcon className="w-5 h-5 short:w-4 short:h-4" /> Schedule Plan
                             </button>
-                            <button onClick={() => { setViewMode('kanban'); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'kanban' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                            <button onClick={() => { setViewMode('kanban'); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'kanban' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10'}`}>
                                 <LayoutGrid className="w-5 h-5 short:w-4 short:h-4" /> Workflow Board
                             </button>
                             {PERMISSIONS.canDelete(currentUser.role) && (
@@ -592,14 +597,14 @@ export default function App() {
                     <div>
                         <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Resources</p>
                         <div className="space-y-1">
-                             <button onClick={() => { setViewMode('reports'); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'reports' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                             <button onClick={() => { setViewMode('reports'); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'reports' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10'}`}>
                                 <BarChart3 className="w-5 h-5 short:w-4 short:h-4" /> Reports & Stats
                             </button>
-                             <button onClick={() => { setShowServiceGuide(true); setSidebarOpen(false); }} className="w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
+                             <button onClick={() => { setShowServiceGuide(true); setSidebarOpen(false); }} className="w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all bg-gray-100/50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10">
                                 <BookOpen className="w-5 h-5 short:w-4 short:h-4" /> Service Guide
                             </button>
                              {PERMISSIONS.canViewFinance(currentUser.role) && (
-                                <button onClick={() => { setViewMode('finance'); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'finance' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                                <button onClick={() => { setViewMode('finance'); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'finance' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10'}`}>
                                     <DollarSign className="w-5 h-5 short:w-4 short:h-4" /> Invoicing
                                 </button>
                              )}
@@ -609,7 +614,7 @@ export default function App() {
                         <div>
                              <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Administration</p>
                              <div className="space-y-1">
-                                 <button onClick={() => { setIsSettingsOpen(true); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${isSettingsOpen ? 'bg-swave-purple text-swave-purple-text shadow-lg shadow-purple-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                                 <button onClick={() => { setIsSettingsOpen(true); setSidebarOpen(false); setIsCalendarFocused(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${isSettingsOpen ? 'bg-swave-purple text-swave-purple-text shadow-lg shadow-purple-500/20' : 'bg-gray-100/50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10'}`}>
                                     <SettingsIcon className="w-5 h-5 short:w-4 short:h-4" /> Settings & Team
                                 </button>
                              </div>
@@ -617,7 +622,7 @@ export default function App() {
                     )}
                 </div>
 
-                <div className="p-8 short:p-4 border-t border-gray-100 dark:border-gray-800">
+                <div className="p-8 short:p-4 border-t border-gray-100 dark:border-white/10">
                     <div className="flex items-center gap-3 mb-4 px-2">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${!currentUser.clientId ? 'bg-swave-purple text-swave-purple-text' : 'bg-swave-orange text-swave-orange-text'}`}>
                             {currentUser.name.substring(0,2).toUpperCase()}
@@ -638,7 +643,7 @@ export default function App() {
         </aside>
 
         {/* Updated Main with Z-Index fix for Full Screen Calendar */}
-        <main className={`flex-1 flex flex-col min-w-0 overflow-hidden relative bg-transparent dark:bg-gray-950 transition-all ${isCalendarFocused ? 'z-[70]' : 'z-10'}`}>
+        <main className={`flex-1 flex flex-col min-w-0 overflow-hidden relative bg-transparent transition-all ${isCalendarFocused ? 'z-[70]' : 'z-10'}`}>
             {viewMode === 'finance' && <FinanceModule onOpenSidebar={() => setSidebarOpen(true)} currentUser={currentUser} initialInvoiceId={notificationInvoiceId} />}
             {viewMode === 'reports' && (
                 <ReportsModule 
@@ -655,13 +660,13 @@ export default function App() {
             <>
             {/* Header - Hidden when Calendar Focus is Active */}
             {!isCalendarFocused && (
-            <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-3xl sticky top-0 z-40 border-b border-gray-100 dark:border-gray-800 px-6 py-4 md:px-8 short:py-2 animate-in slide-in-from-top-2">
+            <header className="bg-white/80 dark:bg-[#09090b]/80 backdrop-blur-3xl sticky top-0 z-40 border-b border-gray-100 dark:border-white/10 px-6 py-4 md:px-8 short:py-2 animate-in slide-in-from-top-2">
                 <div className="flex flex-wrap items-center justify-between gap-6 mb-6 short:mb-2">
                     <div className="flex items-center gap-4">
                         <button onClick={() => setSidebarOpen(true)} className="md:hidden p-3 short:p-2 bg-white dark:bg-gray-800 rounded-[1.25rem] shadow-sm border border-gray-100 dark:border-gray-700 transition-transform active:scale-90"><Menu className="w-6 h-6 short:w-5 short:h-5" /></button>
                         
                         {/* ROLE INDICATOR BADGE */}
-                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-white/10 rounded-lg border border-gray-200 dark:border-white/5">
                              <div className={`w-2 h-2 rounded-full ${currentUser.role.includes('admin') ? 'bg-green-500' : 'bg-blue-500'}`}></div>
                              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{currentUser.role.replace('_', ' ')} View</span>
                         </div>
@@ -669,16 +674,16 @@ export default function App() {
                         {!currentUser.clientId && viewMode !== 'trash' && (
                              <div className="flex gap-3 short:gap-1.5">
                                 <div className="relative" ref={clientSelectorRef}>
-                                    <button onClick={() => { setShowClientSelector(!showClientSelector); setShowCampaignSelector(false); }} className="flex items-center gap-3 px-6 py-3.5 short:py-2 short:px-4 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-gray-200 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm transition-all active:scale-95">
+                                    <button onClick={() => { setShowClientSelector(!showClientSelector); setShowCampaignSelector(false); }} className="flex items-center gap-3 px-6 py-3.5 short:py-2 short:px-4 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-white/10 dark:text-gray-200 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm transition-all active:scale-95 hover:bg-gray-200 dark:hover:bg-white/20">
                                         <Building2 className="w-4 h-4 text-swave-purple" />
                                         <span className="text-sm font-black hidden sm:inline">{filterClient === 'All' ? 'All Portfolios' : filterClient}</span>
                                         <ChevronDown className="w-4 h-4 text-gray-400" />
                                     </button>
                                     {showClientSelector && (
-                                        <div className="absolute top-full left-0 mt-4 w-72 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl z-20 overflow-hidden animate-in slide-in-from-top-2">
-                                            <button onClick={() => { setFilterClient('All'); setShowClientSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-black uppercase tracking-widest border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${filterClient === 'All' ? 'text-swave-orange' : 'text-gray-600'}`}>Show All</button>
+                                        <div className="absolute top-full left-0 mt-4 w-72 bg-white dark:bg-[#1a1a1e] rounded-[2.5rem] shadow-2xl z-20 overflow-hidden animate-in slide-in-from-top-2 border border-gray-100 dark:border-white/10">
+                                            <button onClick={() => { setFilterClient('All'); setShowClientSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-black uppercase tracking-widest border-b border-gray-50 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${filterClient === 'All' ? 'text-swave-orange' : 'text-gray-600'}`}>Show All</button>
                                             <div className="max-h-80 overflow-y-auto">
-                                                {clients.map(c => <button key={c} onClick={() => { setFilterClient(c); setShowClientSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-bold border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${filterClient === c ? 'text-swave-purple' : 'text-gray-700 dark:text-gray-200'}`}>{c}</button>)}
+                                                {clients.map(c => <button key={c} onClick={() => { setFilterClient(c); setShowClientSelector(false); }} className={`w-full text-left px-6 py-5 text-xs font-bold border-b border-gray-50 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${filterClient === c ? 'text-swave-purple' : 'text-gray-700 dark:text-gray-200'}`}>{c}</button>)}
                                             </div>
                                         </div>
                                     )}
@@ -694,7 +699,7 @@ export default function App() {
                                 </div>
                                 <input
                                     type="text"
-                                    className="block w-64 pl-10 pr-3 py-3.5 border border-gray-200 dark:border-gray-700 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-white rounded-2xl text-sm font-medium focus:ring-2 focus:ring-swave-orange focus:border-swave-orange transition-all outline-none"
+                                    className="block w-64 pl-10 pr-3 py-3.5 border border-gray-200 dark:border-white/10 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-white/5 dark:text-white rounded-2xl text-sm font-medium focus:ring-2 focus:ring-swave-orange focus:border-swave-orange transition-all outline-none placeholder-gray-400"
                                     placeholder="Search content..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -707,29 +712,29 @@ export default function App() {
                              <button onClick={openNewPostForm} className="bg-gradient-to-r from-swave-purple to-swave-orange text-swave-purple-text p-3.5 md:px-6 md:py-4 short:py-2 rounded-2xl text-sm font-black flex items-center gap-2.5 shadow-2xl shadow-orange-300/40 dark:shadow-none hover:scale-[1.02] transition-all active:scale-95"><Plus className="w-6 h-6 md:w-5 md:h-5" /> <span className="hidden md:inline">Produce Post</span></button>
                          )}
                          <div className="flex gap-2">
-                             <button onClick={() => setShowDailyBriefing(true)} className="p-3.5 short:p-2 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-gray-400 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:text-swave-purple transition-all active:scale-90" title="Daily Briefing">
+                             <button onClick={() => setShowDailyBriefing(true)} className="p-3.5 short:p-2 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-white/5 dark:text-gray-400 rounded-2xl shadow-sm border border-gray-200 dark:border-white/10 hover:text-swave-purple transition-all active:scale-90" title="Daily Briefing">
                                 <Coffee className="w-6 h-6 short:w-5 short:h-5" />
                              </button>
                              <div className="relative" ref={notificationRef}>
-                                <button onClick={() => setShowNotifications(!showNotifications)} className="p-3.5 short:p-2 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-gray-800 dark:text-gray-400 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:text-swave-orange transition-all active:scale-90">
+                                <button onClick={() => setShowNotifications(!showNotifications)} className="p-3.5 short:p-2 bg-[var(--color-button)] text-[var(--color-button-text)] dark:bg-white/5 dark:text-gray-400 rounded-2xl shadow-sm border border-gray-200 dark:border-white/10 hover:text-swave-orange transition-all active:scale-90">
                                     <Bell className="w-6 h-6 short:w-5 short:h-5" />
-                                    {notifications.length > 0 && <span className="absolute top-3.5 right-3.5 w-3.5 h-3.5 short:w-2.5 short:h-2.5 bg-red-500 rounded-full border-4 border-white dark:border-gray-800"></span>}
+                                    {notifications.length > 0 && <span className="absolute top-3.5 right-3.5 w-3.5 h-3.5 short:w-2.5 short:h-2.5 bg-red-500 rounded-full border-4 border-white dark:border-[#09090b]"></span>}
                                 </button>
                                 {showNotifications && (
-                                    <div className="absolute right-0 top-full mt-5 w-80 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-in slide-in-from-top-2">
-                                         <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900 flex justify-between items-center">
+                                    <div className="absolute right-0 top-full mt-5 w-80 bg-white dark:bg-[#1a1a1e] rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border border-gray-100 dark:border-white/10 overflow-hidden z-50 animate-in slide-in-from-top-2">
+                                         <div className="px-6 py-5 border-b border-gray-100 dark:border-white/10 bg-gray-50/50 dark:bg-white/5 flex justify-between items-center">
                                              <div className="flex items-center gap-2">
                                                 <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Inbox</span>
                                                 <span className="text-[10px] bg-swave-orange text-swave-orange-text px-3 py-1 rounded-full font-black tracking-widest">{notifications.length} NEW</span>
                                              </div>
                                              {notifications.length > 0 && (
-                                                 <button onClick={handleMarkAllRead} className="text-gray-400 hover:text-swave-purple p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Mark all as read">
+                                                 <button onClick={handleMarkAllRead} className="text-gray-400 hover:text-swave-purple p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors" title="Mark all as read">
                                                      <CheckCheck className="w-4 h-4"/>
                                                  </button>
                                              )}
                                          </div>
                                          <div className="max-h-[400px] overflow-y-auto pb-2">
-                                             {notifications.length === 0 ? <div className="p-12 text-center text-gray-400 text-sm font-bold italic opacity-40">Your inbox is clear. ✨</div> : notifications.map(n => <div key={n.id} onClick={() => handleNotificationClick(n)} className="p-5 border-b border-gray-50 dark:border-gray-800 hover:bg-orange-50/40 dark:hover:bg-orange-900/10 cursor-pointer flex gap-4 transition-colors">
+                                             {notifications.length === 0 ? <div className="p-12 text-center text-gray-400 text-sm font-bold italic opacity-40">Your inbox is clear. ✨</div> : notifications.map(n => <div key={n.id} onClick={() => handleNotificationClick(n)} className="p-5 border-b border-gray-50 dark:border-white/5 hover:bg-orange-50/40 dark:hover:bg-orange-900/20 cursor-pointer flex gap-4 transition-colors">
                                                  <div className="mt-2 flex-shrink-0 w-3 h-3 rounded-full bg-swave-orange" />
                                                  <div className="flex-grow"><p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 leading-snug">{n.text}</p><p className="text-xs text-gray-400 font-black mt-2 uppercase tracking-widest">{new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div>
                                              </div>)}
@@ -742,9 +747,9 @@ export default function App() {
                 </div>
                 {/* STATUS FILTER PILLS - FULL BLEED SCROLL FIX */}
                 <div className="-mx-6 px-6 md:mx-0 md:px-0 overflow-x-auto pb-2 pt-1 short:pb-1 no-scrollbar">
-                    <div className="inline-flex items-center gap-2.5 p-2 short:p-1 bg-gray-100/50 dark:bg-gray-800/50 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-inner whitespace-nowrap">
+                    <div className="inline-flex items-center gap-2.5 p-2 short:p-1 bg-gray-100/50 dark:bg-white/5 rounded-[2rem] border border-gray-100 dark:border-white/10 shadow-inner whitespace-nowrap">
                         <div className="flex gap-2.5 short:gap-1.5">
-                            {STATUS_PILLS.map((pill) => <button key={pill.label} onClick={() => setFilterStatus(pill.value)} className={`px-6 py-2.5 short:py-1.5 short:px-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterStatus === pill.value ? pill.color + ' shadow-xl scale-105 ring-4 ring-white dark:ring-gray-900 z-10' : 'bg-[var(--color-button)] text-[var(--color-button-text)] border border-gray-200 dark:border-gray-700 hover:opacity-80 dark:bg-gray-800 dark:text-gray-400'}`}>{pill.label}</button>)}
+                            {STATUS_PILLS.map((pill) => <button key={pill.label} onClick={() => setFilterStatus(pill.value)} className={`px-6 py-2.5 short:py-1.5 short:px-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterStatus === pill.value ? pill.color + ' shadow-xl scale-105 ring-4 ring-white dark:ring-[#09090b] z-10' : 'bg-[var(--color-button)] text-[var(--color-button-text)] border border-gray-200 dark:border-white/10 hover:opacity-80 dark:bg-white/5 dark:text-gray-400'}`}>{pill.label}</button>)}
                         </div>
                     </div>
                 </div>
@@ -767,7 +772,7 @@ export default function App() {
                     </>
                 )}
                 {viewMode === 'calendar' && (
-                    <div className="h-full bg-white dark:bg-gray-900 rounded-[3.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                    <div className="h-full bg-white dark:bg-[#09090b] rounded-[3.5rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
                         <CalendarView 
                             posts={filteredGroupedPosts as any} 
                             onPostClick={openEditPostForm} 
@@ -783,40 +788,39 @@ export default function App() {
         {/* Form Logic - Modal with click outside to close */}
         {isFormOpen && (
             <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-0 md:p-4 animate-in fade-in" onClick={closeForm}>
-                 <div className="bg-white dark:bg-gray-800 rounded-none md:rounded-[4rem] shadow-2xl w-full md:max-w-[95vw] h-full md:h-[95vh] overflow-hidden flex flex-col scale-100 animate-in zoom-in-90" onClick={(e) => e.stopPropagation()}>
-                    <div className="p-4 md:p-10 border-b border-gray-100 flex justify-between items-center bg-white dark:bg-gray-800 shrink-0">
+                 <div className="bg-white dark:bg-[#09090b] rounded-none md:rounded-[4rem] shadow-2xl w-full md:max-w-[95vw] h-full md:h-[95vh] overflow-hidden flex flex-col scale-100 animate-in zoom-in-90 border border-gray-100 dark:border-white/10" onClick={(e) => e.stopPropagation()}>
+                    <div className="p-4 md:p-10 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-white dark:bg-[#09090b] shrink-0">
                         <h2 className="text-xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tighter">Studio Workspace</h2>
-                        <button type="button" onClick={closeForm} className="p-2 md:p-4 hover:bg-gray-100 rounded-2xl md:rounded-3xl transition-all text-gray-500 hover:rotate-180 duration-500"><X className="w-6 h-6 md:w-8 md:h-8" /></button>
+                        <button type="button" onClick={closeForm} className="p-2 md:p-4 hover:bg-gray-100 dark:hover:bg-white/10 rounded-2xl md:rounded-3xl transition-all text-gray-500 hover:rotate-180 duration-500"><X className="w-6 h-6 md:w-8 md:h-8" /></button>
                     </div>
                     {/* Simplified Layout Reuse */}
                     <div className="flex-grow overflow-y-auto p-4 md:p-10 lg:p-12 grid grid-cols-1 lg:grid-cols-7 gap-6 md:gap-12">
                            {/* ... Form content ... */}
-                           {/* (omitted for brevity, no changes here) */}
                            <div className="lg:col-span-3 space-y-6 md:space-y-10">
                                 {!currentUser.clientId && (
                                 <div className="md:flex md:items-center md:gap-4">
                                     <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-0 md:w-32">Strategic Account</label>
-                                    <select value={newPostClient} onChange={e => setNewPostClient(e.target.value)} className="w-full p-3 md:p-5 rounded-2xl md:rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl">{clients.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                                    <select value={newPostClient} onChange={e => setNewPostClient(e.target.value)} className="w-full p-3 md:p-5 rounded-2xl md:rounded-[1.5rem] bg-white dark:bg-[#1a1a1e] dark:text-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl">{clients.map(c => <option key={c} value={c}>{c}</option>)}</select>
                                 </div>
                                 )}
                                 <div className="md:flex md:items-center md:gap-4">
                                     <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-0 md:w-32">Campaign Name</label>
-                                    <input list="campaigns-list" value={newPostCampaign} onChange={e => setNewPostCampaign(e.target.value)} placeholder="e.g. Winter Sale 2024" className="w-full p-3 md:p-5 rounded-2xl md:rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl" />
+                                    <input list="campaigns-list" value={newPostCampaign} onChange={e => setNewPostCampaign(e.target.value)} placeholder="e.g. Winter Sale 2024" className="w-full p-3 md:p-5 rounded-2xl md:rounded-[1.5rem] bg-white dark:bg-[#1a1a1e] dark:text-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl" />
                                     <datalist id="campaigns-list">{Array.from(new Set(posts.map(p => p.campaign).filter(Boolean))).map(c => <option key={c} value={c!} />)}</datalist>
                                 </div>
                                 <div className="md:flex md:items-center md:gap-4">
                                     <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-0 md:w-32">Channels</label>
-                                    <div className="flex flex-wrap gap-2 md:gap-3">{PLATFORMS.map(p => <button key={p} type="button" onClick={() => togglePlatform(p)} className={`flex items-center gap-1.5 px-3 py-2 md:px-6 md:py-4 rounded-xl md:rounded-[1.25rem] text-[10px] md:text-[11px] font-black border-2 transition-all active:scale-95 ${newPostPlatforms.includes(p) ? 'bg-gray-900 text-white border-gray-900 shadow-2xl' : 'bg-white border-gray-100 text-gray-500 hover:border-swave-orange'}`}>{p}</button>)}</div>
+                                    <div className="flex flex-wrap gap-2 md:gap-3">{PLATFORMS.map(p => <button key={p} type="button" onClick={() => togglePlatform(p)} className={`flex items-center gap-1.5 px-3 py-2 md:px-6 md:py-4 rounded-xl md:rounded-[1.25rem] text-[10px] md:text-[11px] font-black border-2 transition-all active:scale-95 ${newPostPlatforms.includes(p) ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-2xl' : 'bg-white dark:bg-[#1a1a1e] border-gray-100 dark:border-white/10 text-gray-500 hover:border-swave-orange'}`}>{p}</button>)}</div>
                                 </div>
                                 <div className="md:flex md:items-center md:gap-4">
                                     <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-0 md:w-32">Activation</label>
-                                    <input type="date" value={newPostDate} onChange={e => setNewPostDate(e.target.value)} className="w-full p-3 md:p-5 rounded-2xl md:rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black shadow-xl outline-none" />
+                                    <input type="date" value={newPostDate} onChange={e => setNewPostDate(e.target.value)} className="w-full p-3 md:p-5 rounded-2xl md:rounded-[1.5rem] bg-white dark:bg-[#1a1a1e] dark:text-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black shadow-xl outline-none" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-4">Creative Asset</label>
-                                    <div className="border-4 border-dashed border-gray-200 rounded-3xl md:rounded-[3rem] p-4 md:p-10 text-center relative bg-white/30">
+                                    <div className="border-4 border-dashed border-gray-200 dark:border-white/10 rounded-3xl md:rounded-[3rem] p-4 md:p-10 text-center relative bg-white/30 dark:bg-white/5">
                                         {newPostMediaUrl ? (
-                                            <div className="relative rounded-2xl md:rounded-[2rem] overflow-hidden bg-gray-100 border flex justify-center items-center min-h-[150px] md:min-h-[250px] shadow-2xl">
+                                            <div className="relative rounded-2xl md:rounded-[2rem] overflow-hidden bg-gray-100 dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/10 flex justify-center items-center min-h-[150px] md:min-h-[250px] shadow-2xl">
                                                 {newPostMediaType === 'video' ? <video src={newPostMediaUrl} className="w-full h-auto max-h-[200px] md:max-h-[400px] object-contain" controls /> : <img src={newPostMediaUrl} alt="Preview" className="w-full h-auto max-h-[200px] md:max-h-[400px] object-contain" />}
                                                 <button type="button" onClick={() => setNewPostMediaUrl('')} className="absolute top-2 right-2 md:top-6 md:right-6 bg-red-500 text-white p-2 md:p-3 rounded-full active:scale-90"><X className="w-4 h-4 md:w-6 md:h-6" /></button>
                                             </div>
@@ -834,19 +838,19 @@ export default function App() {
                                 <div className="flex-grow flex flex-col">
                                 <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-4 flex justify-between items-center"><span>Post Copy / Caption</span><span className="font-black bg-swave-purple/10 text-swave-purple px-4 py-1.5 rounded-full text-[10px]">{newPostCaption.length} CHARS</span></label>
                                 <div className="relative flex-grow flex flex-col min-h-[200px] md:min-h-[400px]">
-                                    <textarea value={newPostCaption} onChange={e => setNewPostCaption(e.target.value)} className="w-full flex-grow p-4 md:p-8 rounded-3xl md:rounded-[2.5rem] bg-white border-none text-sm md:text-[16px] font-medium outline-none resize-none shadow-2xl leading-relaxed transition-all" placeholder="Tell a story..." />
-                                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="absolute bottom-4 right-4 md:bottom-8 md:right-8 text-gray-400 hover:text-swave-orange bg-gray-50 p-2 md:p-4 rounded-2xl md:rounded-3xl shadow-lg active:scale-90"><Smile className="w-5 h-5 md:w-7 md:h-7" /></button>
+                                    <textarea value={newPostCaption} onChange={e => setNewPostCaption(e.target.value)} className="w-full flex-grow p-4 md:p-8 rounded-3xl md:rounded-[2.5rem] bg-white dark:bg-[#1a1a1e] dark:text-gray-200 border-none text-sm md:text-[16px] font-medium outline-none resize-none shadow-2xl leading-relaxed transition-all placeholder-gray-400" placeholder="Tell a story..." />
+                                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="absolute bottom-4 right-4 md:bottom-8 md:right-8 text-gray-400 hover:text-swave-orange bg-gray-50 dark:bg-white/10 p-2 md:p-4 rounded-2xl md:rounded-3xl shadow-lg active:scale-90"><Smile className="w-5 h-5 md:w-7 md:h-7" /></button>
                                     {showEmojiPicker && <div className="absolute bottom-16 right-4 md:bottom-24 md:right-8 z-20 shadow-2xl rounded-[2.5rem] overflow-hidden"><EmojiPicker onEmojiClick={(e) => { setNewPostCaption(prev => prev + e.emoji); setShowEmojiPicker(false); }} width={300} height={400} previewConfig={{ showPreview: false }} /></div>}
                                 </div>
                                 </div>
                             </div>
                     </div>
-                    <div className="p-4 md:p-10 border-t border-gray-100 bg-white flex flex-row justify-between items-center gap-3 md:gap-6 shrink-0">
+                    <div className="p-4 md:p-10 border-t border-gray-100 dark:border-white/10 bg-white dark:bg-[#09090b] flex flex-row justify-between items-center gap-3 md:gap-6 shrink-0">
                         <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-3 text-gray-400 hover:text-red-500 rounded-xl text-xs md:text-sm font-black uppercase tracking-[0.2em] transition-colors hidden sm:block">Discard</button>
-                        <button type="button" onClick={() => setIsFormOpen(false)} className="p-3 text-gray-400 hover:text-red-500 rounded-xl sm:hidden border border-gray-100"><Trash2 className="w-5 h-5" /></button>
+                        <button type="button" onClick={() => setIsFormOpen(false)} className="p-3 text-gray-400 hover:text-red-500 rounded-xl sm:hidden border border-gray-100 dark:border-white/10"><Trash2 className="w-5 h-5" /></button>
 
                         <div className="flex flex-wrap gap-3 md:gap-5 w-full sm:w-auto justify-end">
-                            <button type="button" disabled={isSaving} onClick={() => handleSavePost('Draft')} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 md:px-10 md:py-5 bg-gray-100 text-gray-900 rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black active:scale-95 disabled:opacity-50"><Save className="w-4 h-4 md:w-5 md:h-5" /> Save Draft</button>
+                            <button type="button" disabled={isSaving} onClick={() => handleSavePost('Draft')} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 md:px-10 md:py-5 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black active:scale-95 disabled:opacity-50"><Save className="w-4 h-4 md:w-5 md:h-5" /> Save Draft</button>
                             
                             {/* Unified Save Dropdown */}
                             <div className="relative flex-1 sm:flex-none" ref={saveMenuRef}>
@@ -860,7 +864,7 @@ export default function App() {
                                 </button>
                                 
                                 {showSaveMenu && (
-                                    <div className="absolute bottom-full right-0 mb-3 w-64 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-in fade-in zoom-in-95 slide-in-from-bottom-2">
+                                    <div className="absolute bottom-full right-0 mb-3 w-64 bg-white dark:bg-[#1a1a1e] rounded-2xl shadow-xl border border-gray-100 dark:border-white/10 overflow-hidden z-50 animate-in fade-in zoom-in-95 slide-in-from-bottom-2">
                                         <div className="p-2 space-y-1">
                                             <button onClick={() => handleSavePost('In Review')} className="w-full text-left px-4 py-3 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 rounded-xl transition-colors flex items-center gap-2">
                                                 <div className="w-2 h-2 rounded-full bg-amber-500"></div> Submit for Review

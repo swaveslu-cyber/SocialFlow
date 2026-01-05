@@ -400,9 +400,25 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
 
   return (
     <>
-    <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-in fade-in zoom-in-95 w-[95vw] max-w-[1920px] mx-auto flex flex-col h-[92vh]">
+    <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-in fade-in zoom-in-95 w-[95vw] max-w-[1920px] mx-auto flex flex-col h-[92vh] relative">
+      
+      {/* Background Pattern - Small, Translucent Variation */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+          <svg className="w-full h-full opacity-[0.1] dark:opacity-[0.15]" width="100%" height="100%">
+              <defs>
+                  <pattern id="hex-pattern-settings" x="0" y="0" width="300" height="300" patternUnits="userSpaceOnUse">
+                      {/* Scaled down Hexagons (approx 1.5x scale vs 4x in main app) */}
+                      <path d="M50 0L93.3 25V75L50 100L6.7 75V25L50 0Z" fill="#8E3EBB" opacity="0.5" transform="translate(30, 10) scale(1.5)"/>
+                      <path d="M50 0L93.3 25V75L50 100L6.7 75V25L50 0Z" fill="#F27A21" opacity="0.5" transform="translate(130, 110) scale(1.3)"/>
+                      <path d="M50 0L93.3 25V75L50 100L6.7 75V25L50 0Z" stroke="#8E3EBB" strokeWidth="2" fill="none" opacity="0.5" transform="translate(200, 30) scale(1.2)"/>
+                  </pattern>
+              </defs>
+              <rect x="0" y="0" width="100%" height="100%" fill="url(#hex-pattern-settings)" />
+          </svg>
+      </div>
+
       {/* HEADER */}
-      <div className="border-b border-gray-100 dark:border-gray-700 flex items-center justify-between p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md sticky top-0 z-20">
+      <div className="border-b border-gray-100 dark:border-gray-700 flex items-center justify-between p-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md sticky top-0 z-20">
          <div className="flex items-center gap-4">
              <button 
                 onClick={onClose}
@@ -419,9 +435,9 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
          </div>
       </div>
 
-      <div className="flex flex-col md:flex-row h-full overflow-hidden">
+      <div className="flex flex-col md:flex-row h-full overflow-hidden relative z-10">
         {/* SIDEBAR TABS */}
-        <div className="w-full md:w-64 bg-gray-100 dark:bg-gray-900/50 border-r border-gray-100 dark:border-gray-700 p-4 flex flex-row md:flex-col gap-2 overflow-x-auto no-scrollbar md:overflow-visible flex-shrink-0">
+        <div className="w-full md:w-64 bg-gray-100/80 dark:bg-gray-900/80 backdrop-blur-sm border-r border-gray-100 dark:border-gray-700 p-4 flex flex-row md:flex-col gap-2 overflow-x-auto no-scrollbar md:overflow-visible flex-shrink-0">
             {[
                 { id: 'clients', label: 'Clients', icon: Building2 },
                 { id: 'team', label: 'Team & Roles', icon: Users },
@@ -437,7 +453,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                     className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all w-full whitespace-nowrap md:whitespace-normal ${
                         activeTab === tab.id 
                         ? 'bg-gradient-to-r from-swave-purple to-swave-orange text-swave-purple-text shadow-lg shadow-purple-500/20 dark:shadow-none' 
-                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200 border border-transparent'
+                        : 'bg-white/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200 border border-transparent'
                     }`}
                 >
                     <tab.icon className="w-5 h-5" /> {tab.label}
@@ -445,13 +461,12 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
             ))}
         </div>
 
-        {/* CONTENT AREA */}
-        <div className="flex-grow p-6 md:p-8 overflow-y-auto bg-white dark:bg-gray-800 relative">
+        {/* CONTENT AREA - Translucent background to show pattern */}
+        <div className="flex-grow p-6 md:p-8 overflow-y-auto bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm relative">
             <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-500/5 to-orange-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
             {/* --- CLIENTS TAB --- */}
             {activeTab === 'clients' && (
-                // ... (No changes here, kept existing logic)
                 <div className="space-y-8 animate-in slide-in-from-right-4 relative z-10">
                 {!editingClient ? (
                     <>
@@ -505,9 +520,8 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                         </div>
                     </>
                 ) : (
-                    // Edit Form (Collapsed for brevity as it's identical to previous)
+                    // Edit Form
                     <form onSubmit={handleUpdateClient} className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden animate-in fade-in">
-                       {/* ... Same content as before ... */}
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
                              <div>
                                  <h3 className="text-xl font-black text-gray-900 dark:text-white">Edit Client Profile</h3>
@@ -675,7 +689,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
             </div>
             )}
             
-            {/* ... (Team tab remains same) ... */}
+            {/* ... (Other Tabs Content - Preserved) ... */}
             {activeTab === 'team' && (
                 <div className="space-y-8 animate-in slide-in-from-right-4 relative z-10">
                      <div className="flex justify-between items-center">
@@ -773,11 +787,9 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                 </div>
             )}
             
-            {/* --- SERVICES TAB (Redesigned) --- */}
             {activeTab === 'services' && (
                 <div className="space-y-10 animate-in slide-in-from-right-4 relative z-10 max-w-4xl">
                      {!editingSectionId ? (
-                         // LIST VIEW
                          <div className="space-y-6">
                              <div className="flex justify-between items-center">
                                 <div>
@@ -792,10 +804,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                              <div className="space-y-3">
                                  {serviceSections.map((section, index) => (
                                      <div key={section.id} className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
-                                         {/* Drag Handle (Visual only for now) */}
                                          <GripVertical className="w-5 h-5 text-gray-300 cursor-grab active:cursor-grabbing" />
-                                         
-                                         {/* Content Info */}
                                          <div className="flex-grow min-w-0">
                                              <div className="flex items-center gap-3 mb-1">
                                                  <h4 className="font-bold text-gray-900 dark:text-white">{section.title}</h4>
@@ -805,8 +814,6 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                              </div>
                                              <p className="text-xs text-gray-400 truncate">{section.content.replace(/<[^>]+>/g, '').substring(0, 60)}...</p>
                                          </div>
-
-                                         {/* Actions */}
                                          <div className="flex items-center gap-2">
                                              <label className="flex items-center gap-2 cursor-pointer bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                                                  <input 
@@ -829,7 +836,6 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                              </div>
                          </div>
                      ) : (
-                         // EDITOR VIEW (Specific Section)
                          <div className="bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden flex flex-col h-[600px] animate-in slide-in-from-bottom-4">
                              <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
                                  <div className="flex items-center gap-4">
@@ -845,7 +851,6 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                 </button>
                              </div>
                              
-                             {/* Toolbar */}
                              <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-wrap items-center gap-1">
                                 <button onClick={() => execCmd('bold')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Bold"><Bold className="w-4 h-4"/></button>
                                 <button onClick={() => execCmd('italic')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Italic"><Italic className="w-4 h-4"/></button>
@@ -864,7 +869,6 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                 <button onClick={() => execCmd('formatBlock', 'BLOCKQUOTE')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Quote"><Quote className="w-4 h-4"/></button>
                              </div>
 
-                             {/* Editor Area */}
                              <div className="flex-grow overflow-y-auto bg-gray-50 dark:bg-gray-900 cursor-text p-8" onClick={() => editorRef.current?.focus()}>
                                 <div 
                                     ref={editorRef}
@@ -876,7 +880,6 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                          </div>
                      )}
 
-                     {/* Linked Services List (Unchanged) */}
                      <div className="space-y-4">
                          <h3 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2"><Receipt className="w-5 h-5 text-swave-orange"/> Linked Invoicing Items</h3>
                          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -1091,7 +1094,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                 </div>
             )}
 
-            {/* ... (Security tab remains same) */}
+            {/* --- SECURITY TAB --- */}
             {activeTab === 'security' && (
                  <div className="space-y-10 max-w-2xl mx-auto animate-in slide-in-from-right-4 relative z-10">
                      <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl">
