@@ -4,7 +4,7 @@ import { db } from '../services/db';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../services/firebaseConfig';
 import { Template, Snippet, Platform, PLATFORMS, ClientProfile, User, UserRole, AppConfig, BrandKit, ServiceItem } from '../types';
-import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2, BookOpen, Settings2, Briefcase, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Heading1, Heading2, Quote, Code, Globe, Mail, Phone, MapPin, CreditCard, Copy, Key } from 'lucide-react';
+import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2, BookOpen, Settings2, Briefcase, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Heading1, Heading2, Quote, Code, Globe, Mail, Phone, MapPin, CreditCard, Copy, Key, DollarSign } from 'lucide-react';
 import { OnboardingWizard } from './OnboardingWizard';
 import { BrandCard } from './BrandCard';
 import { OnboardingConfigurator } from './OnboardingConfigurator';
@@ -585,6 +585,30 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                                             <option value="XCD">XCD ($)</option>
                                         </select>
                                     </div>
+                                    <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Monthly Retainer</label>
+                                            <div className="relative">
+                                                <DollarSign className="absolute top-3.5 left-3 w-4 h-4 text-gray-400" />
+                                                <input 
+                                                    type="number"
+                                                    value={editingClient.retainerAmount || ''}
+                                                    onChange={e => setEditingClient({...editingClient, retainerAmount: parseFloat(e.target.value) || 0})}
+                                                    className="w-full pl-10 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl font-bold"
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Retainer Package Name</label>
+                                            <input 
+                                                value={editingClient.retainerDescription || ''}
+                                                onChange={e => setEditingClient({...editingClient, retainerDescription: e.target.value})}
+                                                className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                                                placeholder="e.g. Growth + Ads"
+                                            />
+                                        </div>
+                                    </div>
                                     <div className="md:col-span-2">
                                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Internal Notes</label>
                                         <textarea 
@@ -710,7 +734,7 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                 </div>
             )}
             
-            {/* --- SERVICES / RATE CARD TAB --- */}
+            {/* ... (Rest of Tabs remain unchanged) ... */}
             {activeTab === 'services' && (
                 <div className="space-y-10 animate-in slide-in-from-right-4 relative z-10 max-w-4xl">
                      {/* Rate Card Editor (Visual) */}

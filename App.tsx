@@ -385,7 +385,7 @@ export default function App() {
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-swave-orange/10 rounded-full blur-[160px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
         <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-swave-purple/10 rounded-full blur-[160px] pointer-events-none translate-y-1/2 -translate-x-1/2"></div>
         {showDailyBriefing && <DailyBriefing posts={posts} onClose={() => setShowDailyBriefing(false)} />}
-        {showServiceGuide && <ServiceGuide onClose={() => setShowServiceGuide(false)} />}
+        {showServiceGuide && <ServiceGuide onClose={() => setShowServiceGuide(false)} branding={branding} />}
 
         <aside className={`fixed inset-y-0 left-0 z-[60] w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl md:shadow-none`}>
             <div className="h-full flex flex-col">
@@ -470,7 +470,7 @@ export default function App() {
         </aside>
 
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10 bg-transparent dark:bg-gray-950">
-            {viewMode === 'finance' && <FinanceModule />}
+            {viewMode === 'finance' && <FinanceModule onOpenSidebar={() => setSidebarOpen(true)} currentUser={currentUser} />}
             {viewMode === 'reports' && (
                 <ReportsModule 
                     posts={posts} 
@@ -478,11 +478,13 @@ export default function App() {
                     users={allUsers}
                     clients={clients}
                     currentUser={currentUser}
+                    onOpenSidebar={() => setSidebarOpen(true)}
                 />
             )}
             
             {(viewMode === 'list' || viewMode === 'calendar' || viewMode === 'kanban' || viewMode === 'trash') && (
             <>
+            {/* ... Existing header logic for other views ... */}
             <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-3xl sticky top-0 z-40 border-b border-gray-100 dark:border-gray-800 px-6 py-4 md:px-8 short:py-2">
                 <div className="flex flex-wrap items-center justify-between gap-6 mb-6 short:mb-2">
                     <div className="flex items-center gap-4">
@@ -601,6 +603,8 @@ export default function App() {
                     </div>
                     {/* Simplified Layout Reuse */}
                     <div className="flex-grow overflow-y-auto p-4 md:p-10 lg:p-12 grid grid-cols-1 lg:grid-cols-7 gap-6 md:gap-12">
+                           {/* ... Form content ... */}
+                           {/* (omitted for brevity, no changes here) */}
                            <div className="lg:col-span-3 space-y-6 md:space-y-10">
                                 {!currentUser.clientId && (
                                 <div className="md:flex md:items-center md:gap-4">

@@ -114,6 +114,8 @@ export interface ClientProfile {
   billingAddress?: string;
   taxId?: string;
   currency?: 'USD' | 'EUR' | 'GBP' | 'XCD';
+  retainerAmount?: number; // Monthly recurring fee
+  retainerDescription?: string; // e.g. "Growth Retainer + Ad Management"
 }
 
 // --- NEW ONBOARDING TYPES ---
@@ -210,6 +212,7 @@ export interface Invoice {
   grandTotal: number;
   currency: 'USD' | 'EUR' | 'GBP' | 'XCD';
   notes?: string;
+  comments?: Comment[]; // For queries
   createdAt: number;
   updatedAt: number;
 }
@@ -222,7 +225,7 @@ export const STATUS_FLOW: PostStatus[] = ['Draft', 'In Review', 'Approved', 'Sch
 export const PERMISSIONS = {
   canDelete: (role: UserRole) => role === 'agency_admin',
   canManageTeam: (role: UserRole) => role === 'agency_admin',
-  canViewFinance: (role: UserRole) => role === 'agency_admin',
+  canViewFinance: (role: UserRole) => ['agency_admin', 'client_admin'].includes(role),
   canApprove: (role: UserRole) => ['agency_admin', 'client_admin'].includes(role),
   canEdit: (role: UserRole) => ['agency_admin', 'agency_creator'].includes(role),
   canPublish: (role: UserRole) => ['agency_admin'].includes(role),

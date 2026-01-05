@@ -485,7 +485,9 @@ export const db = {
           name: clientName,
           email: 'techstartinc@mail.com',
           accessCode: '8127',
-          currency: 'USD'
+          currency: 'USD',
+          retainerAmount: 2000, // Monthly fee seed
+          retainerDescription: "Growth Retainer + Web Maintenance"
       }, { onConflict: 'name' });
 
       await db.addCampaign("Q1 Product Launch", clientName);

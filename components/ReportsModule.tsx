@@ -4,7 +4,7 @@ import { Post, Invoice, User, ClientProfile, PERMISSIONS, PLATFORMS, Platform } 
 import { 
   BarChart3, TrendingUp, Users, Calendar, Filter, 
   Download, PieChart, CheckCircle, Clock, AlertCircle, 
-  ArrowUpRight, DollarSign, Layers, Printer
+  ArrowUpRight, DollarSign, Layers, Printer, Menu
 } from 'lucide-react';
 
 interface ReportsModuleProps {
@@ -13,6 +13,7 @@ interface ReportsModuleProps {
   users: User[];
   clients: string[];
   currentUser: User;
+  onOpenSidebar: () => void;
 }
 
 const StatCard = ({ label, value, subtext, icon: Icon, colorClass }: any) => (
@@ -45,7 +46,7 @@ const ProgressBar = ({ label, value, total, color }: { label: string, value: num
   );
 };
 
-export const ReportsModule: React.FC<ReportsModuleProps> = ({ posts, invoices, users, clients, currentUser }) => {
+export const ReportsModule: React.FC<ReportsModuleProps> = ({ posts, invoices, users, clients, currentUser, onOpenSidebar }) => {
   const [timeRange, setTimeRange] = useState<'30_days' | 'this_month' | 'this_year' | 'all_time'>('30_days');
   const [selectedClient, setSelectedClient] = useState<string>(currentUser.clientId || 'All');
   const [selectedUser, setSelectedUser] = useState<string>('All');
@@ -166,12 +167,17 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ posts, invoices, u
 
       {/* HEADER & FILTERS */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8 print:mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 dark:text-white print:text-3xl">Analytics & Reports</h1>
-          <p className="text-sm text-gray-500 print:text-gray-600">Performance metrics across content, team, and finance.</p>
+        <div className="flex items-center gap-4 w-full xl:w-auto">
+          <button onClick={onOpenSidebar} className="md:hidden p-3 bg-white dark:bg-gray-800 rounded-[1.25rem] shadow-sm border border-gray-100 dark:border-gray-700 transition-transform active:scale-90 shrink-0">
+             <Menu className="w-6 h-6" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-white print:text-3xl">Analytics & Reports</h1>
+            <p className="text-sm text-gray-500 print:text-gray-600">Performance metrics across content, team, and finance.</p>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-3 no-print">
+        <div className="flex flex-wrap gap-3 no-print w-full xl:w-auto">
           <button 
             onClick={() => window.print()}
             className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-sm text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"

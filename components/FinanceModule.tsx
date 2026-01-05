@@ -1,15 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
-import { Invoice, ServiceItem, ClientProfile, InvoiceItem } from '../types';
+import { Invoice, ServiceItem, ClientProfile, InvoiceItem, Comment, User } from '../types';
 import { db } from '../services/db';
 import { SwaveLogo } from './Logo';
-import { Plus, ArrowLeft, Download, Eye, Edit2, Trash2, Save, Printer, Copy, CheckCircle, AlertCircle, Calendar, DollarSign, List, Briefcase, FileText, X, Loader2 } from 'lucide-react';
+import { Plus, ArrowLeft, Download, Eye, Edit2, Trash2, Save, Printer, Copy, CheckCircle, AlertCircle, Calendar, DollarSign, List, Briefcase, FileText, X, Loader2, Menu, Send, MessageSquare } from 'lucide-react';
 
 const formatCurrency = (amount: number, currency: string = 'USD') => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
 };
 
-export const FinanceModule: React.FC = () => {
+interface FinanceModuleProps {
+    onOpenSidebar: () => void;
+    currentUser: User | null;
+}
+
+export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, currentUser }) => {
   const [view, setView] = useState<'dashboard' | 'editor' | 'preview' | 'services'>('dashboard');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
@@ -19,6 +24,7 @@ export const FinanceModule: React.FC = () => {
 
   // Invoice Editor State
   const [editingInvoice, setEditingInvoice] = useState<Partial<Invoice>>({});
+  const [queryText, setQueryText] = useState('');
   
   // Service Catalog State
   const [newService, setNewService] = useState({ name: '', rate: '', description: '' });
@@ -46,6 +52,14 @@ export const FinanceModule: React.FC = () => {
     }
   };
 
+  const isClient = currentUser?.role.startsWith('client');
+  const clientProfile = isClient ? clients.find(c => c.name === currentUser?.clientId) : null;
+
+  // Filter invoices for client view
+  const visibleInvoices = isClient 
+    ? invoices.filter(i => i.clientName === currentUser?.clientId)
+    : invoices;
+
   const createNewInvoice = () => {
     const year = new Date().getFullYear();
     const count = invoices.filter(i => i.createdAt > new Date(year, 0, 1).getTime()).length + 1;
@@ -62,14 +76,19 @@ export const FinanceModule: React.FC = () => {
       taxAmount: 0,
       discountValue: 0,
       grandTotal: 0,
-      currency: 'USD'
+      currency: 'USD',
+      comments: []
     });
     setView('editor');
   };
 
   const handleEditInvoice = (invoice: Invoice) => {
     setEditingInvoice(JSON.parse(JSON.stringify(invoice)));
-    setView('editor');
+    if (isClient) {
+        setView('preview');
+    } else {
+        setView('editor');
+    }
   };
 
   const handleDuplicateInvoice = (invoice: Invoice) => {
@@ -84,6 +103,7 @@ export const FinanceModule: React.FC = () => {
           status: 'Draft',
           issueDate: new Date().toISOString().split('T')[0],
           dueDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+          comments: []
       });
       setView('editor');
   };
@@ -132,10 +152,11 @@ export const FinanceModule: React.FC = () => {
 
           await db.saveInvoice(finalInvoice);
           await loadData(true);
-          setView('dashboard');
+          
+          // Stay on preview if adding comments (Client view logic), else dashboard
+          if (!isClient) setView('dashboard');
       } catch (error: any) {
           console.error("Save failed:", error);
-          // Improved error alerting
           const msg = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
           alert(`Failed to save invoice. Error: ${msg}`);
       } finally {
@@ -180,6 +201,38 @@ export const FinanceModule: React.FC = () => {
       }
   };
 
+  const handleAddComment = async () => {
+      if (!queryText.trim() || !editingInvoice.id || !currentUser) return;
+      
+      const newComment: Comment = {
+          id: crypto.randomUUID(),
+          author: currentUser.name,
+          role: currentUser.role,
+          text: queryText,
+          timestamp: Date.now(),
+          isInternal: false
+      };
+
+      const updatedComments = [...(editingInvoice.comments || []), newComment];
+      setEditingInvoice({ ...editingInvoice, comments: updatedComments });
+      
+      // Save immediately
+      // Note: In a real app we'd just update the comments field via API, but here we save the whole object
+      const { subtotal, taxAmount, grandTotal } = calculateTotals(editingInvoice);
+      const finalInvoice = {
+          ...editingInvoice,
+          items: editingInvoice.items || [],
+          subtotal, taxAmount, grandTotal,
+          comments: updatedComments,
+          updatedAt: Date.now(),
+          createdAt: editingInvoice.createdAt || Date.now()
+      } as Invoice;
+
+      await db.saveInvoice(finalInvoice);
+      setQueryText('');
+      await loadData(true);
+  };
+
   // --- Services Management ---
   const handleAddService = async () => {
       if(!newService.name || !newService.rate) return;
@@ -209,42 +262,114 @@ export const FinanceModule: React.FC = () => {
       }
   };
 
+  const handleRequestService = async (service: ServiceItem) => {
+      if (!clientProfile || !currentUser) return;
+      if (!confirm(`Request "${service.name}"? This will alert the agency.`)) return;
+
+      const year = new Date().getFullYear();
+      const count = invoices.length + 1;
+      const invoiceNumber = `REQ-${year}-${(count + 1).toString().padStart(3, '0')}`;
+
+      const reqInvoice: Invoice = {
+          id: crypto.randomUUID(),
+          invoiceNumber,
+          clientId: clientProfile.name, // Use name as ID per current structure
+          clientName: clientProfile.name,
+          clientCompany: clientProfile.name,
+          clientAddress: clientProfile.billingAddress,
+          clientTaxId: clientProfile.taxId,
+          issueDate: new Date().toISOString().split('T')[0],
+          dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0], // 1 week default
+          status: 'Draft',
+          currency: clientProfile.currency || 'USD',
+          items: [{
+              id: crypto.randomUUID(),
+              description: service.name,
+              quantity: 1,
+              unitPrice: service.defaultRate,
+              total: service.defaultRate
+          }],
+          subtotal: service.defaultRate,
+          discountValue: 0,
+          taxRate: 0,
+          taxAmount: 0,
+          grandTotal: service.defaultRate,
+          comments: [{
+              id: crypto.randomUUID(),
+              author: currentUser.name,
+              role: currentUser.role,
+              text: `[System] Client requested service: ${service.name}`,
+              timestamp: Date.now(),
+              isInternal: false
+          }],
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+      };
+
+      await db.saveInvoice(reqInvoice);
+      alert("Request sent successfully! A draft invoice has been created.");
+      loadData(true);
+      setView('dashboard');
+  };
+
   // --- RENDERERS ---
 
   const renderDashboard = () => {
       const currentYear = new Date().getFullYear();
-      const revenueYTD = invoices
+      
+      const revenueYTD = visibleInvoices
         .filter(i => i.status === 'Paid' && new Date(i.issueDate).getFullYear() === currentYear)
         .reduce((sum, i) => sum + i.grandTotal, 0);
       
-      const outstanding = invoices
+      const outstanding = visibleInvoices
         .filter(i => (i.status === 'Sent' || i.status === 'Draft'))
         .reduce((sum, i) => sum + i.grandTotal, 0);
 
-      const overdue = invoices
+      const overdue = visibleInvoices
         .filter(i => i.status !== 'Paid' && i.status !== 'Void' && new Date(i.dueDate) < new Date())
         .reduce((sum, i) => sum + i.grandTotal, 0);
 
       return (
           <div className="space-y-8 animate-in fade-in">
-              <div className="flex justify-between items-center">
-                  <h1 className="text-2xl font-black text-gray-900 dark:text-white">Finance & Invoicing</h1>
-                  <div className="flex gap-3">
-                      <button onClick={() => setView('services')} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700">
-                          <Briefcase className="w-4 h-4" /> Service Catalog
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div className="flex items-center gap-4">
+                      <button onClick={onOpenSidebar} className="md:hidden p-3 bg-white dark:bg-gray-800 rounded-[1.25rem] shadow-sm border border-gray-100 dark:border-gray-700 transition-transform active:scale-90 shrink-0">
+                         <Menu className="w-6 h-6" />
                       </button>
-                      <button onClick={createNewInvoice} className="flex items-center gap-2 px-4 py-2 bg-swave-orange text-white rounded-xl shadow-lg hover:bg-orange-600 font-bold text-sm">
-                          <Plus className="w-4 h-4" /> New Invoice
+                      <div>
+                        <h1 className="text-2xl font-black text-gray-900 dark:text-white">Finance & Invoicing</h1>
+                        {isClient && <p className="text-sm text-gray-500">View your plan, history, and requests.</p>}
+                      </div>
+                  </div>
+                  <div className="flex gap-3 w-full md:w-auto">
+                      <button onClick={() => setView('services')} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <Briefcase className="w-4 h-4" /> {isClient ? "Request Services" : "Service Catalog"}
                       </button>
+                      {!isClient && (
+                        <button onClick={createNewInvoice} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-swave-orange text-white rounded-xl shadow-lg hover:bg-orange-600 font-bold text-sm">
+                            <Plus className="w-4 h-4" /> New Invoice
+                        </button>
+                      )}
                   </div>
               </div>
 
               {/* KPI Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Revenue YTD</p>
-                      <p className="text-3xl font-black text-emerald-500">{formatCurrency(revenueYTD)}</p>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {/* Client Specific Retainer Card */}
+                  {isClient && clientProfile?.retainerAmount && (
+                      <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 rounded-2xl border border-gray-700 shadow-lg">
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">My Monthly Plan</p>
+                          <p className="text-3xl font-black mb-1">{formatCurrency(clientProfile.retainerAmount, clientProfile.currency)}</p>
+                          <p className="text-xs text-gray-300 opacity-80">{clientProfile.retainerDescription || 'Active Retainer'}</p>
+                      </div>
+                  )}
+
+                  {!isClient && (
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Revenue YTD</p>
+                        <p className="text-3xl font-black text-emerald-500">{formatCurrency(revenueYTD)}</p>
+                    </div>
+                  )}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Outstanding</p>
                       <p className="text-3xl font-black text-blue-500">{formatCurrency(outstanding)}</p>
@@ -262,7 +387,7 @@ export const FinanceModule: React.FC = () => {
                       <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
                           <tr>
                               <th className="px-6 py-4 font-bold text-gray-500 dark:text-gray-400">Number</th>
-                              <th className="px-6 py-4 font-bold text-gray-500 dark:text-gray-400">Client</th>
+                              {!isClient && <th className="px-6 py-4 font-bold text-gray-500 dark:text-gray-400">Client</th>}
                               <th className="px-6 py-4 font-bold text-gray-500 dark:text-gray-400">Date</th>
                               <th className="px-6 py-4 font-bold text-gray-500 dark:text-gray-400">Due</th>
                               <th className="px-6 py-4 font-bold text-gray-500 dark:text-gray-400">Amount</th>
@@ -271,16 +396,16 @@ export const FinanceModule: React.FC = () => {
                           </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                          {invoices.length === 0 ? (
+                          {visibleInvoices.length === 0 ? (
                               <tr>
-                                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400 italic">No invoices found. Create one to get started.</td>
+                                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400 italic">No invoices found.</td>
                               </tr>
-                          ) : invoices.map(inv => {
+                          ) : visibleInvoices.map(inv => {
                               const isOverdue = inv.status !== 'Paid' && inv.status !== 'Void' && new Date(inv.dueDate) < new Date();
                               return (
                                 <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                                     <td className="px-6 py-4 font-mono font-medium text-gray-600 dark:text-gray-300">{inv.invoiceNumber}</td>
-                                    <td className="px-6 py-4 font-bold text-gray-800 dark:text-white">{inv.clientName}</td>
+                                    {!isClient && <td className="px-6 py-4 font-bold text-gray-800 dark:text-white">{inv.clientName}</td>}
                                     <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{inv.issueDate}</td>
                                     <td className={`px-6 py-4 font-medium ${isOverdue ? 'text-red-500' : 'text-gray-600 dark:text-gray-300'}`}>
                                         {inv.dueDate} {isOverdue && <AlertCircle className="w-3 h-3 inline ml-1"/>}
@@ -297,8 +422,12 @@ export const FinanceModule: React.FC = () => {
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
                                             <button onClick={() => { setEditingInvoice(inv); setView('preview'); }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-gray-500"><Eye className="w-4 h-4"/></button>
-                                            <button onClick={() => handleEditInvoice(inv)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-blue-500"><Edit2 className="w-4 h-4"/></button>
-                                            <button onClick={() => handleDeleteInvoice(inv.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-500"><Trash2 className="w-4 h-4"/></button>
+                                            {!isClient && (
+                                                <>
+                                                    <button onClick={() => handleEditInvoice(inv)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-blue-500"><Edit2 className="w-4 h-4"/></button>
+                                                    <button onClick={() => handleDeleteInvoice(inv.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-500"><Trash2 className="w-4 h-4"/></button>
+                                                </>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -313,6 +442,8 @@ export const FinanceModule: React.FC = () => {
   };
 
   const renderEditor = () => {
+      // (Editor code omitted for brevity as it remains largely the same for Admin)
+      // Only minor tweaks for role check if needed, but assuming only admins see 'editor' view via UI logic
       const { subtotal, taxAmount, grandTotal } = calculateTotals(editingInvoice);
       
       return (
@@ -556,117 +687,162 @@ export const FinanceModule: React.FC = () => {
       const isOverdue = editingInvoice.status !== 'Paid' && editingInvoice.status !== 'Void' && editingInvoice.dueDate && new Date(editingInvoice.dueDate) < new Date();
 
       return (
-          <div className="flex flex-col h-full animate-in fade-in">
+          <div className="flex flex-col h-full animate-in fade-in max-w-[1200px] mx-auto w-full">
              <div className="flex justify-between items-center mb-6">
                 <button onClick={() => setView('dashboard')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
                     <ArrowLeft className="w-5 h-5" /> Back
                 </button>
                 <div className="flex gap-3">
-                    <button onClick={() => handleEditInvoice(editingInvoice as Invoice)} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium"><Edit2 className="w-4 h-4"/> Edit</button>
-                    <button onClick={() => handleDuplicateInvoice(editingInvoice as Invoice)} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium"><Copy className="w-4 h-4"/> Duplicate</button>
+                    {!isClient && (
+                    <>
+                        <button onClick={() => handleEditInvoice(editingInvoice as Invoice)} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium"><Edit2 className="w-4 h-4"/> Edit</button>
+                        <button onClick={() => handleDuplicateInvoice(editingInvoice as Invoice)} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium"><Copy className="w-4 h-4"/> Duplicate</button>
+                    </>
+                    )}
                     <button onClick={() => window.print()} className="px-4 py-2 bg-gray-900 text-white rounded-lg flex items-center gap-2 hover:bg-black text-sm font-medium"><Printer className="w-4 h-4"/> Print / PDF</button>
                 </div>
              </div>
 
-             <div className="bg-white text-gray-900 w-full max-w-[210mm] mx-auto p-12 shadow-2xl min-h-[297mm] print:shadow-none print:w-full print:max-w-none">
-                {/* Invoice Header */}
-                <div className="flex justify-between items-start mb-12">
-                    <div>
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10">
-                                <SwaveLogo />
+             <div className="flex flex-col lg:flex-row gap-8">
+                 {/* INVOICE PAPER */}
+                 <div className="bg-white text-gray-900 w-full lg:max-w-[210mm] p-12 shadow-2xl min-h-[297mm] print:shadow-none print:w-full print:max-w-none flex-shrink-0">
+                    {/* Invoice Header */}
+                    <div className="flex justify-between items-start mb-12">
+                        <div>
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10">
+                                    <SwaveLogo />
+                                </div>
+                                <span className="text-xl font-bold tracking-tight text-gray-900">SWAVE SOCIAL</span>
                             </div>
-                            <span className="text-xl font-bold tracking-tight text-gray-900">SWAVE SOCIAL</span>
+                            <p className="text-sm text-gray-500 whitespace-pre-line">
+                                123 Agency Lane, Suite 400<br/>
+                                New York, NY 10012<br/>
+                                billing@swave.agency
+                            </p>
                         </div>
-                        <p className="text-sm text-gray-500 whitespace-pre-line">
-                            123 Agency Lane, Suite 400<br/>
-                            New York, NY 10012<br/>
-                            billing@swave.agency
-                        </p>
+                        <div className="text-right">
+                            <h1 className="text-4xl font-light text-gray-900 mb-2">INVOICE</h1>
+                            <p className="text-gray-500 font-mono text-sm">#{editingInvoice.invoiceNumber}</p>
+                            {isOverdue && <span className="text-red-600 font-bold border border-red-600 px-2 py-1 text-xs rounded mt-2 inline-block">OVERDUE</span>}
+                            {editingInvoice.status === 'Paid' && <span className="text-emerald-600 font-bold border border-emerald-600 px-2 py-1 text-xs rounded mt-2 inline-block">PAID</span>}
+                        </div>
                     </div>
-                    <div className="text-right">
-                        <h1 className="text-4xl font-light text-gray-900 mb-2">INVOICE</h1>
-                        <p className="text-gray-500 font-mono text-sm">#{editingInvoice.invoiceNumber}</p>
-                        {isOverdue && <span className="text-red-600 font-bold border border-red-600 px-2 py-1 text-xs rounded mt-2 inline-block">OVERDUE</span>}
-                        {editingInvoice.status === 'Paid' && <span className="text-emerald-600 font-bold border border-emerald-600 px-2 py-1 text-xs rounded mt-2 inline-block">PAID</span>}
-                    </div>
-                </div>
 
-                {/* Client & Dates */}
-                <div className="flex justify-between mb-12">
-                    <div>
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Bill To</h3>
-                        <p className="font-bold text-lg">{editingInvoice.clientCompany || editingInvoice.clientName}</p>
-                        <p className="text-sm text-gray-600 whitespace-pre-line mt-1">{editingInvoice.clientAddress}</p>
-                        {editingInvoice.clientTaxId && <p className="text-xs text-gray-500 mt-2">Tax ID: {editingInvoice.clientTaxId}</p>}
+                    {/* Client & Dates */}
+                    <div className="flex justify-between mb-12">
+                        <div>
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Bill To</h3>
+                            <p className="font-bold text-lg">{editingInvoice.clientCompany || editingInvoice.clientName}</p>
+                            <p className="text-sm text-gray-600 whitespace-pre-line mt-1">{editingInvoice.clientAddress}</p>
+                            {editingInvoice.clientTaxId && <p className="text-xs text-gray-500 mt-2">Tax ID: {editingInvoice.clientTaxId}</p>}
+                        </div>
+                        <div className="text-right space-y-1">
+                            <div className="flex justify-between w-48">
+                                <span className="text-gray-500 text-sm">Issue Date:</span>
+                                <span className="font-medium">{editingInvoice.issueDate}</span>
+                            </div>
+                            <div className="flex justify-between w-48">
+                                <span className="text-gray-500 text-sm">Due Date:</span>
+                                <span className="font-medium">{editingInvoice.dueDate}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div className="text-right space-y-1">
-                         <div className="flex justify-between w-48">
-                             <span className="text-gray-500 text-sm">Issue Date:</span>
-                             <span className="font-medium">{editingInvoice.issueDate}</span>
-                         </div>
-                         <div className="flex justify-between w-48">
-                             <span className="text-gray-500 text-sm">Due Date:</span>
-                             <span className="font-medium">{editingInvoice.dueDate}</span>
-                         </div>
-                    </div>
-                </div>
 
-                {/* Line Items */}
-                <table className="w-full mb-8">
-                    <thead>
-                        <tr className="border-b-2 border-gray-900 text-sm font-bold uppercase tracking-wider">
-                            <th className="py-3 text-left">Description</th>
-                            <th className="py-3 text-right">Qty</th>
-                            <th className="py-3 text-right">Price</th>
-                            <th className="py-3 text-right">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {(editingInvoice.items || []).map(item => (
-                            <tr key={item.id}>
-                                <td className="py-4 font-medium">{item.description}</td>
-                                <td className="py-4 text-right text-gray-600">{item.quantity}</td>
-                                <td className="py-4 text-right text-gray-600">{formatCurrency(item.unitPrice, editingInvoice.currency)}</td>
-                                <td className="py-4 text-right font-bold">{formatCurrency(item.total, editingInvoice.currency)}</td>
+                    {/* Line Items */}
+                    <table className="w-full mb-8">
+                        <thead>
+                            <tr className="border-b-2 border-gray-900 text-sm font-bold uppercase tracking-wider">
+                                <th className="py-3 text-left">Description</th>
+                                <th className="py-3 text-right">Qty</th>
+                                <th className="py-3 text-right">Price</th>
+                                <th className="py-3 text-right">Amount</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {(editingInvoice.items || []).map(item => (
+                                <tr key={item.id}>
+                                    <td className="py-4 font-medium">{item.description}</td>
+                                    <td className="py-4 text-right text-gray-600">{item.quantity}</td>
+                                    <td className="py-4 text-right text-gray-600">{formatCurrency(item.unitPrice, editingInvoice.currency)}</td>
+                                    <td className="py-4 text-right font-bold">{formatCurrency(item.total, editingInvoice.currency)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
 
-                {/* Totals */}
-                <div className="flex justify-end mb-12">
-                    <div className="w-64 space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Subtotal</span>
-                            <span className="font-medium">{formatCurrency(subtotal, editingInvoice.currency)}</span>
-                        </div>
-                        {editingInvoice.discountValue > 0 && (
-                            <div className="flex justify-between text-sm text-gray-600">
-                                <span>Discount</span>
-                                <span>-{formatCurrency(editingInvoice.discountValue, editingInvoice.currency)}</span>
+                    {/* Totals */}
+                    <div className="flex justify-end mb-12">
+                        <div className="w-64 space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Subtotal</span>
+                                <span className="font-medium">{formatCurrency(subtotal, editingInvoice.currency)}</span>
                             </div>
-                        )}
-                        {editingInvoice.taxAmount > 0 && (
-                             <div className="flex justify-between text-sm text-gray-600">
-                                <span>Tax ({editingInvoice.taxRate}%)</span>
-                                <span>{formatCurrency(taxAmount, editingInvoice.currency)}</span>
-                             </div>
-                        )}
-                        <div className="flex justify-between text-xl font-bold border-t-2 border-gray-900 pt-2 mt-2">
-                            <span>Total</span>
-                            <span>{formatCurrency(grandTotal, editingInvoice.currency)}</span>
+                            {editingInvoice.discountValue > 0 && (
+                                <div className="flex justify-between text-sm text-gray-600">
+                                    <span>Discount</span>
+                                    <span>-{formatCurrency(editingInvoice.discountValue, editingInvoice.currency)}</span>
+                                </div>
+                            )}
+                            {editingInvoice.taxAmount > 0 && (
+                                <div className="flex justify-between text-sm text-gray-600">
+                                    <span>Tax ({editingInvoice.taxRate}%)</span>
+                                    <span>{formatCurrency(taxAmount, editingInvoice.currency)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between text-xl font-bold border-t-2 border-gray-900 pt-2 mt-2">
+                                <span>Total</span>
+                                <span>{formatCurrency(grandTotal, editingInvoice.currency)}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Notes */}
-                {editingInvoice.notes && (
-                    <div className="border-t border-gray-200 pt-8">
-                        <h4 className="font-bold text-sm mb-2">Notes & Payment Instructions</h4>
-                        <p className="text-sm text-gray-600 whitespace-pre-line">{editingInvoice.notes}</p>
-                    </div>
-                )}
+                    {/* Notes */}
+                    {editingInvoice.notes && (
+                        <div className="border-t border-gray-200 pt-8">
+                            <h4 className="font-bold text-sm mb-2">Notes & Payment Instructions</h4>
+                            <p className="text-sm text-gray-600 whitespace-pre-line">{editingInvoice.notes}</p>
+                        </div>
+                    )}
+                 </div>
+
+                 {/* COMMUNICATION HUB (Right Sidebar) */}
+                 <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 flex flex-col h-[600px] overflow-hidden no-print">
+                     <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-between items-center">
+                         <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2"><MessageSquare className="w-4 h-4"/> Queries & Updates</h3>
+                         <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full text-gray-600 dark:text-gray-300 font-bold">{editingInvoice.comments?.length || 0}</span>
+                     </div>
+                     
+                     <div className="flex-grow overflow-y-auto p-4 space-y-4">
+                         {(!editingInvoice.comments || editingInvoice.comments.length === 0) && (
+                             <div className="text-center text-gray-400 text-sm py-10 italic">No queries yet.</div>
+                         )}
+                         {editingInvoice.comments?.map(c => (
+                             <div key={c.id} className={`flex flex-col ${c.author === currentUser?.name ? 'items-end' : 'items-start'}`}>
+                                 <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${c.author === currentUser?.name ? 'bg-swave-purple text-white rounded-br-none' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'}`}>
+                                     <p className="text-xs opacity-70 mb-1 font-bold">{c.author}</p>
+                                     {c.text}
+                                 </div>
+                                 <span className="text-[10px] text-gray-400 mt-1">{new Date(c.timestamp).toLocaleString()}</span>
+                             </div>
+                         ))}
+                     </div>
+
+                     <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
+                         <div className="flex gap-2">
+                             <input 
+                                value={queryText}
+                                onChange={(e) => setQueryText(e.target.value)}
+                                placeholder="Type a query about this invoice..."
+                                className="flex-grow p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-swave-purple outline-none"
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                             />
+                             <button onClick={handleAddComment} disabled={!queryText.trim()} className="p-3 bg-swave-purple text-white rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50">
+                                 <Send className="w-4 h-4" />
+                             </button>
+                         </div>
+                     </div>
+                 </div>
              </div>
           </div>
       );
@@ -682,6 +858,7 @@ export const FinanceModule: React.FC = () => {
            </div>
 
            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                {!isClient && (
                 <div className="mb-6 flex gap-2">
                     <input 
                         placeholder="Service Name (e.g. Social Media Management)"
@@ -704,6 +881,7 @@ export const FinanceModule: React.FC = () => {
                         {isSavingService ? "Saving..." : "Add Service"}
                     </button>
                 </div>
+                )}
 
                 <div className="space-y-2">
                     {services.map(s => (
@@ -714,12 +892,18 @@ export const FinanceModule: React.FC = () => {
                              </div>
                              <div className="flex items-center gap-4">
                                  <span className="font-mono font-bold text-gray-700 dark:text-gray-300">{formatCurrency(s.defaultRate)}</span>
-                                 <button onClick={async () => {
-                                     if(confirm('Delete service?')) {
-                                         await db.deleteService(s.id);
-                                         loadData(true);
-                                     }
-                                 }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4"/></button>
+                                 {!isClient ? (
+                                     <button onClick={async () => {
+                                         if(confirm('Delete service?')) {
+                                             await db.deleteService(s.id);
+                                             loadData(true);
+                                         }
+                                     }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4"/></button>
+                                 ) : (
+                                     <button onClick={() => handleRequestService(s)} className="bg-swave-orange text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md hover:bg-orange-600 transition-all">
+                                         Request
+                                     </button>
+                                 )}
                              </div>
                         </div>
                     ))}

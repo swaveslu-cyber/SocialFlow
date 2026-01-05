@@ -3,12 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { db } from '../services/db';
 import { X, Printer, Loader2, BookOpen } from 'lucide-react';
 import { SwaveLogo } from './Logo';
+import { AppConfig } from '../types';
 
 interface ServiceGuideProps {
   onClose: () => void;
+  branding?: AppConfig;
 }
 
-export const ServiceGuide: React.FC<ServiceGuideProps> = ({ onClose }) => {
+export const ServiceGuide: React.FC<ServiceGuideProps> = ({ onClose, branding }) => {
   const [htmlContent, setHtmlContent] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +31,7 @@ export const ServiceGuide: React.FC<ServiceGuideProps> = ({ onClose }) => {
         <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
              <div className="flex items-center gap-3">
                  <div className="w-10 h-10 bg-gray-50 dark:bg-gray-800 rounded-xl p-1.5 border border-gray-100 dark:border-gray-700">
-                    <SwaveLogo />
+                    <SwaveLogo customLogoUrl={branding?.logoUrl} />
                  </div>
                  <div>
                     <h2 className="text-lg font-black text-gray-900 dark:text-white leading-tight">Service Guide</h2>
