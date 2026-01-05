@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Post, PostStatus, User, PERMISSIONS } from '../types';
 import { 
   Calendar, Instagram, Linkedin, Twitter, Facebook, Video, 
   Trash2, Send, CheckCircle, XCircle, MessageSquare, 
-  Building2, History, Copy, ArrowRight, Edit2, Check, Loader2, RotateCcw, MoreHorizontal, Eye, Lock, Globe, Flag
+  Building2, History, Copy, ArrowRight, Edit2, Check, Loader2, RotateCcw, MoreHorizontal, Eye, Lock, Globe, Flag, Share2
 } from 'lucide-react';
 import { db } from '../services/db';
 
@@ -30,14 +29,14 @@ const PlatformIcon = ({ platform }: { platform: string }) => {
   }
 };
 
-const StatusBadge = ({ status }: { status: PostStatus }) => {
+const StatusBadge: React.FC<{ status: PostStatus }> = ({ status }) => {
   const styles: Record<string, string> = {
-    'Draft': 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300', // Darkened text for legibility
-    'In Review': 'bg-amber-600 text-white shadow-md shadow-amber-200 dark:shadow-none', // Darkened bg
-    'Approved': 'bg-emerald-600 text-white shadow-md shadow-emerald-200 dark:shadow-none', // Darkened bg
-    'Scheduled': 'bg-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-none', // Darkened bg
-    'Published': 'bg-indigo-700 text-white shadow-md shadow-indigo-200 dark:shadow-none', // Darkened bg
-    'Trashed': 'bg-red-600 text-white shadow-md shadow-red-200 dark:shadow-none', // Darkened bg
+    'Draft': 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300', 
+    'In Review': 'bg-amber-600 text-white shadow-md shadow-amber-200 dark:shadow-none',
+    'Approved': 'bg-emerald-600 text-white shadow-md shadow-emerald-200 dark:shadow-none',
+    'Scheduled': 'bg-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-none',
+    'Published': 'bg-indigo-700 text-white shadow-md shadow-indigo-200 dark:shadow-none',
+    'Trashed': 'bg-red-600 text-white shadow-md shadow-red-200 dark:shadow-none',
   };
   return (
     <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all duration-300 ${styles[status] || styles['Draft']}`}>
@@ -56,11 +55,16 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
 
   const ids = post.ids || [post.id];
   const platforms = post.platforms || [post.platform];
+  
+  // Is this user an agency member?
+  const isAgency = PERMISSIONS.isInternal(user.role);
+  // Is this user a client?
+  const isClient = user.role.startsWith('client');
 
   // RBAC: Hide internal comments from client viewers/admins
   const visibleComments = (post.comments || []).filter(c => {
       if (c.isInternal) {
-          return PERMISSIONS.isInternal(user.role);
+          return isAgency;
       }
       return true;
   });
@@ -74,7 +78,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
             author: user.name,
             role: user.role,
             text: newComment,
-            isInternal: PERMISSIONS.isInternal(user.role) ? isInternal : false
+            isInternal: isAgency ? isInternal : false
         })));
         setNewComment('');
         onUpdate?.();
@@ -91,6 +95,13 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
     navigator.clipboard.writeText(text);
     alert('Content copied!');
     setShowMoreMenu(false);
+  };
+  
+  const handleRequestChanges = () => {
+      const feedback = prompt("Please provide feedback on what needs to change:");
+      if (feedback && feedback.trim()) {
+          onStatusChange?.(ids, 'In Review', feedback);
+      }
   };
 
   const renderContent = () => (
@@ -154,10 +165,10 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
             <input 
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder={PERMISSIONS.isInternal(user.role) && isInternal ? "Internal brainstorming only..." : "Post a comment..."}
+              placeholder={isAgency && isInternal ? "Internal brainstorming only..." : "Post a comment..."}
               className="flex-grow text-xs border-none bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-xl px-5 py-4 focus:ring-2 focus:ring-swave-orange outline-none transition-all shadow-inner font-medium"
             />
-            {PERMISSIONS.isInternal(user.role) && (
+            {isAgency && (
                 <button type="button" onClick={() => setIsInternal(!isInternal)} className={`p-2 rounded-xl transition-colors ${isInternal ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
                     <Lock className="w-4 h-4"/>
                 </button>
@@ -204,7 +215,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
                     ))}
                 </div>
             </div>
-            <StatusBadge status={post.status} />
+            {/* FORCE KEY UPDATE TO ENSURE BADGE RE-RENDERS */}
+            <StatusBadge key={post.status} status={post.status} />
         </div>
         <div className="px-5 pb-4 short:px-3 flex-1 overflow-hidden bg-white dark:bg-gray-800 relative flex flex-col min-h-0">
             {viewMode === 'content' && renderContent()}
@@ -232,21 +244,30 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
                     </button>
                 </div>
 
-                {/* CONDITIONAL ACTION BUTTONS - Only shown in content mode */}
+                {/* ACTION BUTTONS (WORKFLOW LOGIC) */}
                 <div className={`flex items-center justify-end gap-1 flex-grow min-w-0 transition-opacity duration-300 ${viewMode !== 'content' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                     <div className="flex items-center gap-1">
                         {post.status === 'Trashed' ? (
                             <button onClick={() => onRestore?.(ids)} className="text-[10px] bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-2 py-2 rounded-xl hover:scale-105 font-black flex items-center gap-1 transition-all active:scale-95"><RotateCcw className="w-3.5 h-3.5"/> Restore</button>
                         ) : (
                             <>
-                                {PERMISSIONS.isInternal(user.role) && post.status === 'Draft' && (
-                                    <button onClick={() => onStatusChange?.(ids, 'In Review')} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white px-2 py-2 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md hover:scale-[1.03] transition-all active:scale-95 whitespace-nowrap">Review <ArrowRight className="w-3 h-3"/></button>
+                                {/* AGENCY FLOW: Draft -> In Review -> Approved -> Scheduled -> Published */}
+                                {isAgency && post.status === 'Draft' && (
+                                    <button onClick={() => onStatusChange?.(ids, 'In Review')} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white px-3 py-2 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md hover:scale-[1.03] transition-all active:scale-95 whitespace-nowrap">Submit for Review <ArrowRight className="w-3 h-3"/></button>
                                 )}
-                                {PERMISSIONS.canApprove(user.role) && post.status === 'In Review' && (
-                                    <button onClick={() => onStatusChange?.(ids, 'Approved')} className="bg-emerald-600 text-white px-2 py-2 rounded-xl text-[10px] font-black shadow-md hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-1 whitespace-nowrap"><Check className="w-3 h-3"/> Approve</button>
+                                {isAgency && post.status === 'Approved' && (
+                                    <button onClick={() => onStatusChange?.(ids, 'Scheduled')} className="bg-blue-600 text-white px-3 py-2 rounded-xl text-[10px] font-black shadow-md hover:bg-blue-700 transition-all active:scale-95 whitespace-nowrap">Schedule Post</button>
                                 )}
-                                {PERMISSIONS.canPublish(user.role) && post.status === 'Approved' && (
-                                    <button onClick={() => onStatusChange?.(ids, 'Scheduled')} className="bg-blue-600 text-white px-2 py-2 rounded-xl text-[10px] font-black shadow-md hover:bg-blue-700 transition-all active:scale-95 whitespace-nowrap">Schedule</button>
+                                {isAgency && post.status === 'Scheduled' && (
+                                    <button onClick={() => onStatusChange?.(ids, 'Published')} className="bg-indigo-600 text-white px-3 py-2 rounded-xl text-[10px] font-black shadow-md hover:bg-indigo-700 transition-all active:scale-95 whitespace-nowrap flex items-center gap-1"><Share2 className="w-3 h-3" /> Publish Now</button>
+                                )}
+
+                                {/* CLIENT FLOW (Can only Approve or Request Changes when In Review) */}
+                                {(isClient || isAgency) && post.status === 'In Review' && (
+                                    <>
+                                        <button onClick={handleRequestChanges} className="bg-white dark:bg-gray-800 text-gray-500 border border-gray-200 dark:border-gray-600 px-3 py-2 rounded-xl text-[10px] font-black hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95 whitespace-nowrap flex items-center gap-1">Request Changes</button>
+                                        <button onClick={() => onStatusChange?.(ids, 'Approved')} className="bg-emerald-600 text-white px-3 py-2 rounded-xl text-[10px] font-black shadow-md hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-1 whitespace-nowrap"><Check className="w-3 h-3"/> Approve Post</button>
+                                    </>
                                 )}
                             </>
                         )}
@@ -258,7 +279,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
                                 <div className="fixed inset-0 z-10" onClick={() => setShowMoreMenu(false)}></div>
                                 <div className="absolute bottom-full right-0 mb-4 w-52 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-20 animate-in fade-in zoom-in-95 duration-200">
                                     <button onClick={() => { setViewMode('history'); setShowMoreMenu(false); }} className="w-full text-left px-5 py-3.5 text-xs font-black text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 border-b border-gray-50 dark:border-gray-700"><History className="w-3.5 h-3.5 text-swave-purple"/> Audit Trail</button>
-                                    <button onClick={copyToClipboard} className="w-full text-left px-5 py-3.5 text-xs font-black text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 border-b border-gray-50 dark:border-gray-700"><Copy className="w-3.5 h-3.5 text-swave-orange"/> Copy Copy</button>
+                                    <button onClick={copyToClipboard} className="w-full text-left px-5 py-3.5 text-xs font-black text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 border-b border-gray-50 dark:border-gray-700"><Copy className="w-3.5 h-3.5 text-swave-orange"/> Copy Post</button>
                                     {PERMISSIONS.canEdit(user.role) && (
                                         <button onClick={() => { onEdit?.(post); setShowMoreMenu(false); }} className="w-full text-left px-5 py-3.5 text-xs font-black text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 border-b border-gray-50 dark:border-gray-700"><Edit2 className="w-3.5 h-3.5 text-blue-500"/> Edit Post</button>
                                     )}

@@ -228,9 +228,27 @@ export default function App() {
   };
 
   const handleDeletePost = async (ids: string[]) => {
-    if (confirm("Trash these posts?")) {
-        const promises = ids.map(id => db.updatePost(id, { status: 'Trashed' }, currentUser?.name || 'Unknown'));
-        await Promise.all(promises);
+    // Check if we are in the Archive view to determine if this is a permanent delete
+    const isPermanent = viewMode === 'trash';
+    const message = isPermanent 
+        ? "Permanently delete these posts? This cannot be undone." 
+        : "Move to Archive? Posts are deleted automatically after 15 days.";
+
+    if (confirm(message)) {
+        try {
+            if (isPermanent) {
+                const promises = ids.map(id => db.deletePost(id));
+                await Promise.all(promises);
+            } else {
+                const promises = ids.map(id => db.updatePost(id, { status: 'Trashed' }, currentUser?.name || 'Unknown'));
+                await Promise.all(promises);
+            }
+            // Force data reload to update UI immediately
+            await loadData(true);
+        } catch (e) {
+            console.error("Delete failed", e);
+            alert("Failed to delete posts. Please try again.");
+        }
     }
   };
 
@@ -238,23 +256,31 @@ export default function App() {
       if (confirm("Restore to Draft?")) {
           const promises = ids.map(id => db.updatePost(id, { status: 'Draft' }, currentUser?.name || 'Unknown'));
           await Promise.all(promises);
+          await loadData(true);
       }
   };
 
   const handleStatusChange = async (ids: string[], status: PostStatus, feedback?: string) => {
     if (!currentUser) return;
-    const promises = ids.map(async (id) => {
-        if (feedback) {
-             await db.addComment(id, {
-                 author: currentUser.name,
-                 role: currentUser.role,
-                 text: `[Feedback] ${feedback}`,
-                 isInternal: PERMISSIONS.isInternal(currentUser.role)
-             });
-        }
-        return db.updatePost(id, { status }, currentUser.name);
-    });
-    await Promise.all(promises);
+    try {
+      const promises = ids.map(async (id) => {
+          if (feedback) {
+              await db.addComment(id, {
+                  author: currentUser.name,
+                  role: currentUser.role,
+                  text: `[Feedback] ${feedback}`,
+                  isInternal: PERMISSIONS.isInternal(currentUser.role)
+              });
+          }
+          return db.updatePost(id, { status }, currentUser.name);
+      });
+      await Promise.all(promises);
+      // Reload data to reflect changes in UI
+      await loadData(true);
+    } catch (error) {
+      console.error("Failed to update status", error);
+      alert("Failed to update status.");
+    }
   };
 
   const openNewPostForm = () => {
@@ -505,7 +531,7 @@ export default function App() {
                                              <span className="text-[10px] bg-swave-orange text-swave-orange-text px-3 py-1 rounded-full font-black tracking-widest ml-2">{notifications.length} NEW</span>
                                          </div>
                                          <div className="max-h-[400px] overflow-y-auto pb-2">
-                                             {notifications.length === 0 ? <div className="p-12 text-center text-gray-400 text-sm font-bold italic opacity-40">Your inbox is clear. ✨</div> : notifications.map(n => <div key={n.id} onClick={() => { const p = posts.find(post => post.id === n.postId); if(p) { /* handle scroll to or open */ setShowNotifications(false); } }} className="p-5 border-b border-gray-50 dark:border-gray-800 hover:bg-orange-50/40 dark:hover:bg-orange-900/10 cursor-pointer flex gap-4 transition-colors">
+                                             {notifications.length === 0 ? <div className="p-12 text-center text-gray-400 text-sm font-bold italic opacity-40">Your inbox is clear. ✨</div> : notifications.map(n => <div key={n.id} onClick={() => { const p = posts.find(post => post.id === n.postId); if(p) { openEditPostForm({ ...p, ids: [p.id], platforms: [p.platform] } as any); setShowNotifications(false); } }} className="p-5 border-b border-gray-50 dark:border-gray-800 hover:bg-orange-50/40 dark:hover:bg-orange-900/10 cursor-pointer flex gap-4 transition-colors">
                                                  <div className="mt-2 flex-shrink-0 w-3 h-3 rounded-full bg-swave-orange" />
                                                  <div className="flex-grow"><p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 leading-snug">{n.text}</p><p className="text-xs text-gray-400 font-black mt-2 uppercase tracking-widest">{new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div>
                                              </div>)}
@@ -577,7 +603,7 @@ export default function App() {
                                     <input type="date" value={newPostDate} onChange={e => setNewPostDate(e.target.value)} className="w-full p-3 md:p-5 rounded-2xl md:rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black shadow-xl outline-none" />
                                 </div>
                                 <div>
-                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-4">Creative Asset</label>
+                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-4">Creative Asset</label>
                                     <div className="border-4 border-dashed border-gray-200 rounded-3xl md:rounded-[3rem] p-4 md:p-10 text-center relative bg-white/30">
                                         {newPostMediaUrl ? (
                                             <div className="relative rounded-2xl md:rounded-[2rem] overflow-hidden bg-gray-100 border flex justify-center items-center min-h-[150px] md:min-h-[250px] shadow-2xl">
