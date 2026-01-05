@@ -131,18 +131,21 @@ export const db = {
     try {
         const { count } = await supabase.from('posts').select('*', { count: 'exact', head: true });
         
+        // Ensure Database is seeded if empty
         if (count === 0) {
             console.log("Seeding Database...");
-            const { data: admin } = await supabase.from('users').select('id').eq('email', 'admin@swave.agency').maybeSingle();
-            if (!admin) {
-                 await db.createUser({
-                    email: 'admin@swave.agency',
-                    password: 'admin123',
-                    name: 'Agency Director',
-                    role: 'agency_admin'
-                });
-            }
             await db.seedDatabase();
+        }
+        
+        // Ensure Admin exists
+        const { data: admin } = await supabase.from('users').select('id').eq('email', 'admin@swave.agency').maybeSingle();
+        if (!admin) {
+             await db.createUser({
+                email: 'admin@swave.agency',
+                password: 'admin123',
+                name: 'Agency Director',
+                role: 'agency_admin'
+            });
         }
     } catch (e) {
         console.error("Initialization Error:", e);
@@ -216,22 +219,37 @@ export const db = {
   // --- AUTHENTICATION & USERS ---
   
   authenticate: async (email: string, password: string): Promise<User | null> => {
-      const { data, error } = await supabase.from('users').select('*').eq('email', email).single();
+      // 1. Try Standard User Login (Agency or manually created users)
+      const { data: user } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
       
-      if (error || !data) return null;
-      
-      if (data.password === password) {
-          await supabase.from('users').update({ lastLogin: Date.now() }).eq('id', data.id);
+      if (user && user.password === password) {
+          await supabase.from('users').update({ lastLogin: Date.now() }).eq('id', user.id);
           
           return {
-              id: data.id,
-              email: data.email,
-              name: data.name,
-              role: data.role as UserRole,
-              clientId: data.clientId,
-              avatar: data.avatar
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role as UserRole,
+              clientId: user.clientId,
+              avatar: user.avatar
           };
       }
+
+      // 2. Try Client Access Code Login (Fallback for Clients)
+      // Check if the email provided matches a Client Profile's email, and if the password matches the Access Code
+      const { data: client } = await supabase.from('clients').select('*').eq('email', email).maybeSingle();
+
+      if (client && client.accessCode === password) {
+           return {
+              id: `client-${client.name}`, // Synthetic ID
+              email: client.email || email,
+              name: client.name, // Use Client Name as User Name
+              role: 'client_admin', // Default to admin for access code users
+              clientId: client.name,
+              avatar: undefined
+          };
+      }
+
       return null;
   },
 
@@ -462,8 +480,13 @@ export const db = {
 
   seedDatabase: async (): Promise<void> => {
       const clientName = "TechStart Inc";
-      const { data: existingClient } = await supabase.from('clients').select('id').eq('name', clientName).maybeSingle();
-      if (!existingClient) await db.addClient(clientName);
+      // Upsert to ensure specific credentials for the demo
+      await supabase.from('clients').upsert({
+          name: clientName,
+          email: 'techstartinc@mail.com',
+          accessCode: '8127',
+          currency: 'USD'
+      }, { onConflict: 'name' });
 
       await db.addCampaign("Q1 Product Launch", clientName);
       await db.addCampaign("Brand Awareness", clientName);
