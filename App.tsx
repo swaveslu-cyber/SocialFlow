@@ -597,9 +597,10 @@ export default function App() {
                          </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-4 overflow-x-auto pb-2 pt-1 short:pb-1">
-                    <div className="flex items-center gap-2.5 p-2 short:p-1 bg-gray-100/50 dark:bg-gray-800/50 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-inner min-w-full w-max md:w-auto">
-                        <div className="flex gap-2.5 short:gap-1.5 min-w-full md:min-w-0">
+                {/* STATUS FILTER PILLS - FULL BLEED SCROLL FIX */}
+                <div className="-mx-6 px-6 md:mx-0 md:px-0 overflow-x-auto pb-2 pt-1 short:pb-1 no-scrollbar">
+                    <div className="inline-flex items-center gap-2.5 p-2 short:p-1 bg-gray-100/50 dark:bg-gray-800/50 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-inner whitespace-nowrap">
+                        <div className="flex gap-2.5 short:gap-1.5">
                             {STATUS_PILLS.map((pill) => <button key={pill.label} onClick={() => setFilterStatus(pill.value)} className={`px-6 py-2.5 short:py-1.5 short:px-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterStatus === pill.value ? pill.color + ' shadow-xl scale-105 ring-4 ring-white dark:ring-gray-900 z-10' : 'bg-[var(--color-button)] text-[var(--color-button-text)] border border-gray-200 dark:border-gray-700 hover:opacity-80 dark:bg-gray-800 dark:text-gray-400'}`}>{pill.label}</button>)}
                         </div>
                     </div>

@@ -859,27 +859,29 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
 
            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 {!isClient && (
-                <div className="mb-6 flex gap-2">
+                <div className="mb-6 flex flex-col md:flex-row gap-3">
                     <input 
                         placeholder="Service Name (e.g. Social Media Management)"
-                        className="flex-grow p-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-swave-orange"
+                        className="w-full md:flex-grow p-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-swave-orange"
                         value={newService.name}
                         onChange={e => setNewService({...newService, name: e.target.value})}
                     />
-                    <input 
-                        type="number"
-                        placeholder="Default Rate"
-                        className="w-32 p-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-swave-orange"
-                        value={newService.rate}
-                        onChange={e => setNewService({...newService, rate: e.target.value})}
-                    />
-                    <button 
-                        onClick={handleAddService} 
-                        disabled={!newService.name || !newService.rate || isSavingService} 
-                        className="px-6 bg-swave-purple text-white rounded-lg font-bold disabled:opacity-50 flex items-center justify-center min-w-[120px]"
-                    >
-                        {isSavingService ? "Saving..." : "Add Service"}
-                    </button>
+                    <div className="flex gap-3">
+                        <input 
+                            type="number"
+                            placeholder="Rate"
+                            className="flex-1 md:w-32 p-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-swave-orange"
+                            value={newService.rate}
+                            onChange={e => setNewService({...newService, rate: e.target.value})}
+                        />
+                        <button 
+                            onClick={handleAddService} 
+                            disabled={!newService.name || !newService.rate || isSavingService} 
+                            className="flex-1 md:w-auto md:min-w-[120px] px-6 bg-swave-purple text-white rounded-lg font-bold disabled:opacity-50 flex items-center justify-center whitespace-nowrap"
+                        >
+                            {isSavingService ? "Saving..." : "Add"}
+                        </button>
+                    </div>
                 </div>
                 )}
 
