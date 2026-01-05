@@ -517,7 +517,7 @@ export default function App() {
                     </div>
                 </div>
                 <div className="flex items-center gap-4 overflow-x-auto pb-2 pt-1 short:pb-1">
-                    <div className="flex items-center gap-2.5 p-2 short:p-1 bg-gray-100/50 dark:bg-gray-800/50 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-inner w-full md:w-auto">
+                    <div className="flex items-center gap-2.5 p-2 short:p-1 bg-gray-100/50 dark:bg-gray-800/50 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-inner min-w-full w-max md:w-auto">
                         <div className="flex gap-2.5 short:gap-1.5 min-w-full md:min-w-0">
                             {STATUS_PILLS.map((pill) => <button key={pill.label} onClick={() => setFilterStatus(pill.value)} className={`px-6 py-2.5 short:py-1.5 short:px-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterStatus === pill.value ? pill.color + ' shadow-xl scale-105 ring-4 ring-white dark:ring-gray-900 z-10' : 'bg-[var(--color-button)] text-[var(--color-button-text)] border border-gray-200 dark:border-gray-700 hover:opacity-80 dark:bg-gray-800 dark:text-gray-400'}`}>{pill.label}</button>)}
                         </div>
@@ -546,73 +546,75 @@ export default function App() {
             </>
             )}
         </main>
-        {/* Form Logic omitted for brevity as no changes needed here */}
+        {/* Form Logic */}
         {isFormOpen && (
-            <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in short:p-2">
-                 <div className="bg-white dark:bg-gray-800 rounded-[4rem] shadow-2xl w-full max-w-[95vw] h-[95vh] short:h-[98vh] short:rounded-[2rem] overflow-hidden flex flex-col scale-100 animate-in zoom-in-90">
-                    <div className="p-10 short:p-4 border-b border-gray-100 flex justify-between items-center bg-white dark:bg-gray-800">
-                        <h2 className="text-3xl short:text-xl font-black text-gray-900 dark:text-white tracking-tighter">Studio Workspace</h2>
-                        <button type="button" onClick={closeForm} className="p-4 short:p-2 hover:bg-gray-100 rounded-3xl transition-all text-gray-500 hover:rotate-180 duration-500"><X className="w-8 h-8 short:w-6 short:h-6" /></button>
+            <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-2xl flex items-center justify-center p-0 md:p-4 animate-in fade-in">
+                 <div className="bg-white dark:bg-gray-800 rounded-none md:rounded-[4rem] shadow-2xl w-full md:max-w-[95vw] h-full md:h-[95vh] overflow-hidden flex flex-col scale-100 animate-in zoom-in-90">
+                    <div className="p-4 md:p-10 border-b border-gray-100 flex justify-between items-center bg-white dark:bg-gray-800 shrink-0">
+                        <h2 className="text-xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tighter">Studio Workspace</h2>
+                        <button type="button" onClick={closeForm} className="p-2 md:p-4 hover:bg-gray-100 rounded-2xl md:rounded-3xl transition-all text-gray-500 hover:rotate-180 duration-500"><X className="w-6 h-6 md:w-8 md:h-8" /></button>
                     </div>
                     {/* Simplified Layout Reuse */}
-                    <div className="flex-grow overflow-y-auto p-10 lg:p-12 short:p-4 grid grid-cols-1 lg:grid-cols-7 gap-12 short:gap-6">
-                           <div className="lg:col-span-3 space-y-10 short:space-y-4">
+                    <div className="flex-grow overflow-y-auto p-4 md:p-10 lg:p-12 grid grid-cols-1 lg:grid-cols-7 gap-6 md:gap-12">
+                           <div className="lg:col-span-3 space-y-6 md:space-y-10">
                                 {!currentUser.clientId && (
-                                <div className="short:flex short:items-center short:gap-4">
-                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 short:mb-0 short:w-32">Strategic Account</label>
-                                    <select value={newPostClient} onChange={e => setNewPostClient(e.target.value)} className="w-full p-5 short:p-3 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl">{clients.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                                <div className="md:flex md:items-center md:gap-4">
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-0 md:w-32">Strategic Account</label>
+                                    <select value={newPostClient} onChange={e => setNewPostClient(e.target.value)} className="w-full p-3 md:p-5 rounded-2xl md:rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl">{clients.map(c => <option key={c} value={c}>{c}</option>)}</select>
                                 </div>
                                 )}
-                                <div className="short:flex short:items-center short:gap-4">
-                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 short:mb-0 short:w-32">Campaign Name</label>
-                                    <input list="campaigns-list" value={newPostCampaign} onChange={e => setNewPostCampaign(e.target.value)} placeholder="e.g. Winter Sale 2024" className="w-full p-5 short:p-3 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl" />
+                                <div className="md:flex md:items-center md:gap-4">
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-0 md:w-32">Campaign Name</label>
+                                    <input list="campaigns-list" value={newPostCampaign} onChange={e => setNewPostCampaign(e.target.value)} placeholder="e.g. Winter Sale 2024" className="w-full p-3 md:p-5 rounded-2xl md:rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black outline-none shadow-xl" />
                                     <datalist id="campaigns-list">{Array.from(new Set(posts.map(p => p.campaign).filter(Boolean))).map(c => <option key={c} value={c!} />)}</datalist>
                                 </div>
-                                <div className="short:flex short:items-center short:gap-4">
-                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 short:mb-0 short:w-32">Channels</label>
-                                    <div className="flex flex-wrap gap-3 short:gap-1.5">{PLATFORMS.map(p => <button key={p} type="button" onClick={() => togglePlatform(p)} className={`flex items-center gap-3 short:gap-1.5 px-6 py-4 short:py-2 short:px-3 rounded-[1.25rem] text-[11px] font-black border-2 transition-all active:scale-95 ${newPostPlatforms.includes(p) ? 'bg-gray-900 text-white border-gray-900 shadow-2xl' : 'bg-white border-gray-100 text-gray-500 hover:border-swave-orange'}`}>{p}</button>)}</div>
+                                <div className="md:flex md:items-center md:gap-4">
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-0 md:w-32">Channels</label>
+                                    <div className="flex flex-wrap gap-2 md:gap-3">{PLATFORMS.map(p => <button key={p} type="button" onClick={() => togglePlatform(p)} className={`flex items-center gap-1.5 px-3 py-2 md:px-6 md:py-4 rounded-xl md:rounded-[1.25rem] text-[10px] md:text-[11px] font-black border-2 transition-all active:scale-95 ${newPostPlatforms.includes(p) ? 'bg-gray-900 text-white border-gray-900 shadow-2xl' : 'bg-white border-gray-100 text-gray-500 hover:border-swave-orange'}`}>{p}</button>)}</div>
                                 </div>
-                                <div className="short:flex short:items-center short:gap-4">
-                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 short:mb-0 short:w-32">Activation</label>
-                                    <input type="date" value={newPostDate} onChange={e => setNewPostDate(e.target.value)} className="w-full p-5 short:p-3 rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black shadow-xl outline-none" />
+                                <div className="md:flex md:items-center md:gap-4">
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-0 md:w-32">Activation</label>
+                                    <input type="date" value={newPostDate} onChange={e => setNewPostDate(e.target.value)} className="w-full p-3 md:p-5 rounded-2xl md:rounded-[1.5rem] bg-white border-2 border-transparent focus:border-swave-orange/50 text-sm font-black shadow-xl outline-none" />
                                 </div>
                                 <div>
-                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 short:mb-2">Creative Asset</label>
-                                    <div className="border-4 border-dashed border-gray-200 rounded-[3rem] short:rounded-[1.5rem] p-10 short:p-4 text-center relative bg-white/30">
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-4">Creative Asset</label>
+                                    <div className="border-4 border-dashed border-gray-200 rounded-3xl md:rounded-[3rem] p-4 md:p-10 text-center relative bg-white/30">
                                         {newPostMediaUrl ? (
-                                            <div className="relative rounded-[2rem] short:rounded-[1rem] overflow-hidden bg-gray-100 border flex justify-center items-center min-h-[250px] short:min-h-[150px] shadow-2xl">
-                                                {newPostMediaType === 'video' ? <video src={newPostMediaUrl} className="w-full h-auto max-h-[400px] short:max-h-[200px] object-contain" controls /> : <img src={newPostMediaUrl} alt="Preview" className="w-full h-auto max-h-[400px] short:max-h-[200px] object-contain" />}
-                                                <button type="button" onClick={() => setNewPostMediaUrl('')} className="absolute top-6 right-6 short:top-2 short:right-2 bg-red-500 text-white p-3 short:p-2 rounded-full active:scale-90"><X className="w-6 h-6 short:w-4 short:h-4" /></button>
+                                            <div className="relative rounded-2xl md:rounded-[2rem] overflow-hidden bg-gray-100 border flex justify-center items-center min-h-[150px] md:min-h-[250px] shadow-2xl">
+                                                {newPostMediaType === 'video' ? <video src={newPostMediaUrl} className="w-full h-auto max-h-[200px] md:max-h-[400px] object-contain" controls /> : <img src={newPostMediaUrl} alt="Preview" className="w-full h-auto max-h-[200px] md:max-h-[400px] object-contain" />}
+                                                <button type="button" onClick={() => setNewPostMediaUrl('')} className="absolute top-2 right-2 md:top-6 md:right-6 bg-red-500 text-white p-2 md:p-3 rounded-full active:scale-90"><X className="w-4 h-4 md:w-6 md:h-6" /></button>
                                             </div>
                                         ) : (
-                                            <div className="py-12 short:py-4 flex flex-col items-center justify-center text-gray-400">
-                                                {isUploading ? <Loader2 className="w-16 h-16 short:w-8 short:h-8 animate-spin text-swave-orange"/> : <UploadCloud className="w-16 h-16 short:w-8 short:h-8 mb-5 short:mb-2 opacity-40" />}
-                                                <p className="text-sm font-black uppercase tracking-widest">Deploy Assets</p>
+                                            <div className="py-8 md:py-12 flex flex-col items-center justify-center text-gray-400">
+                                                {isUploading ? <Loader2 className="w-8 h-8 md:w-16 md:h-16 animate-spin text-swave-orange"/> : <UploadCloud className="w-8 h-8 md:w-16 md:h-16 mb-2 md:mb-5 opacity-40" />}
+                                                <p className="text-xs md:text-sm font-black uppercase tracking-widest">Deploy Assets</p>
                                                 <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*,video/*" />
                                             </div>
                                         )}
                                     </div>
                                 </div>
                             </div>
-                            <div className="lg:col-span-4 flex flex-col h-full space-y-10 short:space-y-4">
+                            <div className="lg:col-span-4 flex flex-col h-full space-y-4 md:space-y-10">
                                 <div className="flex-grow flex flex-col">
-                                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 short:mb-2 flex justify-between items-center"><span>Post Copy / Caption</span><span className="font-black bg-swave-purple/10 text-swave-purple px-4 py-1.5 rounded-full text-[10px]">{newPostCaption.length} CHARS</span></label>
-                                <div className="relative flex-grow flex flex-col min-h-[400px] short:min-h-[200px]">
-                                    <textarea value={newPostCaption} onChange={e => setNewPostCaption(e.target.value)} className="w-full flex-grow p-8 short:p-4 rounded-[2.5rem] short:rounded-[1.5rem] bg-white border-none text-[16px] short:text-sm font-medium outline-none resize-none shadow-2xl leading-relaxed transition-all" placeholder="Tell a story..." />
-                                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="absolute bottom-8 right-8 short:bottom-4 short:right-4 text-gray-400 hover:text-swave-orange bg-gray-50 p-4 short:p-2 rounded-3xl shadow-lg active:scale-90"><Smile className="w-7 h-7 short:w-5 short:h-5" /></button>
-                                    {showEmojiPicker && <div className="absolute bottom-24 right-8 short:bottom-16 short:right-4 z-20 shadow-2xl rounded-[2.5rem] overflow-hidden"><EmojiPicker onEmojiClick={(e) => { setNewPostCaption(prev => prev + e.emoji); setShowEmojiPicker(false); }} width={350} height={450} previewConfig={{ showPreview: false }} /></div>}
+                                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2 md:mb-4 flex justify-between items-center"><span>Post Copy / Caption</span><span className="font-black bg-swave-purple/10 text-swave-purple px-4 py-1.5 rounded-full text-[10px]">{newPostCaption.length} CHARS</span></label>
+                                <div className="relative flex-grow flex flex-col min-h-[200px] md:min-h-[400px]">
+                                    <textarea value={newPostCaption} onChange={e => setNewPostCaption(e.target.value)} className="w-full flex-grow p-4 md:p-8 rounded-3xl md:rounded-[2.5rem] bg-white border-none text-sm md:text-[16px] font-medium outline-none resize-none shadow-2xl leading-relaxed transition-all" placeholder="Tell a story..." />
+                                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="absolute bottom-4 right-4 md:bottom-8 md:right-8 text-gray-400 hover:text-swave-orange bg-gray-50 p-2 md:p-4 rounded-2xl md:rounded-3xl shadow-lg active:scale-90"><Smile className="w-5 h-5 md:w-7 md:h-7" /></button>
+                                    {showEmojiPicker && <div className="absolute bottom-16 right-4 md:bottom-24 md:right-8 z-20 shadow-2xl rounded-[2.5rem] overflow-hidden"><EmojiPicker onEmojiClick={(e) => { setNewPostCaption(prev => prev + e.emoji); setShowEmojiPicker(false); }} width={300} height={400} previewConfig={{ showPreview: false }} /></div>}
                                 </div>
                                 </div>
                             </div>
                     </div>
-                    <div className="p-10 short:p-4 border-t border-gray-100 bg-white flex flex-col sm:flex-row justify-between items-center gap-6 short:gap-2">
-                        <button type="button" onClick={() => setIsFormOpen(false)} className="w-full sm:w-auto px-10 py-5 short:py-2 text-gray-400 hover:text-red-500 rounded-3xl text-sm font-black uppercase tracking-[0.2em] transition-colors">Discard</button>
-                        <div className="flex gap-5 short:gap-2 w-full sm:w-auto">
-                            <button type="button" disabled={isSaving} onClick={() => handleSavePost('Draft')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 short:py-3 short:px-4 bg-gray-100 text-gray-900 rounded-[1.5rem] text-sm font-black active:scale-95 disabled:opacity-50"><Save className="w-5 h-5" /> Store Draft</button>
+                    <div className="p-4 md:p-10 border-t border-gray-100 bg-white flex flex-row justify-between items-center gap-3 md:gap-6 shrink-0">
+                        <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-3 text-gray-400 hover:text-red-500 rounded-xl text-xs md:text-sm font-black uppercase tracking-[0.2em] transition-colors hidden sm:block">Discard</button>
+                        <button type="button" onClick={() => setIsFormOpen(false)} className="p-3 text-gray-400 hover:text-red-500 rounded-xl sm:hidden border border-gray-100"><Trash2 className="w-5 h-5" /></button>
+
+                        <div className="flex gap-3 md:gap-5 w-full sm:w-auto justify-end">
+                            <button type="button" disabled={isSaving} onClick={() => handleSavePost('Draft')} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 md:px-10 md:py-5 bg-gray-100 text-gray-900 rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black active:scale-95 disabled:opacity-50"><Save className="w-4 h-4 md:w-5 md:h-5" /> Store Draft</button>
                             {PERMISSIONS.canApprove(currentUser.role) ? (
-                                <button type="button" disabled={isSaving} onClick={() => handleSavePost('Approved')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-12 py-5 short:py-3 short:px-6 bg-gradient-to-r from-swave-purple to-swave-orange text-white rounded-[1.5rem] text-sm font-black shadow-2xl active:scale-95 disabled:opacity-50 uppercase tracking-widest"><Check className="w-5 h-5"/> Final Approval</button>
+                                <button type="button" disabled={isSaving} onClick={() => handleSavePost('Approved')} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 md:px-12 md:py-5 bg-gradient-to-r from-swave-purple to-swave-orange text-white rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black shadow-2xl active:scale-95 disabled:opacity-50 uppercase tracking-widest"><Check className="w-4 h-4 md:w-5 md:h-5"/> Final Approval</button>
                             ) : (
-                                <button type="button" disabled={isSaving} onClick={() => handleSavePost('In Review')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-12 py-5 short:py-3 short:px-6 bg-gradient-to-r from-swave-purple to-swave-orange text-white rounded-[1.5rem] text-sm font-black shadow-2xl active:scale-95 disabled:opacity-50 uppercase tracking-widest">Submit for Review</button>
+                                <button type="button" disabled={isSaving} onClick={() => handleSavePost('In Review')} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 md:px-12 md:py-5 bg-gradient-to-r from-swave-purple to-swave-orange text-white rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black shadow-2xl active:scale-95 disabled:opacity-50 uppercase tracking-widest">Submit for Review</button>
                             )}
                         </div>
                     </div>

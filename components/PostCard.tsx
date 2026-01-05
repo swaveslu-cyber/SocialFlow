@@ -21,11 +21,11 @@ interface PostCardProps {
 
 const PlatformIcon = ({ platform }: { platform: string }) => {
   switch (platform) {
-    case 'Instagram': return <Instagram className="w-4 h-4 text-pink-600" />;
-    case 'LinkedIn': return <Linkedin className="w-4 h-4 text-blue-700 dark:text-blue-400" />;
-    case 'Twitter': return <Twitter className="w-4 h-4 text-blue-400" />;
-    case 'Facebook': return <Facebook className="w-4 h-4 text-blue-600 dark:text-blue-500" />;
-    case 'TikTok': return <Video className="w-4 h-4 text-black dark:text-white" />;
+    case 'Instagram': return <Instagram className="w-3.5 h-3.5 text-pink-600" />;
+    case 'LinkedIn': return <Linkedin className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />;
+    case 'Twitter': return <Twitter className="w-3.5 h-3.5 text-blue-400" />;
+    case 'Facebook': return <Facebook className="w-3.5 h-3.5 text-blue-600 dark:text-blue-500" />;
+    case 'TikTok': return <Video className="w-3.5 h-3.5 text-black dark:text-white" />;
     default: return null;
   }
 };
@@ -95,18 +95,13 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
 
   const renderContent = () => (
     <div className="flex flex-col gap-4 overflow-y-auto pb-2 animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1">
-        <div className="flex flex-wrap gap-2 shrink-0">
-            {post.campaign && (
+        {post.campaign && (
+            <div className="flex flex-wrap gap-2 shrink-0">
                 <span className="bg-swave-purple/10 text-swave-purple text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest border border-swave-purple/20 flex items-center gap-1">
                    <Flag className="w-2.5 h-2.5" /> {post.campaign}
                 </span>
-            )}
-            {platforms.length > 1 && (
-                <span className="bg-gray-100 text-gray-500 text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest border border-gray-200 flex items-center gap-1">
-                   SYNC ({platforms.length})
-                </span>
-            )}
-        </div>
+            </div>
+        )}
         
         {post.mediaUrl && (
           <div className="aspect-video w-full bg-gray-50 dark:bg-gray-950 rounded-2xl overflow-hidden relative group shrink-0 border border-gray-100 dark:border-gray-800 shadow-sm">
@@ -154,7 +149,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
           ))
         )}
       </div>
-      <form onSubmit={handleAddComment} className="mt-2 flex flex-col gap-2 pt-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
+      <form onSubmit={handleAddComment} className="mt-2 flex flex-col gap-2 pt-4 pb-2 px-1 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
          <div className="flex gap-2">
             <input 
               value={newComment}
@@ -198,17 +193,15 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
   return (
     <>
         <div className={`bg-white dark:bg-gray-800 rounded-3xl short:rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 dark:border-gray-700/50 overflow-hidden flex flex-col transition-all duration-300 ${compact ? '' : 'max-h-[60vh]'} relative group`}>
-        <div className="p-5 pb-3 short:p-3 flex justify-between items-center bg-white dark:bg-gray-800 z-10 relative shrink-0">
-            <div className="flex items-center gap-3">
-                <div className="flex flex-wrap gap-1 max-w-[80px]">
+        <div className="p-5 pb-3 short:p-3 flex justify-between items-start bg-white dark:bg-gray-800 z-10 relative shrink-0">
+            <div className="flex flex-col gap-2 min-w-0 flex-1 pr-2">
+                <h3 className="text-sm short:text-xs font-black text-gray-900 dark:text-gray-100 leading-tight tracking-tight truncate">{post.client}</h3>
+                <div className="flex flex-wrap gap-1">
                     {platforms.map(p => (
-                        <div key={p} className="w-7 h-7 short:w-6 short:h-6 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-200 shadow-sm">
+                        <div key={p} className="w-6 h-6 rounded-md bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-200 shadow-sm">
                             <PlatformIcon platform={p} />
                         </div>
                     ))}
-                </div>
-                <div>
-                    <h3 className="text-sm short:text-xs font-black text-gray-900 dark:text-gray-100 leading-tight tracking-tight">{post.client}</h3>
                 </div>
             </div>
             <StatusBadge status={post.status} />
