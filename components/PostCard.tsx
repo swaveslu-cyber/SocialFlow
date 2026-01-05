@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Post, PostStatus, User, PERMISSIONS } from '../types';
 import { 
@@ -224,7 +225,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
             {viewMode === 'history' && renderHistory()}
         </div>
         {!compact && (
-            <div className="p-2 mx-2 mb-2 short:mx-2 short:mb-2 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-md rounded-2xl flex items-center justify-between gap-2 relative transition-all shrink-0 min-h-[56px]">
+            <div className="p-2 mx-2 mb-2 short:mx-2 short:mb-2 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-md rounded-2xl flex items-center justify-between gap-3 relative transition-all shrink-0 min-h-[56px]">
                 {/* PERSISTENT VIEW MODE SWITCHER */}
                 <div className="flex items-center gap-1 shrink-0">
                     <button 
@@ -253,20 +254,20 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
                             <>
                                 {/* AGENCY FLOW: Draft -> In Review -> Approved -> Scheduled -> Published */}
                                 {isAgency && post.status === 'Draft' && (
-                                    <button onClick={() => onStatusChange?.(ids, 'In Review')} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white px-3 py-2 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md hover:scale-[1.03] transition-all active:scale-95 whitespace-nowrap">Submit for Review <ArrowRight className="w-3 h-3"/></button>
+                                    <button onClick={() => onStatusChange?.(ids, 'In Review')} className="bg-gradient-to-r from-swave-purple to-swave-orange text-white px-2 py-2 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md hover:scale-[1.03] transition-all active:scale-95 whitespace-nowrap">Submit <ArrowRight className="w-3 h-3"/></button>
                                 )}
                                 {isAgency && post.status === 'Approved' && (
-                                    <button onClick={() => onStatusChange?.(ids, 'Scheduled')} className="bg-blue-600 text-white px-3 py-2 rounded-xl text-[10px] font-black shadow-md hover:bg-blue-700 transition-all active:scale-95 whitespace-nowrap">Schedule Post</button>
+                                    <button onClick={() => onStatusChange?.(ids, 'Scheduled')} className="bg-blue-600 text-white px-2 py-2 rounded-xl text-[10px] font-black shadow-md hover:bg-blue-700 transition-all active:scale-95 whitespace-nowrap">Schedule</button>
                                 )}
                                 {isAgency && post.status === 'Scheduled' && (
-                                    <button onClick={() => onStatusChange?.(ids, 'Published')} className="bg-indigo-600 text-white px-3 py-2 rounded-xl text-[10px] font-black shadow-md hover:bg-indigo-700 transition-all active:scale-95 whitespace-nowrap flex items-center gap-1"><Share2 className="w-3 h-3" /> Publish Now</button>
+                                    <button onClick={() => onStatusChange?.(ids, 'Published')} className="bg-indigo-600 text-white px-2 py-2 rounded-xl text-[10px] font-black shadow-md hover:bg-indigo-700 transition-all active:scale-95 whitespace-nowrap flex items-center gap-1"><Share2 className="w-3 h-3" /> Publish</button>
                                 )}
 
                                 {/* CLIENT FLOW (Can only Approve or Request Changes when In Review) */}
                                 {(isClient || isAgency) && post.status === 'In Review' && (
                                     <>
-                                        <button onClick={handleRequestChanges} className="bg-white dark:bg-gray-800 text-gray-500 border border-gray-200 dark:border-gray-600 px-3 py-2 rounded-xl text-[10px] font-black hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95 whitespace-nowrap flex items-center gap-1">Request Changes</button>
-                                        <button onClick={() => onStatusChange?.(ids, 'Approved')} className="bg-emerald-600 text-white px-3 py-2 rounded-xl text-[10px] font-black shadow-md hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-1 whitespace-nowrap"><Check className="w-3 h-3"/> Approve Post</button>
+                                        <button onClick={handleRequestChanges} className="bg-white dark:bg-gray-800 text-gray-500 border border-gray-200 dark:border-gray-600 px-2 py-2 rounded-xl text-[10px] font-black hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95 whitespace-nowrap flex items-center gap-1">Revise</button>
+                                        <button onClick={() => onStatusChange?.(ids, 'Approved')} className="bg-emerald-600 text-white px-2 py-2 rounded-xl text-[10px] font-black shadow-md hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-1 whitespace-nowrap"><Check className="w-3 h-3"/> Approve</button>
                                     </>
                                 )}
                             </>
