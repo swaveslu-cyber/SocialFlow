@@ -1,16 +1,25 @@
 
 import { supabase } from './supabaseClient';
-import { Post, PostStatus, Template, Snippet, ClientProfile, Comment, Campaign, Invoice, ServiceItem, User, UserRole, AppConfig, BrandKit } from '../types';
+import { Post, PostStatus, Template, Snippet, ClientProfile, Comment, Campaign, Invoice, ServiceItem, User, UserRole, AppConfig, BrandKit, ServiceMenuSection } from '../types';
 
-const DEFAULT_RATE_CARD_HTML = `
-<div class="space-y-8 font-sans text-gray-800 dark:text-gray-200">
-  <div class="text-center border-b border-gray-200 dark:border-gray-700 pb-8 mb-8">
+const DEFAULT_SERVICE_SECTIONS: ServiceMenuSection[] = [
+    {
+        id: 'header',
+        title: 'Header & Intro',
+        isVisible: true,
+        content: `
+<div class="text-center border-b border-gray-200 dark:border-gray-700 pb-8 mb-8">
     <h1 class="text-4xl font-black mb-2 tracking-tight text-gray-900 dark:text-white">SWAVE</h1>
     <p class="text-lg font-bold text-swave-purple uppercase tracking-widest">Online Growth Agency</p>
     <p class="mt-4 text-sm text-gray-500 font-medium">Rate Card & Services (2026)</p>
-  </div>
-
-  <section class="mb-12">
+</div>`
+    },
+    {
+        id: 'retainers',
+        title: 'Content Retainers',
+        isVisible: true,
+        content: `
+<section class="mb-12">
     <div class="flex items-center gap-3 mb-6">
         <div class="w-1 h-8 bg-swave-purple rounded-full"></div>
         <h3 class="text-2xl font-black text-gray-900 dark:text-white">Content Retainers</h3>
@@ -66,64 +75,72 @@ const DEFAULT_RATE_CARD_HTML = `
             <p class="text-sm text-orange-700 dark:text-orange-300">$200 OFF per month for the first 3 months on any retainer package.</p>
         </div>
     </div>
-  </section>
-
-  <div class="grid md:grid-cols-2 gap-12">
-      <section>
-        <div class="flex items-center gap-3 mb-6">
-            <div class="w-1 h-8 bg-blue-500 rounded-full"></div>
-            <h3 class="text-2xl font-black text-gray-900 dark:text-white">Web Development</h3>
-        </div>
-        <div class="space-y-4">
-            <div class="p-5 border border-gray-200 dark:border-gray-700 rounded-2xl hover:shadow-md transition-shadow">
-                <div class="flex justify-between items-center mb-2">
-                    <h4 class="font-bold">Starter Brochure</h4>
-                    <span class="font-mono font-bold">$1,200</span>
-                </div>
-                <p class="text-sm text-gray-500">Perfect for new businesses. Up to 2 pages, mobile-first design, launch support.</p>
+</section>`
+    },
+    {
+        id: 'web_dev',
+        title: 'Web Development',
+        isVisible: true,
+        content: `
+<section class="mb-12">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-1 h-8 bg-blue-500 rounded-full"></div>
+        <h3 class="text-2xl font-black text-gray-900 dark:text-white">Web Development</h3>
+    </div>
+    <div class="grid md:grid-cols-2 gap-4">
+        <div class="p-5 border border-gray-200 dark:border-gray-700 rounded-2xl hover:shadow-md transition-shadow">
+            <div class="flex justify-between items-center mb-2">
+                <h4 class="font-bold">Starter Brochure</h4>
+                <span class="font-mono font-bold">$1,200</span>
             </div>
-            <div class="p-5 border border-gray-200 dark:border-gray-700 rounded-2xl hover:shadow-md transition-shadow">
-                <div class="flex justify-between items-center mb-2">
-                    <h4 class="font-bold">Business System</h4>
-                    <span class="font-mono font-bold">$2,000</span>
-                </div>
-                <p class="text-sm text-gray-500">Service-based booking & leads. Up to 5 pages with conversion optimization.</p>
+            <p class="text-sm text-gray-500">Perfect for new businesses. Up to 2 pages, mobile-first design, launch support.</p>
+        </div>
+        <div class="p-5 border border-gray-200 dark:border-gray-700 rounded-2xl hover:shadow-md transition-shadow">
+            <div class="flex justify-between items-center mb-2">
+                <h4 class="font-bold">Business System</h4>
+                <span class="font-mono font-bold">$2,000</span>
             </div>
-            <div class="p-5 border border-gray-200 dark:border-gray-700 rounded-2xl hover:shadow-md transition-shadow">
-                <div class="flex justify-between items-center mb-2">
-                    <h4 class="font-bold">E-Commerce</h4>
-                    <span class="font-mono font-bold">$2,900+</span>
-                </div>
-                <p class="text-sm text-gray-500">Full store setup, payments, shipping rules, and automation.</p>
+            <p class="text-sm text-gray-500">Service-based booking & leads. Up to 5 pages with conversion optimization.</p>
+        </div>
+        <div class="p-5 border border-gray-200 dark:border-gray-700 rounded-2xl hover:shadow-md transition-shadow">
+            <div class="flex justify-between items-center mb-2">
+                <h4 class="font-bold">E-Commerce</h4>
+                <span class="font-mono font-bold">$2,900+</span>
             </div>
+            <p class="text-sm text-gray-500">Full store setup, payments, shipping rules, and automation.</p>
         </div>
-      </section>
-
-      <section>
-        <div class="flex items-center gap-3 mb-6">
-            <div class="w-1 h-8 bg-green-500 rounded-full"></div>
-            <h3 class="text-2xl font-black text-gray-900 dark:text-white">Edits & Add-Ons</h3>
+    </div>
+</section>`
+    },
+    {
+        id: 'addons',
+        title: 'Edits & Add-Ons',
+        isVisible: true,
+        content: `
+<section>
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-1 h-8 bg-green-500 rounded-full"></div>
+        <h3 class="text-2xl font-black text-gray-900 dark:text-white">Edits & Add-Ons</h3>
+    </div>
+    <div class="mb-6">
+        <p class="text-sm font-bold mb-2 uppercase tracking-wide text-gray-400">Edits Policy</p>
+        <p class="text-sm text-gray-600 dark:text-gray-300">Includes 3 free rounds. Additional edits billed at <strong>$60/hour</strong> or flat rate:</p>
+        <ul class="mt-2 space-y-1 text-sm text-gray-500">
+            <li>• Graphics: $15 (Minor) - $35 (Moderate)</li>
+            <li>• Video: $25 (Minor) - $120 (Major Rework)</li>
+        </ul>
+    </div>
+    <div>
+        <p class="text-sm font-bold mb-2 uppercase tracking-wide text-gray-400">Growth Tools</p>
+        <div class="flex flex-wrap gap-2">
+            <span class="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg text-xs font-bold">Meta Ads ($250+)</span>
+            <span class="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg text-xs font-bold">Content Day ($300+)</span>
+            <span class="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg text-xs font-bold">Email Setup ($200)</span>
         </div>
-        <div class="mb-6">
-            <p class="text-sm font-bold mb-2 uppercase tracking-wide text-gray-400">Edits Policy</p>
-            <p class="text-sm text-gray-600 dark:text-gray-300">Includes 3 free rounds. Additional edits billed at <strong>$60/hour</strong> or flat rate:</p>
-            <ul class="mt-2 space-y-1 text-sm text-gray-500">
-                <li>• Graphics: $15 (Minor) - $35 (Moderate)</li>
-                <li>• Video: $25 (Minor) - $120 (Major Rework)</li>
-            </ul>
-        </div>
-        <div>
-            <p class="text-sm font-bold mb-2 uppercase tracking-wide text-gray-400">Growth Tools</p>
-            <div class="flex flex-wrap gap-2">
-                <span class="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg text-xs font-bold">Meta Ads ($250+)</span>
-                <span class="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg text-xs font-bold">Content Day ($300+)</span>
-                <span class="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg text-xs font-bold">Email Setup ($200)</span>
-            </div>
-        </div>
-      </section>
-  </div>
-</div>
-`;
+    </div>
+</section>`
+    }
+];
 
 export const db = {
   init: async (): Promise<void> => {
@@ -178,20 +195,29 @@ export const db = {
       if (error) throw error;
   },
 
-  getRateCard: async (): Promise<string> => {
-      const { data } = await supabase.from('app_config').select('value').eq('key', 'rate_card').maybeSingle();
-      if (data && data.value && data.value.html) {
-          return data.value.html;
+  getServiceMenu: async (): Promise<ServiceMenuSection[]> => {
+      const { data } = await supabase.from('app_config').select('value').eq('key', 'service_menu').maybeSingle();
+      if (data && data.value && Array.isArray(data.value.sections)) {
+          return data.value.sections;
       }
-      return DEFAULT_RATE_CARD_HTML;
+      // If we don't have structured data, check for old html blob or return default
+      // This is a seamless migration strategy to the new format
+      return DEFAULT_SERVICE_SECTIONS;
   },
 
-  saveRateCard: async (htmlContent: string): Promise<void> => {
+  saveServiceMenu: async (sections: ServiceMenuSection[]): Promise<void> => {
       const { error } = await supabase.from('app_config').upsert({
-          key: 'rate_card',
-          value: { html: htmlContent }
+          key: 'service_menu',
+          value: { sections }
       }, { onConflict: 'key' });
       if (error) throw error;
+  },
+
+  // For backward compatibility / initial loading if called elsewhere, can return joined string
+  getRateCard: async (): Promise<string> => {
+      const sections = await db.getServiceMenu();
+      // Only join visible sections for the final HTML view
+      return sections.filter(s => s.isVisible).map(s => s.content).join('\n');
   },
 
   // --- BRAND KITS (ONBOARDING) ---
@@ -547,7 +573,8 @@ export const db = {
       ];
       for (const svc of services) await db.saveService(svc);
 
-      await db.saveRateCard(DEFAULT_RATE_CARD_HTML);
+      // Seed the modular service menu
+      await db.saveServiceMenu(DEFAULT_SERVICE_SECTIONS);
 
       const author = "Agency Director";
       const today = new Date().toISOString().split('T')[0];

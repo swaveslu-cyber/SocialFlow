@@ -3,8 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../services/db';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../services/firebaseConfig';
-import { Template, Snippet, Platform, PLATFORMS, ClientProfile, User, UserRole, AppConfig, BrandKit, ServiceItem } from '../types';
-import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2, BookOpen, Settings2, Briefcase, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Heading1, Heading2, Quote, Code, Globe, Mail, Phone, MapPin, CreditCard, Copy, Key, DollarSign } from 'lucide-react';
+import { Template, Snippet, Platform, PLATFORMS, ClientProfile, User, UserRole, AppConfig, BrandKit, ServiceItem, ServiceMenuSection } from '../types';
+import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2, BookOpen, Settings2, Briefcase, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Heading1, Heading2, Quote, Code, Globe, Mail, Phone, MapPin, CreditCard, Copy, Key, DollarSign, GripVertical } from 'lucide-react';
 import { OnboardingWizard } from './OnboardingWizard';
 import { BrandCard } from './BrandCard';
 import { OnboardingConfigurator } from './OnboardingConfigurator';
@@ -62,8 +62,9 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   // Password Visibility Toggle State
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
-  // Rate Card State
-  const [rateCardContent, setRateCardContent] = useState('');
+  // Service Menu State
+  const [serviceSections, setServiceSections] = useState<ServiceMenuSection[]>([]);
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [isSavingRateCard, setIsSavingRateCard] = useState(false);
   const [serviceList, setServiceList] = useState<ServiceItem[]>([]);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -81,10 +82,13 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
 
   // Sync content to editor ref when loaded
   useEffect(() => {
-    if (activeTab === 'services' && editorRef.current && rateCardContent && editorRef.current.innerHTML === '') {
-        editorRef.current.innerHTML = rateCardContent;
+    if (activeTab === 'services' && editingSectionId && editorRef.current) {
+        const section = serviceSections.find(s => s.id === editingSectionId);
+        if (section && editorRef.current.innerHTML !== section.content) {
+            editorRef.current.innerHTML = section.content;
+        }
     }
-  }, [activeTab, rateCardContent]);
+  }, [editingSectionId, serviceSections]);
 
   const loadProfiles = async () => {
       const profiles = await db.getClients();
@@ -102,15 +106,11 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
   };
 
   const loadServicesAndRateCard = async () => {
-      const [content, services] = await Promise.all([
-          db.getRateCard(),
+      const [sections, services] = await Promise.all([
+          db.getServiceMenu(),
           db.getServices()
       ]);
-      setRateCardContent(content);
-      // If the editor is already mounted, update it manually to avoid cursor jumps
-      if (editorRef.current) {
-          editorRef.current.innerHTML = content;
-      }
+      setServiceSections(sections);
       setServiceList(services);
   };
 
@@ -262,26 +262,63 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
       }
   };
 
-  const handleSaveRateCard = async () => {
+  // Service Menu Handlers
+  const handleSaveServiceSectionContent = async () => {
+      if (!editingSectionId || !editorRef.current) return;
+      
+      const newContent = editorRef.current.innerHTML;
+      const updatedSections = serviceSections.map(s => 
+          s.id === editingSectionId ? { ...s, content: newContent } : s
+      );
+      
+      setServiceSections(updatedSections);
+      
+      // Auto save to DB
       setIsSavingRateCard(true);
       try {
-          // Get content directly from ref to ensure latest edits
-          const content = editorRef.current?.innerHTML || rateCardContent;
-          await db.saveRateCard(content);
-          alert("Service Guide updated successfully!");
+          await db.saveServiceMenu(updatedSections);
       } catch (e) {
-          alert("Failed to save content.");
+          console.error(e);
       } finally {
           setIsSavingRateCard(false);
+          setEditingSectionId(null); // Close editor
+      }
+  };
+
+  const handleToggleSectionVisibility = async (id: string) => {
+      const updatedSections = serviceSections.map(s => 
+          s.id === id ? { ...s, isVisible: !s.isVisible } : s
+      );
+      setServiceSections(updatedSections);
+      await db.saveServiceMenu(updatedSections);
+  };
+
+  const handleDeleteSection = async (id: string) => {
+      if(confirm("Delete this section?")) {
+          const updatedSections = serviceSections.filter(s => s.id !== id);
+          setServiceSections(updatedSections);
+          await db.saveServiceMenu(updatedSections);
+      }
+  };
+
+  const handleAddSection = async () => {
+      const name = prompt("Enter section name:");
+      if (name) {
+          const newSection: ServiceMenuSection = {
+              id: crypto.randomUUID(),
+              title: name,
+              content: `<div class="p-6"><h2 class="text-2xl font-bold">${name}</h2><p>Enter details here...</p></div>`,
+              isVisible: true
+          };
+          const updatedSections = [...serviceSections, newSection];
+          setServiceSections(updatedSections);
+          await db.saveServiceMenu(updatedSections);
       }
   };
 
   // Editor Toolbar Handler
   const execCmd = (command: string, value: string | undefined = undefined) => {
     document.execCommand(command, false, value);
-    if (editorRef.current) {
-        setRateCardContent(editorRef.current.innerHTML);
-    }
   };
 
   const handleUpdateClient = async (e: React.FormEvent) => {
@@ -414,7 +451,8 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
 
             {/* --- CLIENTS TAB --- */}
             {activeTab === 'clients' && (
-            <div className="space-y-8 animate-in slide-in-from-right-4 relative z-10">
+                // ... (No changes here, kept existing logic)
+                <div className="space-y-8 animate-in slide-in-from-right-4 relative z-10">
                 {!editingClient ? (
                     <>
                         {/* New Client Form */}
@@ -467,7 +505,9 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                         </div>
                     </>
                 ) : (
+                    // Edit Form (Collapsed for brevity as it's identical to previous)
                     <form onSubmit={handleUpdateClient} className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden animate-in fade-in">
+                       {/* ... Same content as before ... */}
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
                              <div>
                                  <h3 className="text-xl font-black text-gray-900 dark:text-white">Edit Client Profile</h3>
@@ -635,9 +675,8 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
             </div>
             )}
             
-            {/* ... (Rest of Tabs remain unchanged) ... */}
+            {/* ... (Team tab remains same) ... */}
             {activeTab === 'team' && (
-                // ... Existing Team content
                 <div className="space-y-8 animate-in slide-in-from-right-4 relative z-10">
                      <div className="flex justify-between items-center">
                          <h3 className="text-xl font-black text-gray-900 dark:text-white">User Management</h3>
@@ -734,53 +773,110 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
                 </div>
             )}
             
-            {/* ... (Rest of Tabs remain unchanged) ... */}
+            {/* --- SERVICES TAB (Redesigned) --- */}
             {activeTab === 'services' && (
                 <div className="space-y-10 animate-in slide-in-from-right-4 relative z-10 max-w-4xl">
-                     {/* Rate Card Editor (Visual) */}
-                     <div className="bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden flex flex-col h-[600px]">
-                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
-                             <div>
-                                <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-3"><FileText className="w-6 h-6 text-swave-purple"/> Client Service Guide</h3>
-                                <p className="text-xs text-gray-500 mt-1">Design the document your clients see. Select text to format.</p>
+                     {!editingSectionId ? (
+                         // LIST VIEW
+                         <div className="space-y-6">
+                             <div className="flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-3"><FileText className="w-6 h-6 text-swave-purple"/> Client Service Guide</h3>
+                                    <p className="text-xs text-gray-500 mt-1">Manage sections visible to your clients.</p>
+                                </div>
+                                <button onClick={handleAddSection} className="bg-swave-purple text-swave-purple-text px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition-all flex items-center gap-2">
+                                    <Plus className="w-4 h-4" /> Add Section
+                                </button>
                              </div>
-                             <button onClick={handleSaveRateCard} disabled={isSavingRateCard} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:scale-105 active:scale-95 transition-all disabled:opacity-50">
-                                {isSavingRateCard ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>} Update Guide
-                            </button>
-                         </div>
-                         
-                         {/* Toolbar */}
-                         <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-wrap items-center gap-1">
-                            <button onClick={() => execCmd('bold')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Bold"><Bold className="w-4 h-4"/></button>
-                            <button onClick={() => execCmd('italic')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Italic"><Italic className="w-4 h-4"/></button>
-                            <button onClick={() => execCmd('underline')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Underline"><Underline className="w-4 h-4"/></button>
-                            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
-                            <button onClick={() => execCmd('formatBlock', 'H2')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Heading 1"><Heading1 className="w-4 h-4"/></button>
-                            <button onClick={() => execCmd('formatBlock', 'H3')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Heading 2"><Heading2 className="w-4 h-4"/></button>
-                            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
-                            <button onClick={() => execCmd('justifyLeft')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Align Left"><AlignLeft className="w-4 h-4"/></button>
-                            <button onClick={() => execCmd('justifyCenter')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Align Center"><AlignCenter className="w-4 h-4"/></button>
-                            <button onClick={() => execCmd('justifyRight')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Align Right"><AlignRight className="w-4 h-4"/></button>
-                            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
-                            <button onClick={() => execCmd('insertUnorderedList')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Bullet List"><List className="w-4 h-4"/></button>
-                            <button onClick={() => execCmd('insertOrderedList')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Numbered List"><ListOrdered className="w-4 h-4"/></button>
-                            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
-                            <button onClick={() => execCmd('formatBlock', 'BLOCKQUOTE')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Quote"><Quote className="w-4 h-4"/></button>
-                         </div>
 
-                         {/* Editor Area */}
-                         <div className="flex-grow overflow-y-auto bg-gray-50 dark:bg-gray-900 cursor-text p-8" onClick={() => editorRef.current?.focus()}>
-                            <div 
-                                ref={editorRef}
-                                contentEditable
-                                onInput={(e) => setRateCardContent(e.currentTarget.innerHTML)}
-                                className="bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 min-h-full max-w-3xl mx-auto p-12 outline-none prose dark:prose-invert max-w-none rounded-xl"
-                                style={{ minHeight: '100%' }}
-                            />
-                         </div>
-                     </div>
+                             <div className="space-y-3">
+                                 {serviceSections.map((section, index) => (
+                                     <div key={section.id} className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
+                                         {/* Drag Handle (Visual only for now) */}
+                                         <GripVertical className="w-5 h-5 text-gray-300 cursor-grab active:cursor-grabbing" />
+                                         
+                                         {/* Content Info */}
+                                         <div className="flex-grow min-w-0">
+                                             <div className="flex items-center gap-3 mb-1">
+                                                 <h4 className="font-bold text-gray-900 dark:text-white">{section.title}</h4>
+                                                 {!section.isVisible && (
+                                                     <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 text-[10px] uppercase font-bold rounded-md">Hidden</span>
+                                                 )}
+                                             </div>
+                                             <p className="text-xs text-gray-400 truncate">{section.content.replace(/<[^>]+>/g, '').substring(0, 60)}...</p>
+                                         </div>
 
-                     {/* Linked Services List */}
+                                         {/* Actions */}
+                                         <div className="flex items-center gap-2">
+                                             <label className="flex items-center gap-2 cursor-pointer bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                                 <input 
+                                                    type="checkbox" 
+                                                    checked={section.isVisible} 
+                                                    onChange={() => handleToggleSectionVisibility(section.id)}
+                                                    className="w-4 h-4 rounded text-swave-purple focus:ring-swave-purple"
+                                                 />
+                                                 <span className="text-xs font-bold text-gray-500">Visible</span>
+                                             </label>
+                                             <button onClick={() => setEditingSectionId(section.id)} className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 rounded-lg transition-colors" title="Edit Content">
+                                                 <Edit2 className="w-4 h-4"/>
+                                             </button>
+                                             <button onClick={() => handleDeleteSection(section.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 rounded-lg transition-colors" title="Delete Section">
+                                                 <Trash2 className="w-4 h-4"/>
+                                             </button>
+                                         </div>
+                                     </div>
+                                 ))}
+                             </div>
+                         </div>
+                     ) : (
+                         // EDITOR VIEW (Specific Section)
+                         <div className="bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden flex flex-col h-[600px] animate-in slide-in-from-bottom-4">
+                             <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
+                                 <div className="flex items-center gap-4">
+                                     <button onClick={() => setEditingSectionId(null)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500">
+                                         <ArrowLeft className="w-5 h-5"/>
+                                     </button>
+                                     <div>
+                                        <h3 className="text-lg font-black text-gray-900 dark:text-white">Editing: {serviceSections.find(s => s.id === editingSectionId)?.title}</h3>
+                                     </div>
+                                 </div>
+                                 <button onClick={handleSaveServiceSectionContent} disabled={isSavingRateCard} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:scale-105 active:scale-95 transition-all disabled:opacity-50">
+                                    {isSavingRateCard ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>} Save & Close
+                                </button>
+                             </div>
+                             
+                             {/* Toolbar */}
+                             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-wrap items-center gap-1">
+                                <button onClick={() => execCmd('bold')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Bold"><Bold className="w-4 h-4"/></button>
+                                <button onClick={() => execCmd('italic')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Italic"><Italic className="w-4 h-4"/></button>
+                                <button onClick={() => execCmd('underline')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Underline"><Underline className="w-4 h-4"/></button>
+                                <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
+                                <button onClick={() => execCmd('formatBlock', 'H2')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Heading 1"><Heading1 className="w-4 h-4"/></button>
+                                <button onClick={() => execCmd('formatBlock', 'H3')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Heading 2"><Heading2 className="w-4 h-4"/></button>
+                                <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
+                                <button onClick={() => execCmd('justifyLeft')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Align Left"><AlignLeft className="w-4 h-4"/></button>
+                                <button onClick={() => execCmd('justifyCenter')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Align Center"><AlignCenter className="w-4 h-4"/></button>
+                                <button onClick={() => execCmd('justifyRight')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Align Right"><AlignRight className="w-4 h-4"/></button>
+                                <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
+                                <button onClick={() => execCmd('insertUnorderedList')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Bullet List"><List className="w-4 h-4"/></button>
+                                <button onClick={() => execCmd('insertOrderedList')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Numbered List"><ListOrdered className="w-4 h-4"/></button>
+                                <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
+                                <button onClick={() => execCmd('formatBlock', 'BLOCKQUOTE')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" title="Quote"><Quote className="w-4 h-4"/></button>
+                             </div>
+
+                             {/* Editor Area */}
+                             <div className="flex-grow overflow-y-auto bg-gray-50 dark:bg-gray-900 cursor-text p-8" onClick={() => editorRef.current?.focus()}>
+                                <div 
+                                    ref={editorRef}
+                                    contentEditable
+                                    className="bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 min-h-full max-w-3xl mx-auto p-12 outline-none prose dark:prose-invert max-w-none rounded-xl"
+                                    style={{ minHeight: '100%' }}
+                                />
+                             </div>
+                         </div>
+                     )}
+
+                     {/* Linked Services List (Unchanged) */}
                      <div className="space-y-4">
                          <h3 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2"><Receipt className="w-5 h-5 text-swave-orange"/> Linked Invoicing Items</h3>
                          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">

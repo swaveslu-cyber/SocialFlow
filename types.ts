@@ -108,7 +108,6 @@ export interface ClientProfile {
     linkedin?: string;
     twitter?: string;
     facebook?: string;
-    tiktok?: string;
   };
   // Billing Info
   billingAddress?: string;
@@ -181,6 +180,14 @@ export interface ServiceItem {
   name: string;
   defaultRate: number;
   description?: string;
+}
+
+// New Interface for Modular Service Guide
+export interface ServiceMenuSection {
+  id: string;
+  title: string;
+  content: string; // HTML content
+  isVisible: boolean;
 }
 
 export interface InvoiceItem {
