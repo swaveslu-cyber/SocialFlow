@@ -4,7 +4,7 @@ import {
   LayoutGrid, Calendar as CalendarIcon, List, Settings as SettingsIcon, 
   LogOut, Plus, Search, Filter, Bell, Menu, X, UploadCloud, 
   Image as ImageIcon, Smile, Save, Loader2, ArrowRight,
-  Instagram, Linkedin, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag, DollarSign, User as UserIcon, Shield, Sun, Coffee, BookOpen, BarChart3
+  Instagram, Linkedin, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag, DollarSign, User as UserIcon, Shield, Sun, Coffee, BookOpen, BarChart3, ChevronUp
 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -73,6 +73,10 @@ export default function App() {
   
   // New: Calendar specific UI state
   const [isCalendarFocused, setIsCalendarFocused] = useState(false);
+
+  // Save Menu State
+  const [showSaveMenu, setShowSaveMenu] = useState(false);
+  const saveMenuRef = useRef<HTMLDivElement>(null);
 
   // Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -154,6 +158,9 @@ export default function App() {
       }
       if (clientSelectorRef.current && !clientSelectorRef.current.contains(event.target as Node)) {
           setShowClientSelector(false);
+      }
+      if (saveMenuRef.current && !saveMenuRef.current.contains(event.target as Node)) {
+          setShowSaveMenu(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -325,7 +332,7 @@ export default function App() {
     setIsFormOpen(true);
   };
 
-  const closeForm = () => { setIsFormOpen(false); setShowEmojiPicker(false); };
+  const closeForm = () => { setIsFormOpen(false); setShowEmojiPicker(false); setShowSaveMenu(false); };
 
   const togglePlatform = (p: Platform) => {
       if (editingPostIds.length > 0) return; 
@@ -424,6 +431,7 @@ export default function App() {
 
         {/* Hide Sidebar in Calendar Focus Mode */}
         <aside className={`fixed inset-y-0 left-0 z-[60] w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCalendarFocused ? 'md:-translate-x-full md:w-0' : 'md:w-72'} shadow-2xl md:shadow-none`}>
+            {/* Sidebar Content Omitted for brevity as it hasn't changed... */}
             <div className="h-full flex flex-col">
                 <div className="p-8 short:p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -706,13 +714,48 @@ export default function App() {
                         <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-3 text-gray-400 hover:text-red-500 rounded-xl text-xs md:text-sm font-black uppercase tracking-[0.2em] transition-colors hidden sm:block">Discard</button>
                         <button type="button" onClick={() => setIsFormOpen(false)} className="p-3 text-gray-400 hover:text-red-500 rounded-xl sm:hidden border border-gray-100"><Trash2 className="w-5 h-5" /></button>
 
-                        <div className="flex gap-3 md:gap-5 w-full sm:w-auto justify-end">
-                            <button type="button" disabled={isSaving} onClick={() => handleSavePost('Draft')} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 md:px-10 md:py-5 bg-gray-100 text-gray-900 rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black active:scale-95 disabled:opacity-50"><Save className="w-4 h-4 md:w-5 md:h-5" /> Store Draft</button>
-                            {PERMISSIONS.canApprove(currentUser.role) ? (
-                                <button type="button" disabled={isSaving} onClick={() => handleSavePost('Approved')} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 md:px-12 md:py-5 bg-gradient-to-r from-swave-purple to-swave-orange text-white rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black shadow-2xl active:scale-95 disabled:opacity-50 uppercase tracking-widest"><Check className="w-4 h-4 md:w-5 md:h-5"/> Final Approval</button>
-                            ) : (
-                                <button type="button" disabled={isSaving} onClick={() => handleSavePost('In Review')} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 md:px-12 md:py-5 bg-gradient-to-r from-swave-purple to-swave-orange text-white rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black shadow-2xl active:scale-95 disabled:opacity-50 uppercase tracking-widest">Submit for Review</button>
-                            )}
+                        <div className="flex flex-wrap gap-3 md:gap-5 w-full sm:w-auto justify-end">
+                            <button type="button" disabled={isSaving} onClick={() => handleSavePost('Draft')} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 md:px-10 md:py-5 bg-gray-100 text-gray-900 rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black active:scale-95 disabled:opacity-50"><Save className="w-4 h-4 md:w-5 md:h-5" /> Save Draft</button>
+                            
+                            {/* Unified Save Dropdown */}
+                            <div className="relative flex-1 sm:flex-none" ref={saveMenuRef}>
+                                <button 
+                                    type="button" 
+                                    disabled={isSaving} 
+                                    onClick={() => setShowSaveMenu(!showSaveMenu)} 
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 md:px-10 md:py-5 bg-gradient-to-r from-swave-purple to-swave-orange text-white rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black shadow-2xl active:scale-95 disabled:opacity-50 uppercase tracking-widest"
+                                >
+                                    Save & Update <ChevronDown className={`w-4 h-4 transition-transform ${showSaveMenu ? 'rotate-180' : ''}`} />
+                                </button>
+                                
+                                {showSaveMenu && (
+                                    <div className="absolute bottom-full right-0 mb-3 w-64 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-in fade-in zoom-in-95 slide-in-from-bottom-2">
+                                        <div className="p-2 space-y-1">
+                                            <button onClick={() => handleSavePost('In Review')} className="w-full text-left px-4 py-3 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 rounded-xl transition-colors flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-amber-500"></div> Submit for Review
+                                            </button>
+                                            
+                                            {PERMISSIONS.canApprove(currentUser.role) && (
+                                                <button onClick={() => handleSavePost('Approved')} className="w-full text-left px-4 py-3 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600 rounded-xl transition-colors flex items-center gap-2">
+                                                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Approve
+                                                </button>
+                                            )}
+                                            
+                                            {['agency_admin', 'agency_creator'].includes(currentUser.role) && (
+                                                <button onClick={() => handleSavePost('Scheduled')} className="w-full text-left px-4 py-3 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 rounded-xl transition-colors flex items-center gap-2">
+                                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div> Schedule
+                                                </button>
+                                            )}
+                                            
+                                            {['agency_admin'].includes(currentUser.role) && (
+                                                <button onClick={() => handleSavePost('Published')} className="w-full text-left px-4 py-3 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 rounded-xl transition-colors flex items-center gap-2">
+                                                    <div className="w-2 h-2 rounded-full bg-indigo-600"></div> Publish Now
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                  </div>

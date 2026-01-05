@@ -687,7 +687,7 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
       const isOverdue = editingInvoice.status !== 'Paid' && editingInvoice.status !== 'Void' && editingInvoice.dueDate && new Date(editingInvoice.dueDate) < new Date();
 
       return (
-          <div className="flex flex-col h-full animate-in fade-in max-w-[1200px] mx-auto w-full">
+          <div className="flex flex-col h-full animate-in fade-in max-w-[1400px] mx-auto w-full">
              <div className="flex justify-between items-center mb-6">
                 <button onClick={() => setView('dashboard')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
                     <ArrowLeft className="w-5 h-5" /> Back
@@ -703,9 +703,9 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
                 </div>
              </div>
 
-             <div className="flex flex-col lg:flex-row gap-8">
+             <div className="flex flex-col xl:flex-row gap-8 items-start">
                  {/* INVOICE PAPER */}
-                 <div className="bg-white text-gray-900 w-full lg:max-w-[210mm] p-12 shadow-2xl min-h-[297mm] print:shadow-none print:w-full print:max-w-none flex-shrink-0">
+                 <div className="bg-white text-gray-900 w-full xl:max-w-[210mm] p-12 shadow-2xl min-h-[297mm] print:shadow-none print:w-full print:max-w-none flex-shrink-0 mx-auto xl:mx-0">
                     {/* Invoice Header */}
                     <div className="flex justify-between items-start mb-12">
                         <div>
@@ -807,7 +807,7 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
                  </div>
 
                  {/* COMMUNICATION HUB (Right Sidebar) */}
-                 <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 flex flex-col h-[600px] overflow-hidden no-print">
+                 <div className="w-full xl:w-[400px] bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 flex flex-col h-[600px] xl:sticky xl:top-6 overflow-hidden no-print flex-shrink-0">
                      <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-between items-center">
                          <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2"><MessageSquare className="w-4 h-4"/> Queries & Updates</h3>
                          <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full text-gray-600 dark:text-gray-300 font-bold">{editingInvoice.comments?.length || 0}</span>
