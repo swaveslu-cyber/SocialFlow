@@ -42,7 +42,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, branding }) => {
       if (user) {
         onLogin(user);
       } else {
-        setError('Invalid credentials. Default admin is admin@swave.agency / admin123');
+        setError('Invalid credentials.');
       }
     } catch (err) {
       setError('System error. Please try again.');
@@ -63,7 +63,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, branding }) => {
             <SwaveLogo className="w-16 h-16" customLogoUrl={localBranding.logoUrl} />
           </div>
           <h2 className="text-3xl font-bold text-white relative z-10 tracking-tight">{localBranding.agencyName}</h2>
-          <p className="text-white/80 mt-2 relative z-10 font-semibold uppercase tracking-[0.2em] text-[10px]">Unified Workspace Access</p>
+          <p className="text-white/80 mt-2 relative z-10 font-semibold uppercase tracking-[0.2em] text-[10px]">Social Growth Agency</p>
           
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
           <div className="absolute top-12 -left-12 w-24 h-24 bg-orange-500/20 rounded-full blur-xl"></div>

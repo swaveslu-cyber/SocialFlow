@@ -4,7 +4,7 @@ import {
   LayoutGrid, Calendar as CalendarIcon, List, Settings as SettingsIcon, 
   LogOut, Plus, Search, Filter, Bell, Menu, X, UploadCloud, 
   Image as ImageIcon, Smile, Save, Loader2, ArrowRight,
-  Instagram, Linkedin, Twitter, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag, DollarSign, User as UserIcon, Shield, Sun, Coffee, BookOpen
+  Instagram, Linkedin, Twitter, Facebook, Video, Check, Trash2, RotateCcw, ChevronDown, Building2, Flag, DollarSign, User as UserIcon, Shield, Sun, Coffee, BookOpen, BarChart3
 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -18,10 +18,11 @@ import { Settings } from './components/Settings';
 import { DailyBriefing } from './components/DailyBriefing';
 import { FinanceModule } from './components/FinanceModule';
 import { ServiceGuide } from './components/ServiceGuide';
+import { ReportsModule } from './components/ReportsModule';
 import { SwaveLogo } from './components/Logo';
 import { 
   Post, PostStatus, UserRole, User, Platform, MediaType, 
-  Template, Snippet, PLATFORMS, Campaign, PERMISSIONS, AppConfig
+  Template, Snippet, PLATFORMS, Campaign, PERMISSIONS, AppConfig, Invoice
 } from './types';
 
 export interface GroupedPost extends Omit<Post, 'platform' | 'id'> {
@@ -49,11 +50,13 @@ export default function App() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [snippets, setSnippets] = useState<Snippet[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [branding, setBranding] = useState<AppConfig>(DEFAULT_BRANDING);
   const [loading, setLoading] = useState(true);
 
   // UI State
-  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'kanban' | 'trash' | 'finance'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'kanban' | 'trash' | 'finance' | 'reports'>('list');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [showDailyBriefing, setShowDailyBriefing] = useState(false);
@@ -148,14 +151,16 @@ export default function App() {
 
   const loadData = async (silent: boolean = false) => {
     if (!silent) setLoading(true);
-    const [fetchedPosts, fetchedClients, fetchedCampaigns, fetchedTemplates, fetchedSnippets, fetchedBranding] = await Promise.all([
-      db.getAllPosts(), db.getClientNames(), db.getCampaigns(), db.getTemplates(), db.getSnippets(), db.getAppConfig()
+    const [fetchedPosts, fetchedClients, fetchedCampaigns, fetchedTemplates, fetchedSnippets, fetchedBranding, fetchedInvoices, fetchedUsers] = await Promise.all([
+      db.getAllPosts(), db.getClientNames(), db.getCampaigns(), db.getTemplates(), db.getSnippets(), db.getAppConfig(), db.getInvoices(), db.getUsers()
     ]);
     setPosts(fetchedPosts);
     setClients(fetchedClients);
     setCampaigns(fetchedCampaigns);
     setTemplates(fetchedTemplates);
     setSnippets(fetchedSnippets);
+    setInvoices(fetchedInvoices);
+    setAllUsers(fetchedUsers);
     
     // Merge fetched branding with defaults to ensure no missing keys causing white/broken UI
     setBranding({ ...DEFAULT_BRANDING, ...fetchedBranding });
@@ -419,6 +424,9 @@ export default function App() {
                     <div>
                         <p className="px-4 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-4 short:mb-2">Resources</p>
                         <div className="space-y-1">
+                             <button onClick={() => { setViewMode('reports'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all ${viewMode === 'reports' ? 'bg-swave-orange text-swave-orange-text shadow-lg shadow-orange-500/20' : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                                <BarChart3 className="w-5 h-5 short:w-4 short:h-4" /> Reports & Stats
+                            </button>
                              <button onClick={() => { setShowServiceGuide(true); setSidebarOpen(false); }} className="w-full flex items-center gap-4 px-4 py-3.5 short:py-2 text-sm font-black rounded-2xl transition-all bg-gray-100/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
                                 <BookOpen className="w-5 h-5 short:w-4 short:h-4" /> Service Guide
                             </button>
@@ -462,7 +470,18 @@ export default function App() {
         </aside>
 
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10 bg-transparent dark:bg-gray-950">
-            {viewMode === 'finance' ? <FinanceModule /> : (
+            {viewMode === 'finance' && <FinanceModule />}
+            {viewMode === 'reports' && (
+                <ReportsModule 
+                    posts={posts} 
+                    invoices={invoices} 
+                    users={allUsers}
+                    clients={clients}
+                    currentUser={currentUser}
+                />
+            )}
+            
+            {(viewMode === 'list' || viewMode === 'calendar' || viewMode === 'kanban' || viewMode === 'trash') && (
             <>
             <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-3xl sticky top-0 z-40 border-b border-gray-100 dark:border-gray-800 px-6 py-4 md:px-8 short:py-2">
                 <div className="flex flex-wrap items-center justify-between gap-6 mb-6 short:mb-2">
