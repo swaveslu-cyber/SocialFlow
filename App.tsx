@@ -152,7 +152,10 @@ export default function App() {
   useEffect(() => {
       // Load and apply branding every time user loads or updates occur
       loadData(true);
-      const subscription = db.subscribeToPosts(() => loadData(true));
+      const subscription = db.subscribeToChanges(() => {
+          // Re-fetch data when any change happens in the DB
+          loadData(true);
+      });
       return () => { subscription.unsubscribe(); };
   }, [currentUser]); // Trigger load on user change too
 

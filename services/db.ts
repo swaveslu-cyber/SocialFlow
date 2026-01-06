@@ -233,10 +233,11 @@ export const db = {
   },
 
   // --- REALTIME SUBSCRIPTIONS ---
-  subscribeToPosts: (onUpdate: () => void) => {
+  subscribeToChanges: (onUpdate: () => void) => {
       return supabase
-        .channel('public:posts')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+        .channel('app-global-changes')
+        .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+            console.log('Real-time update received:', payload);
             onUpdate();
         })
         .subscribe();
