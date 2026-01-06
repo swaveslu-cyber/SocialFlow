@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../services/db';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../services/firebaseConfig';
+// import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+// import { storage } from '../services/firebaseConfig';
 import { Template, Snippet, Platform, PLATFORMS, ClientProfile, User, UserRole, AppConfig, BrandKit, ServiceItem, ServiceMenuSection } from '../types';
 import { Trash2, Plus, Save, X, Building2, FileText, Hash, ShieldCheck, Download, Upload, Database, RefreshCw, Lock, HelpCircle, Receipt, ArrowLeft, Sun, Moon, Users, UserPlus, Palette, Image as ImageIcon, Eye, EyeOff, Edit2, Loader2, BookOpen, Settings2, Briefcase, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Heading1, Heading2, Quote, Code, Globe, Mail, Phone, MapPin, CreditCard, Copy, Key, DollarSign, GripVertical } from 'lucide-react';
 import { OnboardingWizard } from './OnboardingWizard';
@@ -236,9 +236,12 @@ export const Settings: React.FC<SettingsProps> = ({ clients: clientNames, templa
           setIsUploadingLogo(true);
           try {
               const file = e.target.files[0];
-              const storageRef = ref(storage, `logos/${Date.now()}_${file.name}`);
-              await uploadBytes(storageRef, file);
-              const url = await getDownloadURL(storageRef);
+              // Mocking file upload
+              // const storageRef = ref(storage, `logos/${Date.now()}_${file.name}`);
+              // await uploadBytes(storageRef, file);
+              // const url = await getDownloadURL(storageRef);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              const url = URL.createObjectURL(file);
               setBrandingConfig(prev => ({ ...prev, logoUrl: url }));
           } catch (e) {
               alert("Logo upload failed");

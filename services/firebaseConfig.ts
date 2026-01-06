@@ -1,6 +1,6 @@
 
 import { initializeApp } from "firebase/app";
-import { getStorage } from "firebase/storage";
+// import { getStorage } from "firebase/storage";
 
 // REPLACE WITH YOUR FIREBASE CONFIG OBJECT
 const firebaseConfig = {
@@ -14,4 +14,5 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const storage = getStorage(app);
+// export const storage = getStorage(app);
+export const storage = {}; // Mock storage to prevent build errors

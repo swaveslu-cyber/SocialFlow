@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Post, PostStatus, User, PERMISSIONS } from '../types';
 import { 
   Calendar, Instagram, Linkedin, Facebook, Video, 
@@ -17,6 +17,7 @@ interface PostCardProps {
   onStatusChange?: (ids: string[], status: PostStatus, feedback?: string) => void;
   onEdit?: (post: any) => void;
   onUpdate?: () => void;
+  requestedViewMode?: { mode: 'content' | 'comments' | 'history', triggerId: string };
 }
 
 const PlatformIcon = ({ platform }: { platform: string }) => {
@@ -47,13 +48,28 @@ const StatusBadge: React.FC<{ status: PostStatus }> = ({ status }) => {
   );
 };
 
-export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelete, onRestore, onStatusChange, onEdit, onUpdate }) => {
+export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelete, onRestore, onStatusChange, onEdit, onUpdate, requestedViewMode }) => {
   const [viewMode, setViewMode] = useState<'content' | 'comments' | 'history'>('content');
   const [newComment, setNewComment] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Effect to handle deep linking/notifications
+  useEffect(() => {
+      if (requestedViewMode) {
+          setViewMode(requestedViewMode.mode);
+          // Small timeout to ensure DOM is ready and layout is stable before scrolling
+          setTimeout(() => {
+              cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Optional: Add a temporary highlight effect
+              cardRef.current?.classList.add('ring-4', 'ring-swave-purple/50');
+              setTimeout(() => cardRef.current?.classList.remove('ring-4', 'ring-swave-purple/50'), 2000);
+          }, 100);
+      }
+  }, [requestedViewMode]);
 
   const ids = post.ids || [post.id];
   const platforms = post.platforms || [post.platform];
@@ -205,7 +221,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
 
   return (
     <>
-        <div className={`bg-white dark:bg-gray-800 rounded-3xl short:rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 dark:border-gray-700/50 overflow-hidden flex flex-col transition-all duration-300 ${compact ? '' : 'max-h-[60vh]'} relative group`}>
+        <div ref={cardRef} className={`bg-white dark:bg-gray-800 rounded-3xl short:rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 dark:border-gray-700/50 overflow-hidden flex flex-col transition-all duration-300 ${compact ? '' : 'max-h-[60vh]'} relative group scroll-mt-24`}>
         <div className="p-5 pb-3 short:p-3 flex justify-between items-start bg-white dark:bg-gray-800 z-10 relative shrink-0">
             <div className="flex flex-col gap-2 min-w-0 flex-1 pr-2">
                 <h3 className="text-sm short:text-xs font-black text-gray-900 dark:text-gray-100 leading-tight tracking-tight truncate">{post.client}</h3>
