@@ -25,7 +25,14 @@ export const DailyBriefing: React.FC<DailyBriefingProps> = ({ posts, onClose }) 
   const todayStr = new Date().toISOString().split('T')[0];
   const dateDisplay = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-  const publishingToday = posts.filter(p => p.status === 'Scheduled' && p.date.split(' ')[0] === todayStr);
+  // Safe checks for date property using optional chaining and defaults
+  const publishingToday = posts.filter(p => {
+      if (p.status !== 'Scheduled' || !p.date) return false;
+      try {
+          return p.date.split(' ')[0] === todayStr;
+      } catch (e) { return false; }
+  });
+  
   const inReview = posts.filter(p => p.status === 'In Review');
   const drafts = posts.filter(p => p.status === 'Draft');
 
@@ -63,11 +70,11 @@ export const DailyBriefing: React.FC<DailyBriefingProps> = ({ posts, onClose }) 
                                     </div>
                                     <div>
                                         <p className="text-xs font-bold text-gray-700 dark:text-gray-200">{post.client}</p>
-                                        <p className="text-xs text-gray-500 truncate max-w-[180px]">{post.caption.substring(0, 40)}...</p>
+                                        <p className="text-xs text-gray-500 truncate max-w-[180px]">{(post.caption || 'No caption').substring(0, 40)}...</p>
                                     </div>
                                 </div>
                                 <span className="text-xs font-semibold bg-white dark:bg-gray-800 text-swave-orange px-2 py-1 rounded">
-                                    {post.date.split(' ')[1] || 'All Day'}
+                                    {post.date ? post.date.split(' ')[1] : 'All Day'}
                                 </span>
                             </div>
                         ))}

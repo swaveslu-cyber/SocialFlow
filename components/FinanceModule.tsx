@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
-import { Invoice, ServiceItem, ClientProfile, InvoiceItem, Comment, User } from '../types';
+import React, { useState } from 'react';
+import { Invoice, ServiceItem, ClientProfile, InvoiceItem, Comment, User, AppConfig } from '../types';
 import { db } from '../services/db';
 import { SwaveLogo } from './Logo';
-import { Plus, ArrowLeft, Download, Eye, Edit2, Trash2, Save, Printer, Copy, CheckCircle, AlertCircle, Calendar, DollarSign, List, Briefcase, FileText, X, Loader2, Menu, Send, MessageSquare } from 'lucide-react';
+import { Plus, ArrowLeft, Eye, Edit2, Trash2, Save, Printer, Copy, AlertCircle, DollarSign, Briefcase, Menu, Send, MessageSquare, Loader2 } from 'lucide-react';
 
 const formatCurrency = (amount: number, currency: string = 'USD') => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
@@ -12,15 +12,17 @@ const formatCurrency = (amount: number, currency: string = 'USD') => {
 interface FinanceModuleProps {
     onOpenSidebar: () => void;
     currentUser: User | null;
-    initialInvoiceId?: string | null;
+    clients: ClientProfile[];
+    invoices: Invoice[];
+    services: ServiceItem[];
+    branding: AppConfig;
+    onRefresh: () => void;
 }
 
-export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, currentUser, initialInvoiceId }) => {
+export const FinanceModule: React.FC<FinanceModuleProps> = ({ 
+    onOpenSidebar, currentUser, clients, invoices, services, branding, onRefresh 
+}) => {
   const [view, setView] = useState<'dashboard' | 'editor' | 'preview' | 'services'>('dashboard');
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [services, setServices] = useState<ServiceItem[]>([]);
-  const [clients, setClients] = useState<ClientProfile[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   // Invoice Editor State
@@ -30,37 +32,6 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
   // Service Catalog State
   const [newService, setNewService] = useState({ name: '', rate: '', description: '' });
   const [isSavingService, setIsSavingService] = useState(false);
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    if (initialInvoiceId && invoices.length > 0) {
-        const target = invoices.find(i => i.id === initialInvoiceId);
-        if (target) {
-            handleEditInvoice(target);
-        }
-    }
-  }, [initialInvoiceId, invoices]);
-
-  const loadData = async (silent = false) => {
-    if (!silent) setLoading(true);
-    try {
-        const [invs, svcs, clis] = await Promise.all([
-        db.getInvoices(),
-        db.getServices(),
-        db.getClients()
-        ]);
-        setInvoices(invs);
-        setServices(svcs);
-        setClients(clis);
-    } catch (e) {
-        console.error("Failed to load finance data", e);
-    } finally {
-        if (!silent) setLoading(false);
-    }
-  };
 
   const isClient = currentUser?.role.startsWith('client');
   const clientProfile = isClient ? clients.find(c => c.name === currentUser?.clientId) : null;
@@ -94,21 +65,22 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
 
   const handleEditInvoice = (invoice: Invoice) => {
     setEditingInvoice(JSON.parse(JSON.stringify(invoice)));
-    if (isClient) {
-        setView('preview');
-    } else {
-        setView('editor');
-    }
+    setView('editor');
+  };
+
+  const handleViewInvoice = (invoice: Invoice) => {
+    setEditingInvoice(JSON.parse(JSON.stringify(invoice)));
+    setView('preview');
   };
 
   const handleDuplicateInvoice = (invoice: Invoice) => {
       const year = new Date().getFullYear();
-      const count = invoices.length + 1; // Simplistic counter
+      const count = invoices.length + 1;
       const invoiceNumber = `INV-${year}-${(count + 1).toString().padStart(3, '0')}`;
       
       setEditingInvoice({
           ...invoice,
-          id: undefined, // Clear ID to create new
+          id: undefined,
           invoiceNumber,
           status: 'Draft',
           issueDate: new Date().toISOString().split('T')[0],
@@ -121,7 +93,8 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
   const handleDeleteInvoice = async (id: string) => {
     if (confirm('Are you sure you want to delete this invoice?')) {
       await db.deleteInvoice(id);
-      loadData(true);
+      onRefresh();
+      setView('dashboard');
     }
   };
 
@@ -147,11 +120,10 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
       try {
           const { subtotal, taxAmount, grandTotal } = calculateTotals(editingInvoice);
           
-          // Ensure mandatory fields are present
           const finalInvoice = {
               ...editingInvoice,
               id: editingInvoice.id || crypto.randomUUID(),
-              clientId: editingInvoice.clientId || 'unknown', // Fallback to avoid string constraint violation if undefined
+              clientId: editingInvoice.clientId || 'unknown',
               items: editingInvoice.items || [],
               subtotal,
               taxAmount,
@@ -161,14 +133,12 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
           } as Invoice;
 
           await db.saveInvoice(finalInvoice);
-          await loadData(true);
+          onRefresh();
           
-          // Stay on preview if adding comments (Client view logic), else dashboard
           if (!isClient) setView('dashboard');
       } catch (error: any) {
           console.error("Save failed:", error);
-          const msg = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
-          alert(`Failed to save invoice. Error: ${msg}`);
+          alert(`Failed to save invoice.`);
       } finally {
           setIsSaving(false);
       }
@@ -200,10 +170,9 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
       if (client) {
           setEditingInvoice({
               ...editingInvoice,
-              // Attempt to capture ID if present on runtime object, otherwise rely on name or placeholder
               clientId: (client as any).id || client.name, 
               clientName: client.name,
-              clientCompany: client.name, // Assuming name is company name based on app usage
+              clientCompany: client.name,
               clientAddress: client.billingAddress || '',
               clientTaxId: client.taxId || '',
               currency: client.currency || 'USD'
@@ -226,8 +195,6 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
       const updatedComments = [...(editingInvoice.comments || []), newComment];
       setEditingInvoice({ ...editingInvoice, comments: updatedComments });
       
-      // Save immediately
-      // Note: In a real app we'd just update the comments field via API, but here we save the whole object
       const { subtotal, taxAmount, grandTotal } = calculateTotals(editingInvoice);
       const finalInvoice = {
           ...editingInvoice,
@@ -240,20 +207,16 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
 
       await db.saveInvoice(finalInvoice);
       setQueryText('');
-      await loadData(true);
+      onRefresh();
   };
 
   // --- Services Management ---
   const handleAddService = async () => {
       if(!newService.name || !newService.rate) return;
-      
       setIsSavingService(true);
       try {
           const rate = parseFloat(newService.rate);
-          if (isNaN(rate)) {
-              alert("Please enter a valid rate.");
-              return;
-          }
+          if (isNaN(rate)) { alert("Please enter a valid rate."); return; }
 
           await db.saveService({ 
               id: crypto.randomUUID(),
@@ -263,13 +226,8 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
           });
           
           setNewService({ name: '', rate: '', description: '' });
-          await loadData(true);
-      } catch (err) {
-          console.error("Error saving service:", err);
-          alert("Failed to save service.");
-      } finally {
-          setIsSavingService(false);
-      }
+          onRefresh();
+      } catch (err) { alert("Failed to save service."); } finally { setIsSavingService(false); }
   };
 
   const handleRequestService = async (service: ServiceItem) => {
@@ -283,13 +241,13 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
       const reqInvoice: Invoice = {
           id: crypto.randomUUID(),
           invoiceNumber,
-          clientId: clientProfile.name, // Use name as ID per current structure
+          clientId: clientProfile.name, 
           clientName: clientProfile.name,
           clientCompany: clientProfile.name,
           clientAddress: clientProfile.billingAddress,
           clientTaxId: clientProfile.taxId,
           issueDate: new Date().toISOString().split('T')[0],
-          dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0], // 1 week default
+          dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0], 
           status: 'Draft',
           currency: clientProfile.currency || 'USD',
           items: [{
@@ -318,26 +276,15 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
 
       await db.saveInvoice(reqInvoice);
       alert("Request sent successfully! A draft invoice has been created.");
-      loadData(true);
+      onRefresh();
       setView('dashboard');
   };
 
-  // --- RENDERERS ---
-
   const renderDashboard = () => {
       const currentYear = new Date().getFullYear();
-      
-      const revenueYTD = visibleInvoices
-        .filter(i => i.status === 'Paid' && new Date(i.issueDate).getFullYear() === currentYear)
-        .reduce((sum, i) => sum + i.grandTotal, 0);
-      
-      const outstanding = visibleInvoices
-        .filter(i => (i.status === 'Sent' || i.status === 'Draft'))
-        .reduce((sum, i) => sum + i.grandTotal, 0);
-
-      const overdue = visibleInvoices
-        .filter(i => i.status !== 'Paid' && i.status !== 'Void' && new Date(i.dueDate) < new Date())
-        .reduce((sum, i) => sum + i.grandTotal, 0);
+      const revenueYTD = visibleInvoices.filter(i => i.status === 'Paid' && new Date(i.issueDate).getFullYear() === currentYear).reduce((sum, i) => sum + i.grandTotal, 0);
+      const outstanding = visibleInvoices.filter(i => (i.status === 'Sent' || i.status === 'Draft')).reduce((sum, i) => sum + i.grandTotal, 0);
+      const overdue = visibleInvoices.filter(i => i.status !== 'Paid' && i.status !== 'Void' && new Date(i.dueDate) < new Date()).reduce((sum, i) => sum + i.grandTotal, 0);
 
       return (
           <div className="space-y-8 animate-in fade-in">
@@ -363,9 +310,7 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
                   </div>
               </div>
 
-              {/* KPI Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {/* Client Specific Retainer Card */}
                   {isClient && clientProfile?.retainerAmount && (
                       <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 rounded-2xl border border-gray-700 shadow-lg">
                           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">My Monthly Plan</p>
@@ -373,7 +318,6 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
                           <p className="text-xs text-gray-300 opacity-80">{clientProfile.retainerDescription || 'Active Retainer'}</p>
                       </div>
                   )}
-
                   {!isClient && (
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Revenue YTD</p>
@@ -390,7 +334,6 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
                   </div>
               </div>
 
-              {/* Invoices List */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm whitespace-nowrap">
@@ -413,7 +356,7 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
                           ) : visibleInvoices.map(inv => {
                               const isOverdue = inv.status !== 'Paid' && inv.status !== 'Void' && new Date(inv.dueDate) < new Date();
                               return (
-                                <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer" onClick={() => handleViewInvoice(inv)}>
                                     <td className="px-6 py-4 font-mono font-medium text-gray-600 dark:text-gray-300">{inv.invoiceNumber}</td>
                                     {!isClient && <td className="px-6 py-4 font-bold text-gray-800 dark:text-white">{inv.clientName}</td>}
                                     <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{inv.issueDate}</td>
@@ -430,8 +373,8 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button onClick={() => { setEditingInvoice(inv); setView('preview'); }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-gray-500"><Eye className="w-4 h-4"/></button>
+                                        <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
+                                            <button onClick={() => handleViewInvoice(inv)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-gray-500"><Eye className="w-4 h-4"/></button>
                                             {!isClient && (
                                                 <>
                                                     <button onClick={() => handleEditInvoice(inv)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-blue-500"><Edit2 className="w-4 h-4"/></button>
@@ -452,10 +395,7 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
   };
 
   const renderEditor = () => {
-      // (Editor code omitted for brevity as it remains largely the same for Admin)
-      // Only minor tweaks for role check if needed, but assuming only admins see 'editor' view via UI logic
       const { subtotal, taxAmount, grandTotal } = calculateTotals(editingInvoice);
-      
       return (
           <div className="space-y-6 animate-in slide-in-from-right-4 w-full max-w-[95vw] mx-auto">
               <div className="flex items-center justify-between">
@@ -692,7 +632,6 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
   };
 
   const renderPreview = () => {
-      // Paper-like styling
       const { subtotal, taxAmount, grandTotal } = calculateTotals(editingInvoice);
       const isOverdue = editingInvoice.status !== 'Paid' && editingInvoice.status !== 'Void' && editingInvoice.dueDate && new Date(editingInvoice.dueDate) < new Date();
 
@@ -705,7 +644,7 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
                 <div className="flex gap-3">
                     {!isClient && (
                     <>
-                        <button onClick={() => handleEditInvoice(editingInvoice as Invoice)} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium"><Edit2 className="w-4 h-4"/> Edit</button>
+                        <button onClick={() => setView('editor')} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium"><Edit2 className="w-4 h-4"/> Edit</button>
                         <button onClick={() => handleDuplicateInvoice(editingInvoice as Invoice)} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium"><Copy className="w-4 h-4"/> Duplicate</button>
                     </>
                     )}
@@ -721,7 +660,7 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
                         <div>
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-10 h-10">
-                                    <SwaveLogo />
+                                    <SwaveLogo customLogoUrl={branding?.logoUrl} />
                                 </div>
                                 <span className="text-xl font-bold tracking-tight text-gray-900">SWAVE SOCIAL</span>
                             </div>
@@ -908,7 +847,7 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
                                      <button onClick={async () => {
                                          if(confirm('Delete service?')) {
                                              await db.deleteService(s.id);
-                                             loadData(true);
+                                             onRefresh();
                                          }
                                      }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4"/></button>
                                  ) : (
@@ -924,8 +863,6 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({ onOpenSidebar, cur
            </div>
       </div>
   );
-
-  if (loading) return <div className="p-12 text-center text-gray-400">Loading Finance Data...</div>;
 
   return (
     <div className="p-6 md:p-12 pb-40 h-full overflow-y-auto no-scrollbar">

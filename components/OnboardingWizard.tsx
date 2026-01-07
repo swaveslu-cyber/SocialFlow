@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 import { BrandKit } from '../types';
 import { db } from '../services/db';
-import { storage } from '../services/firebaseConfig';
-// import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../services/storage';
 import { ArrowRight, Check, ChevronLeft, UploadCloud, X, Loader2 } from 'lucide-react';
 
 interface OnboardingWizardProps {
@@ -33,17 +32,13 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ clientName, 
 
   const handleFileUpload = async (file: File, type: 'logo_light' | 'logo_dark') => {
       try {
-        //   const storageRef = ref(storage, `brand_assets/${clientName}_${type}_${Date.now()}`);
-        //   await uploadBytes(storageRef, file);
-        //   const url = await getDownloadURL(storageRef);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          const url = URL.createObjectURL(file);
+          const url = await storage.uploadFile(file, 'logos');
           setFormData(prev => ({
               ...prev,
               visual_identity: { ...prev.visual_identity, [type]: url }
           }));
-      } catch (e) {
-          alert("Upload failed. Please try again.");
+      } catch (e: any) {
+          alert("Upload failed. " + e.message);
       }
   };
 

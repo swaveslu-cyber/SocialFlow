@@ -57,6 +57,10 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
+  // Safe Defaults
+  const ids = post.ids && post.ids.length > 0 ? post.ids : [post.id];
+  const platforms = post.platforms && post.platforms.length > 0 ? post.platforms : [post.platform];
+
   // Effect to handle deep linking/notifications
   useEffect(() => {
       if (requestedViewMode) {
@@ -70,9 +74,6 @@ export const PostCard: React.FC<PostCardProps> = ({ post, user, compact, onDelet
           }, 100);
       }
   }, [requestedViewMode]);
-
-  const ids = post.ids || [post.id];
-  const platforms = post.platforms || [post.platform];
   
   // Is this user an agency member?
   const isAgency = PERMISSIONS.isInternal(user.role);

@@ -32,9 +32,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ posts, onPostClick, 
   // Standard Mon-Sun grid logic (Mon=0, Sun=6 for visual grid)
   const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
+  // Ensure reasonable grid size defaults
   const totalSlots = startOffset + daysInMonth;
-  const totalRows = Math.ceil(totalSlots / 7);
-  // Default to 5 rows min to keep grid stable, max 6 usually
+  const totalRows = Math.ceil(totalSlots / 7) || 5; 
   const displayRows = totalRows < 5 ? 5 : totalRows;
 
   const monthNames = ["January", "February", "March", "April", "May", "June",
@@ -62,8 +62,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ posts, onPostClick, 
     const dateStr = `${year}-${month}-${dayStr}`;
     
     return posts.filter(p => {
-        const postDate = p.date.split(' ')[0];
-        return postDate === dateStr;
+        if (!p || !p.date) return false;
+        try {
+            const postDate = p.date.split(' ')[0];
+            return postDate === dateStr;
+        } catch (e) {
+            return false;
+        }
     });
   };
 
