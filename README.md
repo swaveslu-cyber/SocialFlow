@@ -1,36 +1,64 @@
+# Swave Social - Operations Platform
 
-# Swave Social - Production Setup Guide
+A powerful, high-performance operations dashboard for social media agencies, built with React, Vite, Supabase, and Firebase.
 
-## 1. Database Setup (Supabase)
-1. Log in to your [Supabase Dashboard](https://supabase.com).
-2. Create a new project.
-3. Go to the **SQL Editor** in the left sidebar.
-4. Open the `database_schema.sql` file provided in this project (if available) or check the project documentation for the schema.
-5. **IMPORTANT:** After creating your tables, run the fix script below to ensure the `services` table supports custom IDs.
+![Swave Hero](https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&q=80&w=1080)
 
-## 2. Environment Variables
-1. Go to `services/supabaseClient.ts`.
-2. Replace `SUPABASE_URL` and `SUPABASE_ANON_KEY` with your project's credentials (found in Supabase Settings > API).
-3. Go to `services/firebaseConfig.ts`.
-4. Replace the `firebaseConfig` object with your actual Firebase project settings.
+## 🚀 Features
 
-## 3. Storage Setup (Firebase)
-1. Go to the [Firebase Console](https://console.firebase.google.com).
-2. Navigate to **Storage** and click "Get Started" to create a bucket.
-3. Go to the **Rules** tab.
-4. Copy the content of `firebase_storage.rules` and paste it there.
-5. **Important:** For a live production app, ensure you set up Firebase Authentication and remove the `|| true` condition in the rules to prevent public write access.
+- **Master Feed**: Comprehensive view of all social posts across clients and platforms.
+- **Workflow Management**: Toggle between Feed, **Calendar View**, and **Kanban Board** for seamless planning.
+- **Brand Kits**: Managed visual identities for clients, including custom logos and color palettes.
+- **Finance Module**: Automated invoicing, service tracking, and revenue reporting.
+- **Asset Library**: Integrated Firebase storage for high-quality media assets (images/videos).
+- **Daily Briefing**: Smart summaries to keep the team aligned on today's priorities.
+- **Dark Mode / Glassmorphism**: Premium UI designed for focus and productivity.
 
-## 4. Initial Login
-- **Email:** `admin@swave.agency`
-- **Password:** `admin123`
-- *Note:* You can change this password immediately in the "Team" settings tab after logging in.
+## 🛠 Tech Stack
 
-## 5. Troubleshooting
-### "invalid input syntax for type uuid" Error
-If you see an error regarding `svc_basic` or UUIDs when initializing the database (especially in the Finance module), it means the `services` table expects a strict UUID but the app uses readable text IDs.
+- **Frontend**: React 19, Vite, Tailwind CSS (Vanilla CSS focus)
+- **Icons**: Lucide React
+- **Backend & DB**: Supabase (PostgreSQL)
+- **Storage**: Firebase Storage
+- **Routing**: React Router DOM
 
-Run this SQL command in your Supabase SQL Editor to fix it:
-```sql
-ALTER TABLE services ALTER COLUMN id TYPE text;
+## 📂 Project Structure
+
+```text
+├── components/          # Reusable UI components (Master Feed, Finance, etc.)
+├── services/            # API clients (Supabase, Firebase, Local DB)
+├── types/               # TypeScript interfaces and enums
+├── App.tsx              # Main application entry and routing
+├── database_schema.sql  # Core database structure
+└── supabase_setup.sql   # Supplemental SQL fixes and RPCs
 ```
+
+## ⚙️ Setup Instructions
+
+### 1. Database (Supabase)
+1. Create a project at [Supabase](https://supabase.com).
+2. Run `database_schema.sql` in the SQL Editor.
+3. **Crucial Fix**: If your project uses text-based service IDs, run:
+   ```sql
+   ALTER TABLE services ALTER COLUMN id TYPE text;
+   ```
+
+### 2. Storage (Firebase)
+1. Create a bucket in [Firebase Console](https://console.firebase.google.com).
+2. Apply the rules from `firebase_storage.rules`.
+3. Update `services/firebaseConfig.ts` with your credentials.
+
+### 3. Connection
+Update `services/supabaseClient.ts` with your `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
+
+### 4. Local Development
+```bash
+npm install
+npm run dev
+```
+
+## 🔐 Credentials (Initial)
+- **Admin**: `admin@swave.agency` / `admin123`
+
+---
+*Built for Swave Social Growth Agency.*

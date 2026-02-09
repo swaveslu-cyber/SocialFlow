@@ -6,7 +6,7 @@ export type Platform = 'Instagram' | 'LinkedIn' | 'X' | 'Facebook' | 'TikTok';
 export type MediaType = 'image' | 'video';
 
 // RBAC Roles
-export type UserRole = 
+export type UserRole =
   | 'agency_admin'    // Full Access
   | 'agency_creator'  // Can create/edit, cannot delete/approve final
   | 'client_admin'    // Can approve, view finance (if enabled)
@@ -97,6 +97,7 @@ export interface Campaign {
 }
 
 export interface ClientProfile {
+  id: string;
   name: string;
   accessCode: string; // Legacy / API access
   email?: string;
